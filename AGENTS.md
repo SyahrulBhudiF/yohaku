@@ -11,11 +11,11 @@ features, or verifying changes.
 
 ## Effect source
 
-The Effect source is vendored at `repos/effect` (git subtree of
-`Effect-TS/effect`, `main`). When unsure about an Effect v4 API, read it there
+The Effect source is cloned at `repos/effect` (shallow clone of
+`Effect-TS/effect`, `main`; gitignored, not committed). When unsure about an Effect v4 API, read it there
 instead of guessing: `repos/effect/LLMS.md`, `repos/effect/ai-docs/`, and the
-package sources under `repos/effect/packages/`. Refresh it with
-`pnpm repos:sync`. Never edit files under `repos/`.
+package sources under `repos/effect/packages/`. Create or refresh it
+with `pnpm repos:sync` (`.agents/setup` runs it). Never edit files under `repos/`.
 
 ## Commands
 

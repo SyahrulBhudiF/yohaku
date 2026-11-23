@@ -13,5 +13,8 @@ fi
 
 pnpm install --frozen-lockfile
 
+# Effect source for agents to read (gitignored); not fatal if offline.
+pnpm repos:sync || true
+
 # oxlint's JS plugin host needs overcommit to allocate virtual memory.
 sudo -n sysctl vm.overcommit_memory=1 >/dev/null 2>&1 || true

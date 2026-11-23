@@ -18,3 +18,6 @@ todos.json
 # amp
 .amp/portals/*
 .amp/in
+
+# vendored upstream source for agents (pnpm repos:sync)
+repos

@@ -13,7 +13,7 @@ pnpm dev          # http://localhost:3000
 pnpm check        # format + lint + typecheck
 pnpm test:run
 pnpm build && pnpm start
-pnpm repos:sync   # vendor Effect source into repos/effect (after first commit)
+pnpm repos:sync   # clone Effect source into repos/effect (gitignored, for agents)
 ```
 
 Files are processed in memory and never stored. See `AGENTS.md` for conventions.

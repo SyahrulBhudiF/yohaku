@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
-# Vendors upstream source under repos/ with git subtree so agents can read it.
-# First run adds the subtree; later runs pull updates. Needs at least one commit.
+# Clones upstream source under repos/ (gitignored) so agents can read it.
+# First run clones; later runs update to the latest commit.
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
 sync() {
-  local prefix="$1" url="$2" ref="$3"
+  local dir="$1" url="$2" ref="$3"
 
-  if [ -d "$prefix" ]; then
-    git subtree pull --prefix="$prefix" "$url" "$ref" --squash
+  if [ -d "$dir/.git" ]; then
+    git -C "$dir" fetch --depth 1 origin "$ref"
+    git -C "$dir" reset --hard FETCH_HEAD
   else
-    git subtree add --prefix="$prefix" "$url" "$ref" --squash
+    git clone --depth 1 --branch "$ref" "$url" "$dir"
   fi
 }
 
