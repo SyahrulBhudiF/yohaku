@@ -35,8 +35,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       {
         rel: "icon",
-        href: "/favicon.ico",
-        sizes: "any",
+        type: "image/png",
+        href: "/yohaku-icon.png",
+        sizes: "512x512",
+      },
+      {
+        rel: "shortcut icon",
+        href: "/yohaku-icon.png",
+        type: "image/png",
       },
     ],
   }),

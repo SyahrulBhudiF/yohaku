@@ -14,7 +14,7 @@ export function SignPdfPage() {
   const { file, result } = model
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-normal tracking-tight">Sign PDF</h1>
         <p className="text-muted-foreground">
@@ -36,14 +36,14 @@ export function SignPdfPage() {
         </p>
       )}
       <p className="text-xs text-muted-foreground">
-        Visual signatures only, not cryptographic signatures. Export may invalidate existing digital
-        signatures. Encrypted PDFs are not supported.
+        Visual signatures only—not cryptographic signatures. Export may invalidate existing digital
+        signatures; encrypted PDFs are unsupported.
       </p>
       {file && (
         <>
           <Card size="sm">
-            <CardContent className="flex items-center gap-4 pt-4">
-              <div className="h-28 w-20 shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-outline-variant">
+            <CardContent className="flex items-center gap-4 p-3">
+              <div className="h-24 w-16 shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-outline-variant">
                 <PageThumbnail
                   fileId={file.id}
                   file={file.file}
