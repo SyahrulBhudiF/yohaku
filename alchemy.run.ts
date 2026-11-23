@@ -8,9 +8,7 @@ import * as Effect from "effect/Effect"
  * assets plus the SSR server bundle, so there is no Wrangler config.
  */
 export class Website extends Cloudflare.Website.Vite<Website>()("Website", {
-  // Pinning the zone lets the token skip Zone: Read; Alchemy attaches the
-  // custom domain and its DNS record through the zone ID.
-  domain: { name: "yohaku.ryuko.my.id", zoneId: "ee39ebd47c23ba4c6d4d49e21f7dde1a" },
+  domain: "yohaku.ryuko.my.id",
   env: {
     RATE_LIMIT: Cloudflare.RateLimit("RATE_LIMIT", {
       namespaceId: 1001,
