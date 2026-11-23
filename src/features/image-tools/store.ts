@@ -3,6 +3,7 @@ import { create } from "zustand"
 export interface ImageToolResult {
   readonly url: string
   readonly fileName: string
+  readonly mimeType: string
   readonly originalBytes: number
   readonly resultBytes: number
 }

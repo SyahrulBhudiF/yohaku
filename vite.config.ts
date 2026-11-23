@@ -6,6 +6,9 @@ import tailwindcss from "@tailwindcss/vite"
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
+  server: {
+    allowedHosts: [".onamp.dev"],
+  },
   optimizeDeps: {
     exclude: ["@jsquash/avif", "@jsquash/jpeg", "@jsquash/png", "@jsquash/webp"],
   },

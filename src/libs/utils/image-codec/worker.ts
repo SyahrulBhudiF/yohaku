@@ -1,8 +1,12 @@
+import type { AnimatedFormat } from "./animation"
+import { animationErrorMessage } from "./animation"
 import { decodeImage } from "./decode"
 import { detectImageFormat } from "./detect"
 import { encodeImage } from "./encode"
+import { transcodeGif } from "./gif"
 import { warmImageCodec } from "./preload"
 import type { TranscodeRequest, TranscodeResponse, WorkerRequest } from "./protocol"
+import { isAnimatedWebp, transcodeWebpAnimation } from "./webp-animation"
 
 interface WorkerScope {
   onmessage: ((event: MessageEvent<WorkerRequest>) => void) | null
@@ -20,6 +24,40 @@ const transcode = async (request: TranscodeRequest): Promise<TranscodeResponse> 
       id: request.id,
       ok: false,
       message: "The file is not a readable image.",
+    }
+  }
+
+  const animationTarget: AnimatedFormat | null =
+    request.format === "gif" || request.format === "webp" ? request.format : null
+  const animationSource: AnimatedFormat | null =
+    source === "gif" || (source === "webp" && isAnimatedWebp(request.bytes)) ? source : null
+
+  if (animationTarget !== null && animationSource !== null) {
+    const message = animationErrorMessage(animationSource, animationTarget)
+
+    try {
+      const data =
+        animationSource === "gif"
+          ? await transcodeGif(request.bytes, animationTarget, request.quality)
+          : await transcodeWebpAnimation(request.bytes, animationTarget, request.quality)
+
+      if (!data) {
+        return {
+          type: "transcode",
+          id: request.id,
+          ok: false,
+          message,
+        }
+      }
+
+      return { type: "transcode", id: request.id, ok: true, data, format: animationTarget }
+    } catch {
+      return {
+        type: "transcode",
+        id: request.id,
+        ok: false,
+        message,
+      }
     }
   }
 

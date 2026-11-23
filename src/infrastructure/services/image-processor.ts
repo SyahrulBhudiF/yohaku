@@ -2,12 +2,16 @@ import { Context, Effect, Layer } from "effect"
 
 import { ImageProcessingError, UnsupportedFormatError } from "@/infrastructure/errors/image"
 import type { ImageFormat } from "@/libs/schemas/image"
+import type { AnimatedFormat } from "@/libs/utils/image-codec/animation"
+import { animationErrorMessage } from "@/libs/utils/image-codec/animation"
 import {
   decodeImage,
   detectImageFormat,
   encodeImage,
   transcodeInWorker,
 } from "@/libs/utils/image-codec"
+import { transcodeGif } from "@/libs/utils/image-codec/gif"
+import { isAnimatedWebp, transcodeWebpAnimation } from "@/libs/utils/image-codec/webp-animation"
 
 export interface ProcessedImage {
   readonly data: Uint8Array<ArrayBuffer>
@@ -57,6 +61,28 @@ const transcode = Effect.fn("ImageProcessor.transcode")(function* (
   quality: number,
 ) {
   const source = yield* detectFormat(input)
+  const animationTarget: AnimatedFormat | null =
+    format === "gif" || format === "webp" ? format : null
+  const animationSource: AnimatedFormat | null =
+    source === "gif" || (source === "webp" && isAnimatedWebp(input)) ? source : null
+
+  if (animationTarget !== null && animationSource !== null) {
+    const message = animationErrorMessage(animationSource, animationTarget)
+    const data = yield* Effect.tryPromise({
+      try: () =>
+        animationSource === "gif"
+          ? transcodeGif(input, animationTarget, quality)
+          : transcodeWebpAnimation(input, animationTarget, quality),
+      catch: () => new ImageProcessingError({ message }),
+    })
+
+    if (!data) {
+      return yield* new ImageProcessingError({ message })
+    }
+
+    return { data, format: animationTarget }
+  }
+
   const image = yield* decode(input, source)
   const data = yield* encode(image, format, quality)
 

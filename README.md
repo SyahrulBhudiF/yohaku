@@ -1,7 +1,8 @@
 # Yohaku
 
-Centralized file tools in one web app. Today: convert images between formats and
-compress images. Planned: PDF merge/split, Word↔PDF, Excel→PDF.
+Centralized file tools in one web app. Today: convert images between formats,
+compress images, and merge or split PDFs. Planned: PDF to images, images to PDF,
+PDF compression, Word↔PDF, Excel→PDF.
 
 **Stack:** TanStack Start on Cloudflare Workers, Effect v4, shadcn + Base UI
 (Material Design 3), Zustand, Effect Schema contract, TS Go (`@effect/tsgo`),
@@ -18,8 +19,9 @@ pnpm repos:sync     # clone Effect source into repos/effect (gitignored, for age
 ```
 
 Images are converted and compressed in the browser with WebAssembly codecs
-(`@jsquash`), so files never leave the device and the app fits the Cloudflare
-Workers free plan (10 ms of CPU per request).
+(`@jsquash`), and PDFs are merged and split locally with qpdf compiled to
+WebAssembly. pdf.js renders the page thumbnails. Files never leave the device,
+so the app fits the Cloudflare Workers free plan (10 ms of CPU per request).
 
 ## Deploy
 

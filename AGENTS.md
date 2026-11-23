@@ -112,9 +112,11 @@ export class MyService extends Context.Service<
 - Cloudflare Workers Free allows 10 ms of CPU per request, so no server-side
   encoder can run there. Images are decoded and encoded in the browser behind
   the `ImageProcessor` service: `@jsquash` WebAssembly for PNG, JPEG, WebP and
-  AVIF, `gifenc`/`gifuct-js` for GIF, and `utif` for TIFF.
-- Supported formats are PNG, JPEG, WebP, AVIF, GIF and TIFF. Animated GIFs use
-  the first frame. PNG and TIFF are lossless; quality drives JPEG, WebP, AVIF
+  AVIF, `gifenc`/`gifuct-js` for GIF, `wasm-webp` for animated WebP, and `utif`
+  for TIFF.
+- Supported formats are PNG, JPEG, WebP, AVIF, GIF and TIFF. Animated GIFs and
+  WebPs keep their frames when the output is GIF or WebP; still outputs use the
+  first frame. PNG and TIFF are lossless; quality drives JPEG, WebP, AVIF
   and the GIF palette size.
 - Import codecs lazily (`await import("@jsquash/webp/encode")`) so each format
   loads only when used, and warm the selected encoder with

@@ -2,7 +2,7 @@ import { useForm } from "@tanstack/react-form"
 import { useMutation } from "@tanstack/react-query"
 import { Schema } from "effect"
 import { ArrowRightIcon, DownloadIcon, Loader2Icon, XIcon } from "lucide-react"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -43,6 +43,45 @@ const toChoice = (value: string | null): ImageToolFormValues["format"] | null =>
   }
 
   return value !== null && isImageFormat(value) ? value : null
+}
+
+const PREVIEWABLE_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/avif",
+  "image/gif",
+])
+
+function ResultPreview({
+  url,
+  mimeType,
+  fileName,
+}: {
+  readonly url: string
+  readonly mimeType: string
+  readonly fileName: string
+}) {
+  const [failed, setFailed] = useState(false)
+
+  if (!PREVIEWABLE_MIME_TYPES.has(mimeType) || failed) {
+    return (
+      <p className="text-sm">
+        {failed
+          ? "This result could not be previewed in your browser. Download it to view the file."
+          : "This format has no browser preview. Download the file to view it."}
+      </p>
+    )
+  }
+
+  return (
+    <img
+      src={url}
+      alt={`Result preview of ${fileName}`}
+      className="max-h-72 w-full rounded-md bg-surface-container object-contain"
+      onError={() => setFailed(true)}
+    />
+  )
 }
 
 export function ImageTool({
@@ -182,7 +221,8 @@ export function ImageTool({
                     />
                     <p className="text-xs text-muted-foreground">
                       PNG and TIFF are lossless. Quality sets JPEG, WebP and AVIF strength and the
-                      GIF palette.
+                      GIF palette. Animated GIFs and WebPs keep their frames when the output is GIF
+                      or WebP.
                     </p>
                     {field.state.meta.errors.length > 0 && (
                       <p role="alert" className="text-sm text-error">
@@ -205,6 +245,13 @@ export function ImageTool({
 
             {result && (
               <div className="flex flex-col gap-3 rounded-lg bg-tertiary-container p-4 text-on-tertiary-container">
+                <span className="text-sm font-medium">Result preview</span>
+                <ResultPreview
+                  key={result.url}
+                  url={result.url}
+                  mimeType={result.mimeType}
+                  fileName={result.fileName}
+                />
                 <div className="flex items-center gap-3 text-sm">
                   <span className="tabular-nums">{formatBytes(result.originalBytes)}</span>
                   <ArrowRightIcon className="size-4" />

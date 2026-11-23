@@ -3,9 +3,20 @@ import { Effect } from "effect"
 import { beforeAll } from "vitest"
 
 import { ImageProcessor } from "@/infrastructure/services/image-processor"
+import { decodeGifAnimation, transcodeGif } from "@/libs/utils/image-codec/gif"
+import { decodeWebpAnimation, isAnimatedWebp } from "@/libs/utils/image-codec/webp-animation"
+import { makeAnimatedGif, parseWebpChunks } from "../../support/gif"
 import { initImageCodecs, makePng } from "../../support/image-codecs"
 
 beforeAll(initImageCodecs, 60_000)
+
+const makeAnimatedWebp = async () => {
+  const webp = await transcodeGif(await makeAnimatedGif(), "webp", 80)
+
+  assert.isNotNull(webp)
+
+  return webp!
+}
 
 const run = <A, E>(effect: Effect.Effect<A, E, ImageProcessor>) =>
   Effect.provide(effect, ImageProcessor.layer)
@@ -166,6 +177,157 @@ describe("ImageProcessor", () => {
         const png = yield* processor.transcode(tiff.data, "png", 90)
 
         assert.strictEqual(yield* processor.detectFormat(png.data), "png")
+      }),
+    ),
+  )
+})
+
+describe("GIF animation", () => {
+  it("decodes every frame with its delay", async () => {
+    const input = await makeAnimatedGif()
+    const animation = await decodeGifAnimation(input)
+
+    assert.isNotNull(animation)
+    assert.lengthOf(animation!.frames, 3)
+    assert.deepEqual(
+      animation!.frames.map((frame) => frame.delayMs),
+      [100, 100, 100],
+    )
+  })
+
+  it.effect("keeps the animation when converting GIF to WebP", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* ImageProcessor
+        const input = yield* Effect.promise(() => makeAnimatedGif())
+        const output = yield* processor.transcode(input, "webp", 80)
+        const chunks = parseWebpChunks(output.data)
+        const header = chunks.find((chunk) => chunk.fourcc === "VP8X")
+        const animationFrames = chunks.filter((chunk) => chunk.fourcc === "ANMF")
+
+        assert.isDefined(header)
+        assert.isTrue(((header?.data[0] ?? 0) & 0x02) !== 0)
+        assert.lengthOf(animationFrames, 3)
+      }),
+    ),
+  )
+})
+
+it.effect("keeps the animation when re-encoding GIF", () =>
+  run(
+    Effect.gen(function* () {
+      const processor = yield* ImageProcessor
+      const input = yield* Effect.promise(() => makeAnimatedGif())
+      const output = yield* processor.transcode(input, "gif", 80)
+      const animation = yield* Effect.promise(() => decodeGifAnimation(output.data))
+
+      assert.isNotNull(animation)
+      assert.lengthOf(animation!.frames, 3)
+    }),
+  ),
+)
+
+it.effect("converts a single-frame GIF to WebP", () =>
+  run(
+    Effect.gen(function* () {
+      const processor = yield* ImageProcessor
+      const input = yield* Effect.promise(() => makeAnimatedGif(1))
+      const output = yield* processor.transcode(input, "webp", 80)
+
+      assert.strictEqual(output.format, "webp")
+      assert.strictEqual(yield* processor.detectFormat(output.data), "webp")
+    }),
+  ),
+)
+
+describe("Animated WebP", () => {
+  it.effect("detects animation only when the VP8X flag is set", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* ImageProcessor
+        const animated = yield* Effect.promise(makeAnimatedWebp)
+        const png = yield* Effect.promise(() => makePng())
+        const still = yield* processor.transcode(png, "webp", 80)
+
+        assert.isTrue(isAnimatedWebp(animated))
+        assert.isFalse(isAnimatedWebp(still.data))
+      }),
+    ),
+  )
+
+  it("decodes every frame with its delay", async () => {
+    const animation = await decodeWebpAnimation(await makeAnimatedWebp())
+
+    assert.isNotNull(animation)
+    assert.lengthOf(animation!.frames, 3)
+    assert.deepEqual(
+      animation!.frames.map((frame) => frame.delayMs),
+      [100, 100, 100],
+    )
+  })
+
+  it.effect("keeps the animation when converting animated WebP to GIF", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* ImageProcessor
+        const webp = yield* Effect.promise(makeAnimatedWebp)
+        const gif = yield* processor.transcode(webp, "gif", 80)
+        const animation = yield* Effect.promise(() => decodeGifAnimation(gif.data))
+
+        assert.strictEqual(gif.format, "gif")
+        assert.isNotNull(animation)
+        assert.lengthOf(animation!.frames, 3)
+        assert.deepEqual(
+          animation!.frames.map((frame) => frame.delayMs),
+          [100, 100, 100],
+        )
+      }),
+    ),
+  )
+
+  it.effect("keeps the animation when re-encoding animated WebP", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* ImageProcessor
+        const webp = yield* Effect.promise(makeAnimatedWebp)
+        const output = yield* processor.transcode(webp, "webp", 60)
+        const chunks = parseWebpChunks(output.data)
+        const header = chunks.find((chunk) => chunk.fourcc === "VP8X")
+
+        assert.isDefined(header)
+        assert.isTrue(((header?.data[0] ?? 0) & 0x02) !== 0)
+        assert.lengthOf(
+          chunks.filter((chunk) => chunk.fourcc === "ANMF"),
+          3,
+        )
+      }),
+    ),
+  )
+
+  it.effect("uses the first frame for a still output", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* ImageProcessor
+        const webp = yield* Effect.promise(makeAnimatedWebp)
+        const png = yield* processor.transcode(webp, "png", 90)
+
+        assert.strictEqual(png.format, "png")
+        assert.strictEqual(yield* processor.detectFormat(png.data), "png")
+      }),
+    ),
+  )
+
+  it.effect("keeps a still WebP still when converting to GIF", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* ImageProcessor
+        const png = yield* Effect.promise(() => makePng())
+        const webp = yield* processor.transcode(png, "webp", 80)
+        const gif = yield* processor.transcode(webp.data, "gif", 80)
+        const animation = yield* Effect.promise(() => decodeGifAnimation(gif.data))
+
+        assert.isNotNull(animation)
+        assert.lengthOf(animation!.frames, 1)
       }),
     ),
   )
