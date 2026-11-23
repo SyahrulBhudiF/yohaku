@@ -11,6 +11,12 @@ export class Website extends Cloudflare.Website.Vite<Website>()("Website", {
   // Pinning the zone lets the token skip Zone: Read; Alchemy attaches the
   // custom domain and its DNS record through the zone ID.
   domain: { name: "yohaku.ryuko.my.id", zoneId: "ee39ebd47c23ba4c6d4d49e21f7dde1a" },
+  env: {
+    RATE_LIMIT: Cloudflare.RateLimit("RATE_LIMIT", {
+      namespaceId: 1001,
+      simple: { limit: 60, period: 60 },
+    }),
+  },
 }) {}
 
 export default Alchemy.Stack(

@@ -193,6 +193,9 @@ not have one.
   Cloudflare`) or `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`.
 - The Worker serves `yohaku.ryuko.my.id`; Alchemy owns the DNS record and edge
   certificate, so the zone must be in the same Cloudflare account.
+- `src/start.ts` holds global request middleware. Document requests are rate
+  limited per IP with the `RATE_LIMIT` binding (60 per 60 s) declared in
+  `alchemy.run.ts`; static assets bypass the Worker and are not counted.
 - `pnpm run deploy` targets the `prod` stage; `pnpm run destroy` removes it.
 - Pushes to `main` deploy through `.github/workflows/ci.yml` after the check job
   passes. It reads `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` from
