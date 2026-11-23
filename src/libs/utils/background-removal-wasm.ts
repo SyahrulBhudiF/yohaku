@@ -5,9 +5,8 @@ import init, {
 let ready: Promise<unknown> | null = null
 
 /**
- * Runs the Rust matte core when its small WASM module is available. The caller
- * keeps the JS matte as a fallback so a missing or failed WASM load never
- * breaks the tool.
+ * Runs the Rust matte core. The caller reports a tagged error when the module
+ * fails; there is no JS matte fallback.
  */
 export const removeBackgroundWasm = async (
   data: Uint8ClampedArray,

@@ -5,6 +5,7 @@ import { PdfProcessor } from "@/infrastructure/services/pdf-processor"
 import type { ImagePdfPageSize } from "@/libs/schemas/pdf"
 import type { PdfImageInput } from "@/libs/utils/pdf/images-to-pdf"
 import { initImageCodecs, makePng } from "../../support/image-codecs"
+import { initImagePdf } from "../../support/image-pdf"
 
 const run = (images: ReadonlyArray<PdfImageInput>, pageSize: ImagePdfPageSize) =>
   Effect.runPromise(
@@ -28,6 +29,7 @@ let jpegs: ReadonlyArray<PdfImageInput>
 
 beforeAll(async () => {
   await initImageCodecs()
+  initImagePdf()
 
   const png = await makePng(1200, 800)
   const decode = (await import("@jsquash/png/decode")).default

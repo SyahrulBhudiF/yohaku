@@ -1,0 +1,20 @@
+{
+  "name": "image-pdf-core",
+  "type": "module",
+  "description": "Build image-only PDFs from PNG and JPEG bytes.",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SyahrulBhudiF/yohaku"
+  },
+  "files": [
+    "image_pdf_core_bg.wasm",
+    "image_pdf_core.js",
+    "image_pdf_core.d.ts"
+  ],
+  "main": "image_pdf_core.js",
+  "types": "image_pdf_core.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

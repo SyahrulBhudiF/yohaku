@@ -128,19 +128,25 @@ export class MyService extends Context.Service<
   for the codec packages in `vite.config.ts`.
 - Codec helpers live in `src/libs/utils/image-codec/` (detect, decode, encode,
   preload); `ImageProcessor` only orchestrates detect → decode → encode.
-- Background removal is non-AI. The fast path is
+- Background removal is non-AI. The only matte is
   `packages/background-removal-core` (Rust/WASM): it samples the border colour,
   grows a border-connected mask, feathers it with a one-pixel box blur, and
   de-spills edge pixels. `background-removal-wasm.ts` loads the 26 KB module;
-  `background-removal-solid.ts` keeps the JS matte as a fallback.
-  `background-removal-worker.ts` keeps both paths off the main thread. It
-  targets uniform studio backgrounds; no model is downloaded.
+  `background-removal-solid.ts` only decodes the image and encodes the result.
+  `background-removal-worker.ts` keeps the Rust path off the main thread. It
+  targets uniform studio backgrounds; no model or JS matte fallback exists.
 - Image to SVG is an output option in the existing image converter, not a
   separate tool. It uses `imagetracerjs` on a canvas-decoded image capped at
-  `MAX_VECTOR_SIDE` (1024 px); presets are a contract: high 64 colors, balanced
-  32, line 2.
-- Both paths cap input at `MAX_IMAGE_PIXELS` (24 MP) and process in memory;
-  never upload the source image. Keep the vectorizer module lazy-loaded.
+  `MAX_VECTOR_SIDE` (1024 px); presets are high, balanced, and line. The Rust
+  `vtracer` path was evaluated but reverted because its photographic output was
+  too posterized.
+- Image to PDF uses `packages/image-pdf-core` (Rust/WASM): PNG is decoded and
+  Flate-compressed, JPEG stays DCT-encoded, and page geometry is stored in a
+  `soa-rs` `Soa<PageLayout>`. The browser path does not call pdf-lib; pdf-lib is
+  only a test dependency for loading generated PDFs.
+- All three paths cap input at `MAX_IMAGE_PIXELS` (24 MP) where applicable and
+  process in memory; never upload the source image. Keep the Rust packages
+  lazy-loaded.
 - Files are processed in memory and never uploaded or stored.
 - Node cannot fetch the codecs' `file://` wasm. Tests call
   `initImageCodecs()` from `tests/support/image-codecs.ts` before using the
@@ -154,8 +160,9 @@ export class MyService extends Context.Service<
   with pdf.js at 72/150/300 DPI. PNG and JPEG use the browser's native canvas
   encoder; WebP/AVIF/GIF/TIFF encode through a bounded `ImageProcessor` worker
   pool with pipelined rendering.
-- Image to PDF assembles pages with `pdf-lib`. PNG and upright JPEG bytes are
-  embedded as-is; rotated JPEGs and other formats are normalized first.
+- Image to PDF is assembled by `packages/image-pdf-core`. PNG is decoded and
+  Flate-compressed; upright JPEG stays byte-for-byte DCT-encoded; rotated JPEGs
+  and other formats are normalized first.
 - dnd-kit orders PDF pages and image-to-PDF cards. OS file drops stay on native
   `drop` events because dnd-kit only tracks in-app drags.
 

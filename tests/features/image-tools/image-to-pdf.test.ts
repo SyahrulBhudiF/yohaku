@@ -5,8 +5,12 @@ import { beforeAll } from "vitest"
 import { processImagesToPdf } from "@/features/image-tools/process"
 import type { ImagePdfFileEntry } from "@/features/image-tools/store"
 import { initImageCodecs, makePng } from "../../support/image-codecs"
+import { initImagePdf } from "../../support/image-pdf"
 
-beforeAll(initImageCodecs, 60_000)
+beforeAll(async () => {
+  await initImageCodecs()
+  initImagePdf()
+}, 60_000)
 
 const makeEntry = async (name: string, width = 120, height = 80): Promise<ImagePdfFileEntry> => {
   const data = await makePng(width, height)
@@ -83,6 +87,32 @@ describe("processImagesToPdf", () => {
     const file = new File([jpeg], "photo.jpg", { type: "image/jpeg" })
     const output = await processImagesToPdf({
       files: [{ id: "photo", file, name: file.name, size: file.size, previewUrl: "" }],
+      mode: "one",
+      pageSize: "fit",
+      quality: 90,
+    })
+    const document = await loadPdf(new Uint8Array(await output.blob.arrayBuffer()))
+
+    assert.strictEqual(document.getPageCount(), 1)
+  })
+
+  it("embeds a transparent PNG", async () => {
+    const encode = (await import("@jsquash/png/encode")).default
+    const pixels = new Uint8ClampedArray(40 * 30 * 4)
+
+    for (let index = 0; index < 40 * 30; index++) {
+      const offset = index * 4
+
+      pixels[offset] = 200
+      pixels[offset + 1] = 80
+      pixels[offset + 2] = 40
+      pixels[offset + 3] = index % 3 === 0 ? 0 : 180
+    }
+
+    const png = new Uint8Array(await encode(new ImageData(pixels, 40, 30)))
+    const file = new File([png], "transparent.png", { type: "image/png" })
+    const output = await processImagesToPdf({
+      files: [{ id: "transparent", file, name: file.name, size: file.size, previewUrl: "" }],
       mode: "one",
       pageSize: "fit",
       quality: 90,

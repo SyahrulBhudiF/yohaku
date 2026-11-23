@@ -4,9 +4,13 @@ import { beforeAll } from "vitest"
 
 import { PdfProcessor } from "@/infrastructure/services/pdf-processor"
 import { initImageCodecs, makePng } from "../../support/image-codecs"
+import { initImagePdf } from "../../support/image-pdf"
 import { extractPdfText, fixtureFile } from "../../support/pdf"
 
-beforeAll(initImageCodecs, 60_000)
+beforeAll(async () => {
+  await initImageCodecs()
+  initImagePdf()
+}, 60_000)
 
 const run = <A, E>(effect: Effect.Effect<A, E, PdfProcessor>) =>
   Effect.provide(effect, PdfProcessor.layer)

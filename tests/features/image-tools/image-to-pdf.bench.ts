@@ -3,6 +3,7 @@ import { beforeAll, test } from "vitest"
 import { processImagesToPdf } from "@/features/image-tools/process"
 import type { ImagePdfFileEntry } from "@/features/image-tools/store"
 import { initImageCodecs, makePng } from "../../support/image-codecs"
+import { initImagePdf } from "../../support/image-pdf"
 
 const IMAGE_COUNT = 10
 
@@ -26,6 +27,7 @@ let jpegFiles: ReadonlyArray<ImagePdfFileEntry>
 
 beforeAll(async () => {
   await initImageCodecs()
+  initImagePdf()
 
   const png = await makePng(1200, 800)
   const decode = (await import("@jsquash/png/decode")).default

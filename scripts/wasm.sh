@@ -14,14 +14,18 @@ case "${1:-build}" in
       --out-dir ../../src/libs/wasm/xlsx-pdf-core
     wasm-pack build packages/background-removal-core --target web --release \
       --out-dir ../../src/libs/wasm/background-removal-core
+    wasm-pack build packages/image-pdf-core --target web --release \
+      --out-dir ../../src/libs/wasm/image-pdf-core
     # wasm-pack marks its output directory with a catch-all .gitignore and
     # copies the crate README. The generated packages are committed instead.
     rm -f src/libs/wasm/xlsx-pdf-core/.gitignore src/libs/wasm/xlsx-pdf-core/README.md
     rm -f src/libs/wasm/background-removal-core/.gitignore src/libs/wasm/background-removal-core/README.md
+    rm -f src/libs/wasm/image-pdf-core/.gitignore src/libs/wasm/image-pdf-core/README.md
     ;;
   test)
     cargo test --manifest-path packages/xlsx-pdf-core/Cargo.toml
     cargo test --manifest-path packages/background-removal-core/Cargo.toml
+    cargo test --manifest-path packages/image-pdf-core/Cargo.toml
     ;;
   *)
     echo "usage: $0 [build|test]" >&2

@@ -23,11 +23,13 @@ pnpm repos:sync     # clone Effect source into repos/effect (gitignored, for age
 
 Images are converted and compressed in the browser with WebAssembly codecs
 (`@jsquash`), and PDFs are merged and split locally with qpdf compiled to
-WebAssembly. pdf.js renders pages for PDF to image, and pdf-lib assembles
-image-only PDFs. Excel→PDF uses a Rust/WASM core in `packages/xlsx-pdf-core`
-(`calamine` + `pdf-writer`) with a flat span arena and a `soa-rs` column table.
-Background removal is non-AI: a Rust/WASM core samples the border colour, grows
-a border-connected mask, and feathers a despilled alpha matte for uniform studio
+WebAssembly. pdf.js renders pages for PDF to image. Image-only PDFs are written
+by the Rust/WASM `packages/image-pdf-core` (`png`, `jpeg-decoder`,
+`pdf-writer`), with page geometry stored as a `soa-rs` struct-of-arrays table.
+Excel→PDF uses `packages/xlsx-pdf-core` (`calamine` + `pdf-writer`) with a flat
+span arena and a `soa-rs` column table. Background removal is non-AI:
+`packages/background-removal-core` samples the border colour, grows a
+border-connected mask, and feathers a despilled alpha matte for uniform studio
 backgrounds. Image to SVG is an output format in the image converter; it traces
 up to 1024 px with `imagetracerjs` (Unlicense).
 Files never leave the device, so the app fits the Cloudflare Workers free plan

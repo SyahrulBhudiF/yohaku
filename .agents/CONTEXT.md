@@ -31,14 +31,15 @@ conversion, and PDF to Excel are not built yet.
    request, so no native or WASM encoder can run on the server. Image work uses
    `@jsquash` codecs in the browser behind `ImageProcessor`; PDF merge/split uses
    `@mssio/qpdf-wasm` behind `PdfProcessor`, pdf.js renders pages for PDF to
-   image, and pdf-lib writes image-only PDFs. PDF to image uses the native
-   canvas encoder for PNG/JPEG and a bounded worker pool for the other formats.
-   Excel to PDF uses a Rust/WASM core (`calamine` + `pdf-writer`) that reads
-   rows into a flat span arena and writes compressed PDF tables. Background
-   removal uses a border-colour matte in a module worker, backed by the
-   `background-removal-core` Rust/WASM package, with no model download. Image to
-   SVG is an output option in the image converter and uses `imagetracerjs` on a
-   canvas-decoded image. The Worker only serves the app.
+   image, and the `image-pdf-core` Rust/WASM package writes image-only PDFs. PDF
+   to image uses the native canvas encoder for PNG/JPEG and a bounded worker
+   pool for the other formats. Excel to PDF uses a Rust/WASM core (`calamine` +
+   `pdf-writer`) that reads rows into a flat span arena and writes compressed PDF
+   tables. Background removal uses a border-colour matte in a module worker,
+   backed by the `background-removal-core` Rust/WASM package, with no model or JS
+   fallback. Image to SVG is an output option in the image converter and uses
+   `imagetracerjs`; the Rust VTracer experiment was reverted for photographic
+   quality. The Worker only serves the app.
    This keeps the app free, fast, and private.
 7. **Shared UI boundary.** Primitives under `src/components/ui/` wrap Base UI and
    follow Material Design 3. Feature UI lives under `src/features/`.
@@ -73,10 +74,11 @@ conversion, and PDF to Excel are not built yet.
     Merge uses `--empty --pages` and split uses qpdf's page selection; bookmarks
     and forms are not preserved. Image to PDF embeds PNG and upright JPEG bytes
     as-is, and normalizes rotated JPEGs and other formats through
-    `ImageProcessor` before pdf-lib writes the pages.
+    `ImageProcessor` before `image-pdf-core` writes the pages.
 16. **Rust/WASM cores are narrow and committed.** Excel to PDF keeps parsing and
     PDF writing in `packages/xlsx-pdf-core`; background removal keeps its matte
-    in `packages/background-removal-core`. Generated packages under
-    `src/libs/wasm/` are committed so the app build does not need Rust. CI runs
-    the crate tests. Run `pnpm wasm:build` after changing either Rust source and
-    `pnpm wasm:test` for the native crate tests.
+    in `packages/background-removal-core`; image-to-PDF assembly lives in
+    `packages/image-pdf-core`. Generated packages under `src/libs/wasm/` are
+    committed so the app build does not need Rust. CI runs the crate tests. Run
+    `pnpm wasm:build` after changing any Rust source and `pnpm wasm:test` for
+    the native crate tests.
