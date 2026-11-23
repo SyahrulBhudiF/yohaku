@@ -6,6 +6,7 @@ import {
   ImageUpIcon,
   RepeatIcon,
   ScissorsIcon,
+  WandSparklesIcon,
   type LucideIcon,
 } from "lucide-react"
 
@@ -21,6 +22,7 @@ export interface ToolDefinition {
     | "/image/convert"
     | "/image/compress"
     | "/image/to-pdf"
+    | "/image/remove-background"
     | "/pdf/merge"
     | "/pdf/split"
     | "/pdf/to-image"
@@ -33,7 +35,7 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
   {
     id: "image-convert",
     title: "Convert image",
-    description: "Switch between PNG, JPEG, WebP, AVIF, GIF and TIFF.",
+    description: "Switch between PNG, JPEG, WebP, AVIF, GIF and TIFF, or trace to SVG.",
     icon: RepeatIcon,
     category: "image",
     to: "/image/convert",
@@ -53,6 +55,14 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     icon: FilePlus2Icon,
     category: "image",
     to: "/image/to-pdf",
+  },
+  {
+    id: "image-remove-background",
+    title: "Remove background",
+    description: "Cut out the subject and download a transparent PNG.",
+    icon: WandSparklesIcon,
+    category: "image",
+    to: "/image/remove-background",
   },
   {
     id: "pdf-merge",

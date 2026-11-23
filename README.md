@@ -1,9 +1,9 @@
 # Yohaku
 
 Centralized file tools in one web app. Today: convert and compress images,
-merge or split PDFs, render PDF pages as images, combine images into PDFs, and
-turn Excel workbooks into PDFs. Planned: PDF compression, Word↔PDF, and
-PDF→Excel.
+remove image backgrounds, trace images to SVG, merge or split PDFs, render PDF
+pages as images, combine images into PDFs, and turn Excel workbooks into PDFs.
+Planned: PDF compression, Word↔PDF, and PDF→Excel.
 
 **Stack:** TanStack Start on Cloudflare Workers, Effect v4, shadcn + Base UI
 (Material Design 3), Zustand, Effect Schema contract, TS Go (`@effect/tsgo`),
@@ -15,7 +15,7 @@ pnpm dev            # http://localhost:3000
 pnpm check          # format + lint + typecheck
 pnpm test:run
 pnpm build
-pnpm wasm:build     # rebuild the Excel→PDF Rust/WASM core (needs wasm-pack)
+pnpm wasm:build     # rebuild the Rust/WASM cores (needs wasm-pack)
 pnpm wasm:test      # run the Rust core tests
 pnpm run deploy     # alchemy deploy --stage prod
 pnpm repos:sync     # clone Effect source into repos/effect (gitignored, for agents)
@@ -26,6 +26,10 @@ Images are converted and compressed in the browser with WebAssembly codecs
 WebAssembly. pdf.js renders pages for PDF to image, and pdf-lib assembles
 image-only PDFs. Excel→PDF uses a Rust/WASM core in `packages/xlsx-pdf-core`
 (`calamine` + `pdf-writer`) with a flat span arena and a `soa-rs` column table.
+Background removal is non-AI: a Rust/WASM core samples the border colour, grows
+a border-connected mask, and feathers a despilled alpha matte for uniform studio
+backgrounds. Image to SVG is an output format in the image converter; it traces
+up to 1024 px with `imagetracerjs` (Unlicense).
 Files never leave the device, so the app fits the Cloudflare Workers free plan
 (10 ms of CPU per request).
 

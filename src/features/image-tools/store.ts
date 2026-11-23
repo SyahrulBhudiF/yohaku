@@ -128,3 +128,52 @@ export const useImageToPdfStore = create<ImagePdfState>()((set, get) => ({
     set({ files: [], result: null })
   },
 }))
+
+export interface ImageResult {
+  readonly url: string
+  readonly fileName: string
+  readonly mimeType: string
+  readonly bytes: number
+  readonly inputBytes: number
+  readonly width: number
+  readonly height: number
+}
+
+type ImageResultInput = Omit<ImageResult, "url"> & { readonly blob: Blob }
+
+interface ImageResultState {
+  readonly file: File | null
+  readonly previewUrl: string | null
+  readonly result: ImageResult | null
+  readonly setFile: (file: File | null) => void
+  readonly setResult: (result: ImageResultInput) => void
+  readonly clearResult: () => void
+  readonly reset: () => void
+}
+
+const createImageResultStore = () =>
+  create<ImageResultState>()((set, get) => ({
+    file: null,
+    previewUrl: null,
+    result: null,
+    setFile: (file) => {
+      revoke(get().previewUrl)
+      revoke(get().result?.url)
+      set({ file, previewUrl: file ? URL.createObjectURL(file) : null, result: null })
+    },
+    setResult: ({ blob, ...result }) => {
+      revoke(get().result?.url)
+      set({ result: { ...result, url: URL.createObjectURL(blob) } })
+    },
+    clearResult: () => {
+      revoke(get().result?.url)
+      set({ result: null })
+    },
+    reset: () => {
+      revoke(get().previewUrl)
+      revoke(get().result?.url)
+      set({ file: null, previewUrl: null, result: null })
+    },
+  }))
+
+export const useRemoveBackgroundStore = createImageResultStore()

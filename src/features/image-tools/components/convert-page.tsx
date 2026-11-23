@@ -7,8 +7,9 @@ export function ConvertPage() {
       mode="convert"
       useStore={useConvertStore}
       title="Convert image"
-      description="Pick a file and the format you want. Everything runs in your browser."
+      description="Pick a file and the format you want, including SVG. Everything runs in your browser."
       allowOriginalFormat={false}
+      allowSvg
       actionLabel="Convert"
     />
   )

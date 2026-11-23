@@ -1,0 +1,20 @@
+{
+  "name": "background-removal-core",
+  "type": "module",
+  "description": "Fast non-AI background removal for uniform studio backgrounds.",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SyahrulBhudiF/yohaku"
+  },
+  "files": [
+    "background_removal_core_bg.wasm",
+    "background_removal_core.js",
+    "background_removal_core.d.ts"
+  ],
+  "main": "background_removal_core.js",
+  "types": "background_removal_core.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

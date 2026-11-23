@@ -1,20 +1,25 @@
 import { Effect } from "effect"
 import { zipSync } from "fflate"
 
-import { FileTooLargeError } from "@/infrastructure/errors/image"
+import { FileTooLargeError, ImageProcessingError } from "@/infrastructure/errors/image"
 import { PdfProcessingError } from "@/infrastructure/errors/pdf"
 import { runEffect } from "@/infrastructure/runtime"
 import { ImageProcessor } from "@/infrastructure/services/image-processor"
 import { PdfProcessor } from "@/infrastructure/services/pdf-processor"
+import { removeBackground } from "@/libs/utils/background-removal"
+import { readImageSize } from "@/libs/utils/image-decode"
 import { detectImageFormat, preloadImageCodec } from "@/libs/utils/image-codec"
+import { vectorizeImage } from "@/libs/utils/image-vectorizer"
 import { jpegOrientation } from "@/libs/utils/image-codec/jpeg"
 import {
   IMAGE_EXTENSION,
   IMAGE_MIME,
+  MAX_IMAGE_PIXELS,
   MAX_IMAGE_BYTES,
   MAX_IMAGE_FILES,
   MAX_IMAGE_TOTAL_BYTES,
   type ImageFormat,
+  type VectorPreset,
 } from "@/libs/schemas/image"
 import type { ImagePdfMode, ImagePdfPageSize } from "@/libs/schemas/pdf"
 import type { PdfImageInput } from "@/libs/utils/pdf/images-to-pdf"
@@ -234,3 +239,117 @@ const imageToPdfProgram = (input: ImageToPdfInput) =>
 
 export const processImagesToPdf = (input: ImageToPdfInput): Promise<ImageToPdfOutput> =>
   runEffect(imageToPdfProgram(input))
+
+export interface RemoveBackgroundInput {
+  readonly file: File
+}
+
+export interface RemoveBackgroundOutput {
+  readonly blob: Blob
+  readonly fileName: string
+  readonly mimeType: string
+  readonly bytes: number
+  readonly inputBytes: number
+  readonly width: number
+  readonly height: number
+}
+
+export const removeImageBackground = (
+  input: RemoveBackgroundInput,
+): Promise<RemoveBackgroundOutput> =>
+  runEffect(
+    Effect.gen(function* () {
+      if (input.file.size > MAX_IMAGE_BYTES) {
+        return yield* new ImageProcessingError({
+          message: `Images can be at most ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`,
+        })
+      }
+
+      const size = yield* Effect.tryPromise({
+        try: () => readImageSize(input.file),
+        catch: () =>
+          new ImageProcessingError({
+            message: "Could not read this image. Try a PNG, JPEG, or WebP.",
+          }),
+      })
+
+      if (size.width * size.height > MAX_IMAGE_PIXELS) {
+        return yield* new ImageProcessingError({
+          message: "Use an image under 24 megapixels for background removal.",
+        })
+      }
+
+      const blob = yield* removeBackground(input.file)
+
+      const outputSize = yield* Effect.tryPromise({
+        try: () => readImageSize(blob),
+        catch: () =>
+          new ImageProcessingError({
+            message: "Could not read the transparent PNG.",
+          }),
+      })
+
+      return {
+        blob,
+        fileName: `${fileBaseName(input.file.name)}-transparent.png`,
+        mimeType: "image/png",
+        bytes: blob.size,
+        inputBytes: input.file.size,
+        width: outputSize.width,
+        height: outputSize.height,
+      }
+    }),
+  )
+
+export interface VectorizeImageInput {
+  readonly file: File
+  readonly preset: VectorPreset
+}
+
+export interface VectorizeImageOutput {
+  readonly blob: Blob
+  readonly fileName: string
+  readonly mimeType: string
+  readonly bytes: number
+  readonly inputBytes: number
+  readonly width: number
+  readonly height: number
+}
+
+export const vectorizeImageToSvg = (input: VectorizeImageInput): Promise<VectorizeImageOutput> =>
+  runEffect(
+    Effect.gen(function* () {
+      if (input.file.size > MAX_IMAGE_BYTES) {
+        return yield* new ImageProcessingError({
+          message: `Images can be at most ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`,
+        })
+      }
+
+      const size = yield* Effect.tryPromise({
+        try: () => readImageSize(input.file),
+        catch: () =>
+          new ImageProcessingError({
+            message: "Could not read this image. Try a PNG, JPEG, or WebP.",
+          }),
+      })
+
+      if (size.width * size.height > MAX_IMAGE_PIXELS) {
+        return yield* new ImageProcessingError({
+          message: "Use an image under 24 megapixels for SVG tracing.",
+        })
+      }
+
+      const traced = yield* vectorizeImage(input.file, input.preset)
+      const blob = new Blob([traced.svg], { type: "image/svg+xml" })
+
+      return {
+        blob,
+        fileName: `${fileBaseName(input.file.name)}.svg`,
+        mimeType: "image/svg+xml",
+        bytes: blob.size,
+        inputBytes: input.file.size,
+        width: traced.width,
+        height: traced.height,
+      }
+    }),
+  )

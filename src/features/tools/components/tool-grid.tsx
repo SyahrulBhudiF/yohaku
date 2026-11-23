@@ -12,7 +12,7 @@ const SECTIONS: ReadonlyArray<{
   {
     id: "image",
     title: "Image tools",
-    description: "Convert, compress, and turn images into PDFs.",
+    description: "Convert, compress, cut out, vectorize, and turn images into PDFs.",
   },
   {
     id: "pdf",

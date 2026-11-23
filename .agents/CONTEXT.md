@@ -5,9 +5,9 @@ Read this with the root `AGENTS.md` before making architectural changes.
 ## What
 
 Yohaku is a single TanStack Start app that hosts small file utilities. Image
-convert and compress, PDF merge and split, PDF to image, image to PDF, and
-Excel to PDF ship today. PDF compression, Word conversion, and PDF to Excel are
-not built yet.
+convert and compress, background removal, image to SVG, PDF merge and split,
+PDF to image, image to PDF, and Excel to PDF ship today. PDF compression, Word
+conversion, and PDF to Excel are not built yet.
 
 ## Architecture decisions
 
@@ -34,8 +34,12 @@ not built yet.
    image, and pdf-lib writes image-only PDFs. PDF to image uses the native
    canvas encoder for PNG/JPEG and a bounded worker pool for the other formats.
    Excel to PDF uses a Rust/WASM core (`calamine` + `pdf-writer`) that reads
-   rows into a flat span arena and writes compressed PDF tables. The Worker only
-   serves the app. This keeps the app free, fast, and private.
+   rows into a flat span arena and writes compressed PDF tables. Background
+   removal uses a border-colour matte in a module worker, backed by the
+   `background-removal-core` Rust/WASM package, with no model download. Image to
+   SVG is an output option in the image converter and uses `imagetracerjs` on a
+   canvas-decoded image. The Worker only serves the app.
+   This keeps the app free, fast, and private.
 7. **Shared UI boundary.** Primitives under `src/components/ui/` wrap Base UI and
    follow Material Design 3. Feature UI lives under `src/features/`.
 8. **Query, Form, Zustand.** TanStack Query runs mutations, TanStack Form owns
@@ -56,8 +60,10 @@ not built yet.
     browser.
 13. **Data-oriented hot paths.** Pixels and bytes are flat typed arrays, hot
     loops avoid per-pixel allocations, and a buffer is copied once at the
-    boundary that needs it. `pnpm bench` measures the codecs; AVIF encodes at
-    `speed: 9` (default 6 is ~9x slower), WebP at `method: 2` (default 4 is
+    boundary that needs it. The solid-background matte keeps alpha in a flat
+    plane and feathers it with a one-pixel box blur; image-to-SVG works on one
+    decoded `ImageData` buffer. `pnpm bench` measures the codecs; AVIF encodes
+    at `speed: 9` (default 6 is ~9x slower), WebP at `method: 2` (default 4 is
     ~2x slower), and JPEG with `progressive: false` (~2x faster, ~1% larger).
 14. **Tagged errors only.** No plain `Error` in `src/`; codec and PDF
     exceptions are mapped to tagged errors at the `Effect.tryPromise` boundary.
@@ -69,7 +75,8 @@ not built yet.
     as-is, and normalizes rotated JPEGs and other formats through
     `ImageProcessor` before pdf-lib writes the pages.
 16. **Rust/WASM cores are narrow and committed.** Excel to PDF keeps parsing and
-    PDF writing in `packages/xlsx-pdf-core`; the generated package under
-    `src/libs/wasm/` is committed so the app build does not need Rust. CI runs
-    the crate tests. Run `pnpm wasm:build` after changing the Rust source and
+    PDF writing in `packages/xlsx-pdf-core`; background removal keeps its matte
+    in `packages/background-removal-core`. Generated packages under
+    `src/libs/wasm/` are committed so the app build does not need Rust. CI runs
+    the crate tests. Run `pnpm wasm:build` after changing either Rust source and
     `pnpm wasm:test` for the native crate tests.

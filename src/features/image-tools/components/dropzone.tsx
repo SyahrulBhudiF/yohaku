@@ -11,6 +11,7 @@ interface DropzoneProps {
   readonly disabled?: boolean
   readonly label?: string
   readonly hint?: string
+  readonly accept?: string
 }
 
 export function Dropzone({
@@ -20,6 +21,7 @@ export function Dropzone({
   disabled = false,
   label,
   hint,
+  accept: acceptedTypes = "image/*",
 }: DropzoneProps) {
   const input = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
@@ -84,7 +86,7 @@ export function Dropzone({
       <input
         ref={input}
         type="file"
-        accept="image/*"
+        accept={acceptedTypes}
         multiple={multiple}
         hidden
         onChange={(event) => {

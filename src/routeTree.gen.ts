@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ExcelToPdfRouteImport } from './routes/excel/to-pdf'
 import { Route as ImageCompressRouteImport } from './routes/image/compress'
 import { Route as ImageConvertRouteImport } from './routes/image/convert'
+import { Route as ImageRemoveBackgroundRouteImport } from './routes/image/remove-background'
 import { Route as ImageToPdfRouteImport } from './routes/image/to-pdf'
 import { Route as PdfMergeRouteImport } from './routes/pdf/merge'
 import { Route as PdfSplitRouteImport } from './routes/pdf/split'
@@ -36,6 +37,11 @@ const ImageCompressRoute = ImageCompressRouteImport.update({
 const ImageConvertRoute = ImageConvertRouteImport.update({
   id: '/image/convert',
   path: '/image/convert',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImageRemoveBackgroundRoute = ImageRemoveBackgroundRouteImport.update({
+  id: '/image/remove-background',
+  path: '/image/remove-background',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImageToPdfRoute = ImageToPdfRouteImport.update({
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/excel/to-pdf': typeof ExcelToPdfRoute
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
+  '/image/remove-background': typeof ImageRemoveBackgroundRoute
   '/image/to-pdf': typeof ImageToPdfRoute
   '/pdf/merge': typeof PdfMergeRoute
   '/pdf/split': typeof PdfSplitRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/excel/to-pdf': typeof ExcelToPdfRoute
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
+  '/image/remove-background': typeof ImageRemoveBackgroundRoute
   '/image/to-pdf': typeof ImageToPdfRoute
   '/pdf/merge': typeof PdfMergeRoute
   '/pdf/split': typeof PdfSplitRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/excel/to-pdf': typeof ExcelToPdfRoute
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
+  '/image/remove-background': typeof ImageRemoveBackgroundRoute
   '/image/to-pdf': typeof ImageToPdfRoute
   '/pdf/merge': typeof PdfMergeRoute
   '/pdf/split': typeof PdfSplitRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/excel/to-pdf'
     | '/image/compress'
     | '/image/convert'
+    | '/image/remove-background'
     | '/image/to-pdf'
     | '/pdf/merge'
     | '/pdf/split'
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/excel/to-pdf'
     | '/image/compress'
     | '/image/convert'
+    | '/image/remove-background'
     | '/image/to-pdf'
     | '/pdf/merge'
     | '/pdf/split'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/excel/to-pdf'
     | '/image/compress'
     | '/image/convert'
+    | '/image/remove-background'
     | '/image/to-pdf'
     | '/pdf/merge'
     | '/pdf/split'
@@ -128,6 +140,7 @@ export interface RootRouteChildren {
   ExcelToPdfRoute: typeof ExcelToPdfRoute
   ImageCompressRoute: typeof ImageCompressRoute
   ImageConvertRoute: typeof ImageConvertRoute
+  ImageRemoveBackgroundRoute: typeof ImageRemoveBackgroundRoute
   ImageToPdfRoute: typeof ImageToPdfRoute
   PdfMergeRoute: typeof PdfMergeRoute
   PdfSplitRoute: typeof PdfSplitRoute
@@ -162,6 +175,13 @@ declare module '@tanstack/react-router' {
       path: '/image/convert'
       fullPath: '/image/convert'
       preLoaderRoute: typeof ImageConvertRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/image/remove-background': {
+      id: '/image/remove-background'
+      path: '/image/remove-background'
+      fullPath: '/image/remove-background'
+      preLoaderRoute: typeof ImageRemoveBackgroundRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/image/to-pdf': {
@@ -200,6 +220,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExcelToPdfRoute: ExcelToPdfRoute,
   ImageCompressRoute: ImageCompressRoute,
   ImageConvertRoute: ImageConvertRoute,
+  ImageRemoveBackgroundRoute: ImageRemoveBackgroundRoute,
   ImageToPdfRoute: ImageToPdfRoute,
   PdfMergeRoute: PdfMergeRoute,
   PdfSplitRoute: PdfSplitRoute,

@@ -28,7 +28,7 @@ with `pnpm repos:sync` (`.agents/setup` runs it). Never edit files under `repos/
 - `pnpm check` — format check + lint + typecheck
 - `pnpm test:run` — run tests once (vitest)
 - `pnpm bench` — run the image codec benchmarks
-- `pnpm wasm:build` — rebuild the Excel→PDF Rust/WASM package
+- `pnpm wasm:build` — rebuild the Rust/WASM packages
 - `pnpm wasm:test` — run the Rust crate tests
 - `pnpm lint:fix` / `pnpm format` — auto-fix lint / format
 - Single test: `pnpm test:run tests/infrastructure/services/image-processor.test.ts`
@@ -128,6 +128,19 @@ export class MyService extends Context.Service<
   for the codec packages in `vite.config.ts`.
 - Codec helpers live in `src/libs/utils/image-codec/` (detect, decode, encode,
   preload); `ImageProcessor` only orchestrates detect → decode → encode.
+- Background removal is non-AI. The fast path is
+  `packages/background-removal-core` (Rust/WASM): it samples the border colour,
+  grows a border-connected mask, feathers it with a one-pixel box blur, and
+  de-spills edge pixels. `background-removal-wasm.ts` loads the 26 KB module;
+  `background-removal-solid.ts` keeps the JS matte as a fallback.
+  `background-removal-worker.ts` keeps both paths off the main thread. It
+  targets uniform studio backgrounds; no model is downloaded.
+- Image to SVG is an output option in the existing image converter, not a
+  separate tool. It uses `imagetracerjs` on a canvas-decoded image capped at
+  `MAX_VECTOR_SIDE` (1024 px); presets are a contract: high 64 colors, balanced
+  32, line 2.
+- Both paths cap input at `MAX_IMAGE_PIXELS` (24 MP) and process in memory;
+  never upload the source image. Keep the vectorizer module lazy-loaded.
 - Files are processed in memory and never uploaded or stored.
 - Node cannot fetch the codecs' `file://` wasm. Tests call
   `initImageCodecs()` from `tests/support/image-codecs.ts` before using the
