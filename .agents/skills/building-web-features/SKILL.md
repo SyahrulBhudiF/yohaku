@@ -10,8 +10,8 @@ Read the root `AGENTS.md` and `.agents/CONTEXT.md` first.
 ## Layout
 
 - `src/routes/` holds route definitions and renders a feature page only.
-- Feature code lives in `src/features/<feature>/`: `components/`, `api.ts` (calls the
-  server functions), `store.ts` (Zustand for client-only state).
+- Feature code lives in `src/features/<feature>/`: `components/`, `process.ts`
+  (local work) or `api.ts` (server calls), `store.ts` (Zustand for client-only state).
 - Use TanStack Query `useMutation` for requests and TanStack Form for options,
   validated with `Schema.toStandardSchemaV1` of the shared Effect Schema.
 - Shared primitives live in `src/components/ui/` (shadcn on Base UI).
@@ -29,6 +29,7 @@ Read the root `AGENTS.md` and `.agents/CONTEXT.md` first.
 ## Workflow
 
 1. Find the owning feature and reuse its components and store.
-2. Keep server calls in `api.ts`; keep request status in Query, not the store.
+2. Keep local work in `process.ts` and server calls in `api.ts`; keep request
+   status in Query, not the store.
 3. For rendered changes, run the app and exercise each state as described in
    `.agents/skills/verifying-tools/SKILL.md`.

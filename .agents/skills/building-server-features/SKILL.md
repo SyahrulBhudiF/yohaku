@@ -15,6 +15,8 @@ questions, read `repos/effect/LLMS.md` and `repos/effect/ai-docs/`.
   `FormData`, calls the handler in `<tool>.server.ts`, and throws non-2xx `Response`s.
 - Handlers decode fields, run an Effect through `runEffect()`, and map tagged
   errors to HTTP statuses (400, 413, 415, 422).
+- Server-side work stays small enough for the Workers free plan (10 ms CPU per
+  request); heavy work belongs in the browser.
 - Processing and other external effects live in `src/infrastructure/services/`
   as `Context.Service` classes with a `static layer`. Register the layer in
   `src/infrastructure/services/index.ts`.
@@ -23,8 +25,9 @@ questions, read `repos/effect/LLMS.md` and `repos/effect/ai-docs/`.
 
 ## Workflow
 
-1. Read the closest implementation: `src/apis/image.ts` and
-   `src/infrastructure/services/image-processor.ts`.
+1. Read `src/infrastructure/services/image-processor.ts` for the service shape and
+   `src/features/image-tools/process.ts` for how a feature runs it. No image tool
+   has a server step today: they run in the browser under the Workers CPU budget.
 2. Add or update the schema, then the error, then the service, then the handler,
    then the server function.
 3. Add tests under `tests/` mirroring the source path. Use `@effect/vitest` for

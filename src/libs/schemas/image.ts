@@ -10,44 +10,12 @@ export const IMAGE_FORMATS = ImageFormatSchema.literals
 
 export const QualitySchema = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 100 }))
 
-export const FormDataQualitySchema = Schema.FiniteFromString.pipe(Schema.decodeTo(QualitySchema))
-
-export const ConvertOptionsSchema = Schema.Struct({
-  format: ImageFormatSchema,
-  quality: QualitySchema,
-})
-
-export type ConvertOptions = typeof ConvertOptionsSchema.Type
-
-export const CompressOptionsSchema = Schema.Struct({
-  quality: QualitySchema,
-  format: Schema.optionalKey(ImageFormatSchema),
-})
-
-export type CompressOptions = typeof CompressOptionsSchema.Type
-
 export const ImageToolFormSchema = Schema.Struct({
   format: Schema.Union([ImageFormatSchema, Schema.Literal("original")]),
   quality: QualitySchema,
 })
 
 export type ImageToolFormValues = typeof ImageToolFormSchema.Type
-
-export const ImageResultSchema = Schema.Struct({
-  fileName: Schema.String,
-  mimeType: Schema.String,
-  originalBytes: Schema.Int,
-  resultBytes: Schema.Int,
-})
-
-export type ImageResult = typeof ImageResultSchema.Type
-
-export const ApiErrorSchema = Schema.Struct({
-  _tag: Schema.String,
-  message: Schema.String,
-})
-
-export type ApiError = typeof ApiErrorSchema.Type
 
 export const IMAGE_MIME: Record<ImageFormat, string> = {
   png: "image/png",

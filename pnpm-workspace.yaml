@@ -5,4 +5,4 @@ allowBuilds:
   lightningcss: true
   unrs-resolver: true
   msw: false
-  sharp: true
+  workerd: true

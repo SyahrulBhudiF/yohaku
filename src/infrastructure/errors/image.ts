@@ -1,12 +1,5 @@
 import { Schema } from "effect"
 
-export class InvalidRequestError extends Schema.TaggedError<
-  InvalidRequestError,
-  { readonly brand: unique symbol }
->()("InvalidRequestError", {
-  message: Schema.String,
-}) {}
-
 export class FileTooLargeError extends Schema.TaggedError<
   FileTooLargeError,
   { readonly brand: unique symbol }

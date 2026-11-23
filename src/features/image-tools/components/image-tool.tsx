@@ -2,6 +2,7 @@ import { useForm } from "@tanstack/react-form"
 import { useMutation } from "@tanstack/react-query"
 import { Schema } from "effect"
 import { ArrowRightIcon, DownloadIcon, Loader2Icon, XIcon } from "lucide-react"
+import { useEffect } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,8 +20,9 @@ import {
   type ImageFormat,
   type ImageToolFormValues,
 } from "@/libs/schemas/image"
+import { preloadImageCodec } from "@/infrastructure/services/image-processor"
 import { formatBytes } from "@/libs/utils/format"
-import { processImage, type ImageToolMode } from "../api"
+import { processImage, type ImageToolMode } from "../process"
 import type { ImageToolStore } from "../store"
 import { Dropzone } from "./dropzone"
 
@@ -78,6 +80,16 @@ export function ImageTool({
       await mutation.mutateAsync({ mode, file, format, quality: value.quality }).catch(() => null)
     },
   })
+  const preload = (choice: ImageToolFormValues["format"]) => {
+    if (choice !== "original") {
+      void preloadImageCodec(choice, "encode")
+    }
+  }
+
+  useEffect(() => {
+    preload(allowOriginalFormat ? "original" : "webp")
+  }, [allowOriginalFormat])
+
   const saved = result ? Math.round((1 - result.resultBytes / result.originalBytes) * 100) : 0
   const error = mutation.error?.message ?? null
   const reset = () => {
@@ -123,7 +135,12 @@ export function ImageTool({
                     <span className="text-sm font-medium">Output format</span>
                     <Select
                       value={field.state.value}
-                      onValueChange={(value) => field.handleChange(toChoice(value) ?? "webp")}
+                      onValueChange={(value) => {
+                        const choice = toChoice(value) ?? "webp"
+
+                        field.handleChange(choice)
+                        preload(choice)
+                      }}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue />
@@ -163,6 +180,10 @@ export function ImageTool({
                         )
                       }
                     />
+                    <p className="text-xs text-muted-foreground">
+                      PNG and TIFF are lossless. Quality sets JPEG, WebP and AVIF strength and the
+                      GIF palette.
+                    </p>
                     {field.state.meta.errors.length > 0 && (
                       <p role="alert" className="text-sm text-error">
                         Quality must be a whole number from 1 to 100.

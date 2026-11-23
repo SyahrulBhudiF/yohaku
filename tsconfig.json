@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/@effect/tsgo/schema.json",
-  "include": ["src", "tests", "vite.config.ts", "vitest.config.ts"],
+  "include": ["src", "tests", "alchemy.run.ts", "vite.config.ts", "vitest.config.ts"],
   "exclude": ["repos", "node_modules", ".output"],
   "compilerOptions": {
     "target": "ES2022",

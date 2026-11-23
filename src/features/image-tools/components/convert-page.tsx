@@ -7,7 +7,7 @@ export function ConvertPage() {
       mode="convert"
       useStore={useConvertStore}
       title="Convert image"
-      description="Pick a file and the format you want. Nothing is stored on the server."
+      description="Pick a file and the format you want. Everything runs in your browser."
       allowOriginalFormat={false}
       actionLabel="Convert"
     />

@@ -1,9 +1,9 @@
 # Tools — Agent Rules
 
 A centralized web app of file tools (image convert and compress today; PDF and
-document tools later). One TanStack Start app: frontend and backend together.
-Backend work runs in Effect v4. UI is shadcn on Base UI, styled after Material
-Design 3.
+document tools later). One TanStack Start app deployed to Cloudflare Workers.
+Image work runs in the browser in Effect v4; server work, when a tool needs it,
+also runs in Effect v4. UI is shadcn on Base UI, styled after Material Design 3.
 
 Read [.agents/CONTEXT.md](.agents/CONTEXT.md) for architecture decisions. Use the
 matching workflow in `.agents/skills/` when building server features, web
@@ -20,12 +20,15 @@ with `pnpm repos:sync` (`.agents/setup` runs it). Never edit files under `repos/
 ## Commands
 
 - `pnpm dev` — dev server (port 3000)
-- `pnpm build` — production build (Nitro, `.output/server/index.mjs`)
-- `pnpm start` — run the production build
+- `pnpm dev:cloudflare` — dev server inside workerd with Alchemy bindings
+- `pnpm build` — production build (`dist/`)
+- `pnpm run deploy` — `alchemy deploy` to Cloudflare Workers
+- `pnpm run destroy` — remove the deployed stack
 - `pnpm check` — format check + lint + typecheck
 - `pnpm test:run` — run tests once (vitest)
+- `pnpm bench` — run the image codec benchmarks
 - `pnpm lint:fix` / `pnpm format` — auto-fix lint / format
-- Single test: `pnpm test:run tests/apis/image.test.ts`
+- Single test: `pnpm test:run tests/infrastructure/services/image-processor.test.ts`
 - Pre-commit (husky): `pnpm check && pnpm test:run`
 
 ## Toolchain
@@ -47,16 +50,17 @@ with `pnpm repos:sync` (`.agents/setup` runs it). Never edit files under `repos/
 ## Folder Contract
 
 ```
-src/apis/                 createServerFn wrappers (`<name>.ts`) + Effect handlers (`<name>.server.ts`)
+alchemy.run.ts            Cloudflare stack: the Website resource and stack outputs
 src/routes/               TanStack file routes (thin, pages only)
-src/features/<feature>/   Feature modules: components/, api.ts (calls server fns), store.ts (Zustand)
+src/features/<feature>/   Feature modules: components/, process.ts or api.ts, store.ts (Zustand)
 src/components/ui/        shadcn primitives on Base UI, M3-themed
+src/apis/                 createServerFn wrappers (`<name>.ts`) + Effect handlers (`<name>.server.ts`), only for tools that need a server
 src/infrastructure/       Effect services, errors, runtime, config
 src/libs/schemas/         Effect Schemas shared by client and server (the contract)
 src/libs/utils/           Client and shared helpers
 src/libs/stores/          Cross-feature Zustand stores
 src/styles.css            M3 tokens (--md-*) mapped onto shadcn tokens
-tests/                    Mirrors src/ paths
+tests/                    Mirrors src/ paths; tests/support/ holds shared fixtures
 repos/                    Vendored upstream source (read-only)
 ```
 
@@ -88,7 +92,8 @@ export class MyService extends Context.Service<
 ```
 
 - Register layers in `src/infrastructure/services/index.ts`.
-- Run effects through `runEffect()` from `src/infrastructure/runtime`.
+- Run effects through `runEffect()` from `src/infrastructure/runtime`, on the
+  client and on the server.
 - Pure rules stay plain functions; use Effect for dependencies, async work, and
   typed failures.
 
@@ -97,10 +102,53 @@ export class MyService extends Context.Service<
 - Define domain errors in `src/infrastructure/errors/` with `Schema.TaggedError`.
 - Never throw generic `Error` in services. Catch with `Effect.catch` /
   `Effect.catchTag`.
-- Map tagged errors to HTTP statuses once, in `src/apis/`.
+- Map tagged errors once, at the boundary that turns them into a response (a
+  server handler) or a message (a feature mutation).
 - UI: show errors inline next to the action; never lose the user's selected file.
 
+## Image processing
+
+- Cloudflare Workers Free allows 10 ms of CPU per request, so no server-side
+  encoder can run there. Images are decoded and encoded in the browser behind
+  the `ImageProcessor` service: `@jsquash` WebAssembly for PNG, JPEG, WebP and
+  AVIF, `gifenc`/`gifuct-js` for GIF, and `utif` for TIFF.
+- Supported formats are PNG, JPEG, WebP, AVIF, GIF and TIFF. Animated GIFs use
+  the first frame. PNG and TIFF are lossless; quality drives JPEG, WebP, AVIF
+  and the GIF palette size.
+- Import codecs lazily (`await import("@jsquash/webp/encode")`) so each format
+  loads only when used, and warm the selected encoder with
+  `preloadImageCodec()` before the user submits. Keep `optimizeDeps.exclude`
+  for the codec packages in `vite.config.ts`.
+- Files are processed in memory and never uploaded or stored.
+- Node cannot fetch the codecs' `file://` wasm. Tests call
+  `initImageCodecs()` from `tests/support/image-codecs.ts` before using the
+  processor.
+
+## Data-oriented design
+
+- Model image and byte data as flat typed arrays (`Uint8Array`,
+  `Uint8ClampedArray`, `ImageData`), not objects per pixel.
+- Keep hot loops over contiguous buffers and allocation-free; hoist lengths and
+  copy a whole buffer with `set` when the shape allows it (a full-canvas GIF
+  frame is one `set`, not a per-pixel walk).
+- Pass buffers by reference and copy once at a boundary that requires it.
+  Normalize `byteOffset`/`byteLength` before handing a view to a library that
+  reads the backing buffer.
+- Keep configuration as plain records and pure functions; services carry
+  dependencies and typed failures only.
+
+## Performance
+
+- Measure before changing a hot path: `pnpm bench` runs `tests/**/*.bench.ts`.
+- Keep server work inside the Workers free CPU budget; codecs and heavy loops
+  stay in the browser.
+- Codec settings are a contract: AVIF uses `speed: 9` (~9x faster than the
+  default 6 for about 2% larger output). Record the tradeoff when changing it.
+
 ## Server functions
+
+Only add a server step when the work fits Workers' CPU budget. Image tools do
+not have one.
 
 - The backend is `createServerFn` in `src/apis/<name>.ts`. No hand-written
   `src/routes/api/**` endpoints.
@@ -110,9 +158,7 @@ export class MyService extends Context.Service<
   `X-Original-Bytes`, `X-Result-Bytes`).
 - `.server.ts` handlers decode fields with Effect Schema from `src/libs/schemas/`,
   run through `runEffect()`, and map tagged errors to statuses (400/413/415/422)
-  with a JSON `ApiErrorSchema` body. Keep `sharp` and other Node-only imports
-  out of `<name>.ts`.
-- Files are processed in memory and never stored.
+  with a JSON `ApiErrorSchema` body. Keep Node-only imports out of `<name>.ts`.
 
 ## UI
 
@@ -120,8 +166,9 @@ export class MyService extends Context.Service<
   `pnpm dlx shadcn@latest add <name>`, then replace the `cn` import with
   `@/libs/utils/cn` and restyle to M3 (pill buttons, 12/28px radii, state layers).
 - Colors come from `--md-*` tokens in `src/styles.css`. Never hard-code a palette.
-- Server calls use TanStack Query (`useMutation`/`useQuery`); forms use TanStack
-  Form with `Schema.toStandardSchemaV1(...)` from the shared Effect Schema.
+- Async work uses TanStack Query (`useMutation`/`useQuery`) even when it runs
+  locally; forms use TanStack Form with `Schema.toStandardSchemaV1(...)` from the
+  shared Effect Schema.
 - Zustand (`store.ts`, one per feature) holds client-only state such as the
   selected file and result object URLs, not request status or form values.
 - Route components stay thin and delegate to `src/features/`.
@@ -129,13 +176,27 @@ export class MyService extends Context.Service<
 
 ## Validation
 
-- Effect Schema defines the FE/BE contract in `src/libs/schemas/`. Parse at the
-  handler boundary on the server and before sending on the client.
+- Effect Schema defines the contract in `src/libs/schemas/`. Parse at the
+  boundary where data enters: a form submit, or a server handler.
+
+## Deployment
+
+- Infrastructure is Alchemy (`alchemy.run.ts`): `Cloudflare.Website.Vite` builds
+  the app with Alchemy's Cloudflare Vite plugin and deploys the Worker plus
+  static assets. Do not add a Wrangler config or `@cloudflare/vite-plugin`.
+- Credentials come from an Alchemy profile (`alchemy profile edit --add
+  Cloudflare`) or `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`.
+- The Worker serves `tools.ryuko.my.id`; Alchemy owns the DNS record and edge
+  certificate, so the zone must be in the same Cloudflare account.
+- `pnpm run deploy` targets the `prod` stage; `pnpm run destroy` removes it.
+- Pushes to `main` deploy through `.github/workflows/ci.yml` after the check job
+  passes. It reads `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` from
+  repository secrets; keep the workflow's action versions current.
 
 ## Testing
 
 - Vitest, node environment. Use `@effect/vitest` (`it.effect`) for Effect code.
-- Test through public behavior (services, handlers), not internals.
+- Test through public behavior (services, feature entry points), not internals.
 
 ## Git
 
