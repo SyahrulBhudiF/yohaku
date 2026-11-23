@@ -1,60 +1,51 @@
 # Yohaku
 
-Centralized file tools in one web app. Today: convert and compress images,
-remove image backgrounds, trace images to SVG, merge or split PDFs, render PDF
-pages as images, combine images into PDFs, and turn Excel workbooks into PDFs.
-Planned: PDF compression, Word↔PDF, and PDF→Excel.
+Yohaku is a browser-based toolkit for working with images and documents. Convert and compress images, remove uniform backgrounds, trace images to SVG, organize PDFs, and convert between images and PDF—all without uploading your files.
 
-**Stack:** TanStack Start on Cloudflare Workers, Effect v4, shadcn + Base UI
-(Material Design 3), Zustand, Effect Schema contract, TS Go (`@effect/tsgo`),
-Oxlint + Oxfmt, Alchemy for infrastructure.
+**Try it:** [yohaku.ryuko.my.id](https://yohaku.ryuko.my.id)
+
+## Tools
+
+- **Images:** convert and compress PNG, JPEG, WebP, AVIF, GIF, and TIFF; preserve animation when converting animated GIF/WebP to GIF or WebP; remove solid studio backgrounds; trace images to SVG.
+- **PDF:** merge and split PDFs, render selected pages to images, place multiple drawn or image signatures, and create PDFs from one or more images.
+- **Spreadsheets:** export Excel worksheets to PDF.
+
+Files are processed locally in your browser and are not uploaded or stored by Yohaku. The app uses Cloudflare Workers to serve the site; CPU-intensive processing stays client-side to fit the Workers runtime limits. Background removal targets uniform backgrounds and is not an AI subject-segmentation tool. Excel export focuses on table data; it does not preserve formulas, charts, or merged cells.
+
+## Development
+
+Requirements: Node.js 24 or newer, pnpm 12, and Rust with the `wasm32-unknown-unknown` target for rebuilding WebAssembly packages.
 
 ```sh
 pnpm install
-pnpm dev            # http://localhost:3000
-pnpm check          # format + lint + typecheck
-pnpm test:run
-pnpm build
-pnpm wasm:build     # rebuild the Rust/WASM cores (needs wasm-pack)
-pnpm wasm:test      # run the Rust core tests
-pnpm run deploy     # alchemy deploy --stage prod
-pnpm repos:sync     # clone Effect source into repos/effect (gitignored, for agents)
+pnpm dev              # Local Vite development server
+pnpm dev:cloudflare   # Development with Alchemy/Cloudflare bindings
+pnpm check            # Formatting, lint, and type checks
+pnpm test:run         # Unit tests
+pnpm build            # Production build
+pnpm bench            # Image codec benchmarks
+pnpm wasm:test        # Rust core tests
+pnpm wasm:build       # Rebuild generated Rust/WASM packages
 ```
 
-Images are converted and compressed in the browser with WebAssembly codecs
-(`@jsquash`), and PDFs are merged and split locally with qpdf compiled to
-WebAssembly. pdf.js renders pages for PDF to image. Image-only PDFs are written
-by the Rust/WASM `packages/image-pdf-core` (`png`, `jpeg-decoder`,
-`pdf-writer`), with page geometry stored as a `soa-rs` struct-of-arrays table.
-Excel→PDF uses `packages/xlsx-pdf-core` (`calamine` + `pdf-writer`) with a flat
-span arena and a `soa-rs` column table. Background removal is non-AI:
-`packages/background-removal-core` samples the border colour, grows a
-border-connected mask, and feathers a despilled alpha matte for uniform studio
-backgrounds. Image to SVG is an output format in the image converter; it traces
-up to 1024 px with `imagetracerjs` (Unlicense).
-Files never leave the device, so the app fits the Cloudflare Workers free plan
-(10 ms of CPU per request).
+Run one test file with `pnpm test:run tests/path/to/test.test.ts`. Read [AGENTS.md](AGENTS.md) and [.agents/CONTEXT.md](.agents/CONTEXT.md) before making architectural changes. Rust crates live under `packages/`; their generated browser packages are committed under `src/libs/wasm/` so the app build does not require Rust.
 
-## Deploy
+## Architecture
 
-Alchemy deploys the app from `alchemy.run.ts`. Connect Cloudflare once:
+Yohaku is a TanStack Start application deployed to Cloudflare Workers with Alchemy. Feature pages and UI live in `src/features/`; routes stay thin. Client-side processing is organized behind Effect services. Image codecs use WebAssembly where appropriate, PDF rendering uses pdf.js, PDF assembly and spreadsheet export use focused Rust/WASM cores, and UI components use Base UI with Material Design 3 styling.
+
+## Deployment
+
+GitHub Actions checks changes and deploys `main` after checks pass. Configure the repository's `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` Actions secrets for deployment. The token needs the Cloudflare permissions documented in [AGENTS.md](AGENTS.md); never commit credentials.
+
+For a manual production deployment, authenticate Alchemy with `pnpm exec alchemy profile edit --add Cloudflare`, then run:
 
 ```sh
-pnpm exec alchemy profile edit --add Cloudflare
+pnpm run deploy
 ```
 
-or set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Then `pnpm run deploy`
-publishes the Worker at `https://yohaku.ryuko.my.id` (Alchemy attaches the custom
-domain and its certificate; the zone must live in the same Cloudflare account).
-`pnpm run destroy` removes the stack.
+`pnpm run destroy` removes the production stack and its managed resources; use it only when intentionally decommissioning the deployment.
 
-Token scopes: Account — Workers Scripts: Edit, Secrets Store: Edit, Account
-Settings: Read. Zone (`ryuko.my.id`) — DNS: Edit, Workers Routes: Edit.
+## License
 
-CI/CD: `.github/workflows/ci.yml` runs `pnpm check`, the tests and the build on
-every pull request, and deploys `main` after the checks pass. Add
-`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as repository secrets under
-Settings → Secrets and variables → Actions; the token needs the scopes above.
-You can also run the workflow from the Actions tab (`workflow_dispatch`).
-
-See `AGENTS.md` for conventions and `.agents/CONTEXT.md` for decisions.
+See the repository license file, if present, for terms governing Yohaku's source code. Third-party libraries and codecs retain their own licenses.

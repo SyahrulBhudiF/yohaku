@@ -6,9 +6,10 @@ Workers. Image and document work runs in the browser in Effect v4; server work,
 when a tool needs it, also runs in Effect v4. UI is shadcn on Base UI, styled
 after Material Design 3.
 
-Read [.agents/CONTEXT.md](.agents/CONTEXT.md) for architecture decisions. Use the
-matching workflow in `.agents/skills/` when building server features, web
-features, or verifying changes.
+Read [.agents/CONTEXT.md](.agents/CONTEXT.md) for architecture decisions and
+[.agents/GIT.md](.agents/GIT.md) for commit conventions. Use the matching
+workflow in `.agents/skills/` when building server features, web features, or
+verifying changes.
 
 ## Effect source
 
