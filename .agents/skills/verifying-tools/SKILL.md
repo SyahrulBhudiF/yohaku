@@ -20,16 +20,10 @@ Treat diagnostics as evidence to read, not a reason to suppress a rule.
 
 ## API checks
 
-With the dev server running (`amp orb services ensure`), post a real file:
-
-```sh
-curl -s -D - -o /tmp/out.webp -F file=@sample.png -F format=webp -F quality=70 \
-  localhost:3000/api/image/convert
-file /tmp/out.webp
-```
-
-Check status, `content-type`, and the `x-original-bytes` / `x-result-bytes`
-headers, plus one invalid request (for example `format=bmp` → 400).
+Server functions have no stable public URL. Test handlers through
+`tests/apis/*.test.ts` (call the `.server.ts` handler with a `FormData`), then
+exercise the real flow in the browser (below): upload, submit, and one invalid
+file for the error path.
 
 ## UI changes
 

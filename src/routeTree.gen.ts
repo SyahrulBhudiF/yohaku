@@ -12,8 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ImageCompressRouteImport } from './routes/image/compress'
 import { Route as ImageConvertRouteImport } from './routes/image/convert'
-import { Route as ApiImageCompressRouteImport } from './routes/api/image/compress'
-import { Route as ApiImageConvertRouteImport } from './routes/api/image/convert'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -30,69 +28,35 @@ const ImageConvertRoute = ImageConvertRouteImport.update({
   path: '/image/convert',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiImageCompressRoute = ApiImageCompressRouteImport.update({
-  id: '/api/image/compress',
-  path: '/api/image/compress',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiImageConvertRoute = ApiImageConvertRouteImport.update({
-  id: '/api/image/convert',
-  path: '/api/image/convert',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
-  '/api/image/compress': typeof ApiImageCompressRoute
-  '/api/image/convert': typeof ApiImageConvertRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
-  '/api/image/compress': typeof ApiImageCompressRoute
-  '/api/image/convert': typeof ApiImageConvertRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
-  '/api/image/compress': typeof ApiImageCompressRoute
-  '/api/image/convert': typeof ApiImageConvertRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/image/compress'
-    | '/image/convert'
-    | '/api/image/compress'
-    | '/api/image/convert'
+  fullPaths: '/' | '/image/compress' | '/image/convert'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/image/compress'
-    | '/image/convert'
-    | '/api/image/compress'
-    | '/api/image/convert'
-  id:
-    | '__root__'
-    | '/'
-    | '/image/compress'
-    | '/image/convert'
-    | '/api/image/compress'
-    | '/api/image/convert'
+  to: '/' | '/image/compress' | '/image/convert'
+  id: '__root__' | '/' | '/image/compress' | '/image/convert'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ImageCompressRoute: typeof ImageCompressRoute
   ImageConvertRoute: typeof ImageConvertRoute
-  ApiImageCompressRoute: typeof ApiImageCompressRoute
-  ApiImageConvertRoute: typeof ApiImageConvertRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -118,20 +82,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ImageConvertRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/image/compress': {
-      id: '/api/image/compress'
-      path: '/api/image/compress'
-      fullPath: '/api/image/compress'
-      preLoaderRoute: typeof ApiImageCompressRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/image/convert': {
-      id: '/api/image/convert'
-      path: '/api/image/convert'
-      fullPath: '/api/image/convert'
-      preLoaderRoute: typeof ApiImageConvertRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -139,8 +89,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ImageCompressRoute: ImageCompressRoute,
   ImageConvertRoute: ImageConvertRoute,
-  ApiImageCompressRoute: ApiImageCompressRoute,
-  ApiImageConvertRoute: ApiImageConvertRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

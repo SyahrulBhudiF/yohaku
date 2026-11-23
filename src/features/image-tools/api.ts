@@ -1,11 +1,7 @@
-import { Effect, Schema } from "effect"
+import { Schema } from "effect"
 
-import {
-  ApiErrorSchema,
-  type ImageFormat,
-  type ImageResult,
-  QualitySchema,
-} from "@/libs/schemas/image"
+import { compressImage, convertImage } from "@/apis/image"
+import { ApiErrorSchema, type ImageFormat, type ImageResult } from "@/libs/schemas/image"
 
 export type ImageToolMode = "convert" | "compress"
 
@@ -16,56 +12,41 @@ export interface ProcessImageInput {
   readonly quality: number
 }
 
-export class ProcessImageError extends Schema.TaggedError<
-  ProcessImageError,
-  { readonly brand: unique symbol }
->()("ProcessImageError", { message: Schema.String }) {}
+export type ProcessImageOutput = ImageResult & { readonly blob: Blob }
 
 const decodeError = Schema.decodeUnknownOption(ApiErrorSchema)
-
-const toFailure = (cause: unknown) =>
-  cause instanceof ProcessImageError
-    ? cause
-    : new ProcessImageError({ message: "Could not reach the server. Try again." })
 
 const readFileName = (header: string | null, fallback: string) =>
   /filename="([^"]+)"/.exec(header ?? "")?.[1] ?? fallback
 
-const send = Effect.fn("processImage.send")(function* (input: ProcessImageInput) {
-  const quality = yield* Schema.decodeEffect(QualitySchema)(input.quality).pipe(
-    Effect.mapError(
-      () => new ProcessImageError({ message: "Quality must be a whole number from 1 to 100." }),
-    ),
+const toError = async (cause: unknown) => {
+  if (!(cause instanceof Response)) {
+    return new Error("Could not reach the server. Try again.")
+  }
+
+  const payload: unknown = await cause.json().catch(() => null)
+  const message = decodeError(payload)
+
+  return new Error(
+    message._tag === "Some" ? message.value.message : "The server could not process this image.",
   )
+}
+
+export const processImage = async (input: ProcessImageInput): Promise<ProcessImageOutput> => {
   const body = new FormData()
 
   body.set("file", input.file)
-  body.set("quality", String(quality))
+  body.set("quality", String(input.quality))
 
   if (input.format !== undefined) {
     body.set("format", input.format)
   }
 
-  const response = yield* Effect.tryPromise({
-    try: () => fetch(`/api/image/${input.mode}`, { method: "POST", body }),
-    catch: toFailure,
+  const send = input.mode === "convert" ? convertImage : compressImage
+  const response = await send({ data: body }).catch(async (cause: unknown) => {
+    throw await toError(cause)
   })
-
-  if (!response.ok) {
-    const payload = yield* Effect.tryPromise({ try: () => response.json(), catch: toFailure }).pipe(
-      Effect.orElseSucceed(() => null),
-    )
-    const message = decodeError(payload)
-
-    return yield* new ProcessImageError({
-      message:
-        message._tag === "Some"
-          ? message.value.message
-          : "The server could not process this image.",
-    })
-  }
-
-  const blob = yield* Effect.tryPromise({ try: () => response.blob(), catch: toFailure })
+  const blob = await response.blob()
 
   return {
     blob,
@@ -73,7 +54,5 @@ const send = Effect.fn("processImage.send")(function* (input: ProcessImageInput)
     mimeType: blob.type,
     originalBytes: input.file.size,
     resultBytes: blob.size,
-  } satisfies ImageResult & { blob: Blob }
-})
-
-export const processImage = (input: ProcessImageInput) => Effect.runPromise(send(input))
+  }
+}

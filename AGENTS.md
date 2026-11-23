@@ -47,9 +47,9 @@ package sources under `repos/effect/packages/`. Refresh it with
 ## Folder Contract
 
 ```
-src/apis/                 Request handlers (multipart parse, validate, runEffect, map errors)
-src/routes/               TanStack file routes (thin); src/routes/api/** are server routes
-src/features/<feature>/   Feature modules: components/, api.ts (client), store.ts (Zustand)
+src/apis/                 createServerFn wrappers (`<name>.ts`) + Effect handlers (`<name>.server.ts`)
+src/routes/               TanStack file routes (thin, pages only)
+src/features/<feature>/   Feature modules: components/, api.ts (calls server fns), store.ts (Zustand)
 src/components/ui/        shadcn primitives on Base UI, M3-themed
 src/infrastructure/       Effect services, errors, runtime, config
 src/libs/schemas/         Effect Schemas shared by client and server (the contract)
@@ -100,13 +100,18 @@ export class MyService extends Context.Service<
 - Map tagged errors to HTTP statuses once, in `src/apis/`.
 - UI: show errors inline next to the action; never lose the user's selected file.
 
-## API routes
+## Server functions
 
-- Server routes in `src/routes/api/**` only call a handler from `src/apis/`.
-- Handlers parse multipart input, validate with Effect Schema from
-  `src/libs/schemas/`, run through `runEffect()`, and return a binary `Response`
-  (with `Content-Disposition`, `X-Original-Bytes`, `X-Result-Bytes`) or a JSON
-  `ApiErrorSchema` body.
+- The backend is `createServerFn` in `src/apis/<name>.ts`. No hand-written
+  `src/routes/api/**` endpoints.
+- Server fns validate that input is `FormData`, call a handler from
+  `<name>.server.ts`, and `throw` the `Response` on non-2xx so the client sees an
+  error. Success returns the binary `Response` (`Content-Disposition`,
+  `X-Original-Bytes`, `X-Result-Bytes`).
+- `.server.ts` handlers decode fields with Effect Schema from `src/libs/schemas/`,
+  run through `runEffect()`, and map tagged errors to statuses (400/413/415/422)
+  with a JSON `ApiErrorSchema` body. Keep `sharp` and other Node-only imports
+  out of `<name>.ts`.
 - Files are processed in memory and never stored.
 
 ## UI
@@ -115,7 +120,10 @@ export class MyService extends Context.Service<
   `pnpm dlx shadcn@latest add <name>`, then replace the `cn` import with
   `@/libs/utils/cn` and restyle to M3 (pill buttons, 12/28px radii, state layers).
 - Colors come from `--md-*` tokens in `src/styles.css`. Never hard-code a palette.
-- State management is Zustand, one store per feature (`store.ts`).
+- Server calls use TanStack Query (`useMutation`/`useQuery`); forms use TanStack
+  Form with `Schema.toStandardSchemaV1(...)` from the shared Effect Schema.
+- Zustand (`store.ts`, one per feature) holds client-only state such as the
+  selected file and result object URLs, not request status or form values.
 - Route components stay thin and delegate to `src/features/`.
 - Each new tool is added to `src/features/tools/registry.ts`.
 

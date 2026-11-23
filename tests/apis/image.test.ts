@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import sharp from "sharp"
 
-import { handleCompressImage, handleConvertImage } from "@/apis/image"
+import { handleCompressImage, handleConvertImage } from "@/apis/image.server"
 
 const makeRequest = async (fields: Record<string, string>, file?: File) => {
   const form = new FormData()
@@ -12,7 +12,7 @@ const makeRequest = async (fields: Record<string, string>, file?: File) => {
     form.set("file", file)
   }
 
-  return new Request("http://localhost/api", { method: "POST", body: form })
+  return form
 }
 
 const makePngFile = async () => {

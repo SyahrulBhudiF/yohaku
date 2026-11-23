@@ -26,6 +26,13 @@ export const CompressOptionsSchema = Schema.Struct({
 
 export type CompressOptions = typeof CompressOptionsSchema.Type
 
+export const ImageToolFormSchema = Schema.Struct({
+  format: Schema.Union([ImageFormatSchema, Schema.Literal("original")]),
+  quality: QualitySchema,
+})
+
+export type ImageToolFormValues = typeof ImageToolFormSchema.Type
+
 export const ImageResultSchema = Schema.Struct({
   fileName: Schema.String,
   mimeType: Schema.String,

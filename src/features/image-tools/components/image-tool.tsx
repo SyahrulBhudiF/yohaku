@@ -1,5 +1,7 @@
+import { useForm } from "@tanstack/react-form"
+import { useMutation } from "@tanstack/react-query"
+import { Schema } from "effect"
 import { ArrowRightIcon, DownloadIcon, Loader2Icon, XIcon } from "lucide-react"
-import type { StoreApi, UseBoundStore } from "zustand"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,15 +13,19 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
-import { IMAGE_FORMATS } from "@/libs/schemas/image"
+import {
+  IMAGE_FORMATS,
+  ImageToolFormSchema,
+  type ImageFormat,
+  type ImageToolFormValues,
+} from "@/libs/schemas/image"
 import { formatBytes } from "@/libs/utils/format"
+import { processImage, type ImageToolMode } from "../api"
+import type { ImageToolStore } from "../store"
 import { Dropzone } from "./dropzone"
-import { isImageFormat, type FormatChoice } from "../store"
-import type { useConvertStore } from "../store"
-
-type ImageToolStore = UseBoundStore<StoreApi<ReturnType<typeof useConvertStore.getState>>>
 
 interface ImageToolProps {
+  readonly mode: ImageToolMode
   readonly useStore: ImageToolStore
   readonly title: string
   readonly description: string
@@ -27,7 +33,9 @@ interface ImageToolProps {
   readonly actionLabel: string
 }
 
-const toChoice = (value: string | null): FormatChoice | null => {
+const isImageFormat = Schema.is(Schema.Literals(IMAGE_FORMATS))
+
+const toChoice = (value: string | null): ImageToolFormValues["format"] | null => {
   if (value === "original") {
     return value
   }
@@ -36,27 +44,46 @@ const toChoice = (value: string | null): FormatChoice | null => {
 }
 
 export function ImageTool({
+  mode,
   useStore,
   title,
   description,
   allowOriginalFormat,
   actionLabel,
 }: ImageToolProps) {
-  const {
-    file,
-    previewUrl,
-    format,
-    quality,
-    status,
-    error,
-    result,
-    setFile,
-    setFormat,
-    setQuality,
-    run,
-    reset,
-  } = useStore()
+  const { file, previewUrl, result, setFile, setResult, clearResult } = useStore()
+  const mutation = useMutation({
+    mutationFn: processImage,
+    onSuccess: setResult,
+  })
+  const form = useForm({
+    defaultValues: {
+      format: allowOriginalFormat ? "original" : "webp",
+      quality: 80,
+    } as ImageToolFormValues,
+    validators: { onChange: Schema.toStandardSchemaV1(ImageToolFormSchema) },
+    listeners: {
+      onChange: () => {
+        clearResult()
+        mutation.reset()
+      },
+    },
+    onSubmit: async ({ value }) => {
+      if (!file) {
+        return
+      }
+
+      const format: ImageFormat | undefined = value.format === "original" ? undefined : value.format
+
+      await mutation.mutateAsync({ mode, file, format, quality: value.quality }).catch(() => null)
+    },
+  })
   const saved = result ? Math.round((1 - result.resultBytes / result.originalBytes) * 100) : 0
+  const error = mutation.error?.message ?? null
+  const reset = () => {
+    mutation.reset()
+    setFile(null)
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -82,42 +109,69 @@ export function ImageTool({
               />
             )}
 
-            <div className="grid gap-6 sm:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium">Output format</span>
-                <Select
-                  value={format}
-                  onValueChange={(value) => setFormat(toChoice(value) ?? format)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allowOriginalFormat && <SelectItem value="original">Keep original</SelectItem>}
-                    {IMAGE_FORMATS.map((item) => (
-                      <SelectItem key={item} value={item}>
-                        {item.toUpperCase()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <form
+              id="image-tool-form"
+              className="grid gap-6 sm:grid-cols-2"
+              onSubmit={(event) => {
+                event.preventDefault()
+                void form.handleSubmit()
+              }}
+            >
+              <form.Field name="format">
+                {(field) => (
+                  <div className="flex flex-col gap-2">
+                    <span className="text-sm font-medium">Output format</span>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(value) => field.handleChange(toChoice(value) ?? "webp")}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allowOriginalFormat && (
+                          <SelectItem value="original">Keep original</SelectItem>
+                        )}
+                        {IMAGE_FORMATS.map((item) => (
+                          <SelectItem key={item} value={item}>
+                            {item.toUpperCase()}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </form.Field>
 
-              <div className="flex flex-col gap-4">
-                <span className="flex justify-between text-sm font-medium">
-                  Quality <span className="text-muted-foreground tabular-nums">{quality}</span>
-                </span>
-                <Slider
-                  min={1}
-                  max={100}
-                  value={[quality]}
-                  aria-label="Quality"
-                  onValueChange={(value) =>
-                    setQuality(Array.isArray(value) ? (value[0] ?? quality) : value)
-                  }
-                />
-              </div>
-            </div>
+              <form.Field name="quality">
+                {(field) => (
+                  <div className="flex flex-col gap-4">
+                    <span className="flex justify-between text-sm font-medium">
+                      Quality{" "}
+                      <span className="text-muted-foreground tabular-nums">
+                        {field.state.value}
+                      </span>
+                    </span>
+                    <Slider
+                      min={1}
+                      max={100}
+                      value={[field.state.value]}
+                      aria-label="Quality"
+                      onValueChange={(value) =>
+                        field.handleChange(
+                          Array.isArray(value) ? (value[0] ?? field.state.value) : value,
+                        )
+                      }
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p role="alert" className="text-sm text-error">
+                        Quality must be a whole number from 1 to 100.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
+            </form>
 
             {error && (
               <p
@@ -160,9 +214,9 @@ export function ImageTool({
               <Button variant="ghost" onClick={reset}>
                 <XIcon /> Remove
               </Button>
-              <Button onClick={run} disabled={status === "processing"}>
-                {status === "processing" && <Loader2Icon className="animate-spin" />}
-                {status === "processing" ? "Working…" : actionLabel}
+              <Button type="submit" form="image-tool-form" disabled={mutation.isPending}>
+                {mutation.isPending && <Loader2Icon className="animate-spin" />}
+                {mutation.isPending ? "Working…" : actionLabel}
               </Button>
             </div>
           </CardContent>
