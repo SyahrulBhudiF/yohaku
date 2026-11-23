@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Orb resume: runs on every start. Keep it fast; no installs.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+# sysctl does not survive a restart.
+sudo -n sysctl vm.overcommit_memory=1 >/dev/null 2>&1 || true

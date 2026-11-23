@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": false,
+  "ignorePatterns": [
+    "src/routeTree.gen.ts",
+    "node_modules/**",
+    ".output/**",
+    ".nitro/**",
+    ".tanstack/**",
+    "repos/**",
+    "pnpm-lock.yaml"
+  ]
+}

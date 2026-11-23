@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Orb setup: runs once when the environment is built. Installs toolchain and deps.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+# pnpm is preinstalled in orbs; only activate the pinned version if it differs.
+if [ "$(pnpm --version 2>/dev/null || true)" != "12.0.0" ]; then
+  corepack enable --install-directory "$HOME/.local/bin" || true
+  corepack prepare pnpm@12.0.0 --activate
+  export PATH="$HOME/.local/bin:$PATH"
+fi
+
+pnpm install --frozen-lockfile
+
+# oxlint's JS plugin host needs overcommit to allocate virtual memory.
+sudo -n sysctl vm.overcommit_memory=1 >/dev/null 2>&1 || true

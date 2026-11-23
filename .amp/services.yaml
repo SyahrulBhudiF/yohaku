@@ -1,0 +1,4 @@
+services:
+  web:
+    command: pnpm exec vite dev --port $PORT --host 127.0.0.1
+    port: 3000
