@@ -30,7 +30,7 @@ pnpm exec alchemy profile edit --add Cloudflare
 ```
 
 or set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Then `pnpm run deploy`
-publishes the Worker at `https://tools.ryuko.my.id` (Alchemy attaches the custom
+publishes the Worker at `https://yohaku.ryuko.my.id` (Alchemy attaches the custom
 domain and its certificate; the zone must live in the same Cloudflare account).
 `pnpm run destroy` removes the stack.
 

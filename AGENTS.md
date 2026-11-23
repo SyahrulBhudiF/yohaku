@@ -186,7 +186,7 @@ not have one.
   static assets. Do not add a Wrangler config or `@cloudflare/vite-plugin`.
 - Credentials come from an Alchemy profile (`alchemy profile edit --add
   Cloudflare`) or `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`.
-- The Worker serves `tools.ryuko.my.id`; Alchemy owns the DNS record and edge
+- The Worker serves `yohaku.ryuko.my.id`; Alchemy owns the DNS record and edge
   certificate, so the zone must be in the same Cloudflare account.
 - `pnpm run deploy` targets the `prod` stage; `pnpm run destroy` removes it.
 - Pushes to `main` deploy through `.github/workflows/ci.yml` after the check job
