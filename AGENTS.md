@@ -100,8 +100,9 @@ export class MyService extends Context.Service<
 ## Error Handling
 
 - Define domain errors in `src/infrastructure/errors/` with `Schema.TaggedError`.
-- Never throw generic `Error` in services. Catch with `Effect.catch` /
-  `Effect.catchTag`.
+- Never construct or throw a plain `Error` in `src/`. Return tagged errors in
+  the Effect failure channel (`yield* new XxxError(...)`); map library and codec
+  exceptions once, at the `Effect.tryPromise` boundary.
 - Map tagged errors once, at the boundary that turns them into a response (a
   server handler) or a message (a feature mutation).
 - UI: show errors inline next to the action; never lose the user's selected file.
@@ -143,7 +144,9 @@ export class MyService extends Context.Service<
 - Keep server work inside the Workers free CPU budget; codecs and heavy loops
   stay in the browser.
 - Codec settings are a contract: AVIF uses `speed: 9` (~9x faster than the
-  default 6 for about 2% larger output). Record the tradeoff when changing it.
+  default 6 for about 2% larger output), WebP uses `method: 2` (~2x faster than
+  the default 4), and JPEG uses `progressive: false` (~2x faster for ~1% larger
+  files). Record the tradeoff when changing one.
 
 ## Server functions
 

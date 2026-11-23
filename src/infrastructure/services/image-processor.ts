@@ -58,13 +58,13 @@ const toArrayBuffer = (input: Uint8Array): ArrayBuffer =>
     ? (input.buffer as ArrayBuffer)
     : (input.slice().buffer as ArrayBuffer)
 
-const decodeGif = async (buffer: ArrayBuffer): Promise<ImageData> => {
+const decodeGif = async (buffer: ArrayBuffer): Promise<ImageData | null> => {
   const { decompressFrames, parseGIF } = await import("gifuct-js")
   const gif = parseGIF(buffer)
   const frame = decompressFrames(gif, true)[0]
 
   if (!frame) {
-    throw new Error("The GIF has no frames.")
+    return null
   }
 
   const { width, height } = gif.lsd
@@ -100,12 +100,12 @@ const decodeGif = async (buffer: ArrayBuffer): Promise<ImageData> => {
   return new ImageData(data, width, height)
 }
 
-const decodeTiff = async (buffer: ArrayBuffer): Promise<ImageData> => {
+const decodeTiff = async (buffer: ArrayBuffer): Promise<ImageData | null> => {
   const UTIF = (await import("utif")).default
   const ifd = UTIF.decode(buffer)[0]
 
   if (!ifd) {
-    throw new Error("The TIFF has no image.")
+    return null
   }
 
   UTIF.decodeImage(buffer, ifd)
@@ -113,31 +113,39 @@ const decodeTiff = async (buffer: ArrayBuffer): Promise<ImageData> => {
   return new ImageData(new Uint8ClampedArray(UTIF.toRGBA8(ifd)), ifd.width, ifd.height)
 }
 
-const decode = async (input: Uint8Array, format: ImageFormat): Promise<ImageData> => {
-  const buffer = toArrayBuffer(input)
-  const image = await (async () => {
-    switch (format) {
-      case "png":
-        return (await import("@jsquash/png/decode")).default(buffer)
-      case "jpeg":
-        return (await import("@jsquash/jpeg/decode")).default(buffer, { preserveOrientation: true })
-      case "webp":
-        return (await import("@jsquash/webp/decode")).default(buffer)
-      case "avif":
-        return (await import("@jsquash/avif/decode")).default(buffer)
-      case "gif":
-        return decodeGif(buffer)
-      case "tiff":
-        return decodeTiff(buffer)
-    }
-  })()
-
-  if (!image) {
-    throw new Error(`Could not decode ${format}.`)
+const decodeImage = async (buffer: ArrayBuffer, format: ImageFormat): Promise<ImageData | null> => {
+  switch (format) {
+    case "png":
+      return (await import("@jsquash/png/decode")).default(buffer)
+    case "jpeg":
+      return (await import("@jsquash/jpeg/decode")).default(buffer, { preserveOrientation: true })
+    case "webp":
+      return (await import("@jsquash/webp/decode")).default(buffer)
+    case "avif":
+      return (await import("@jsquash/avif/decode")).default(buffer)
+    case "gif":
+      return decodeGif(buffer)
+    case "tiff":
+      return decodeTiff(buffer)
   }
-
-  return image
 }
+
+const decode = (
+  input: Uint8Array,
+  format: ImageFormat,
+): Effect.Effect<ImageData, ImageProcessingError> =>
+  Effect.gen(function* () {
+    const image = yield* Effect.tryPromise({
+      try: () => decodeImage(toArrayBuffer(input), format),
+      catch: () => new ImageProcessingError({ message: "Could not read this image." }),
+    })
+
+    if (!image) {
+      return yield* new ImageProcessingError({ message: `Could not decode ${format}.` })
+    }
+
+    return image
+  })
 
 const encodeGif = async (image: ImageData, quality: number): Promise<Uint8Array<ArrayBuffer>> => {
   const loaded = await import("gifenc")
@@ -168,7 +176,7 @@ const encodeTiff = async (image: ImageData): Promise<Uint8Array<ArrayBuffer>> =>
   return new Uint8Array(UTIF.encodeImage(rgba, image.width, image.height))
 }
 
-const encode = async (
+const encodeImage = async (
   image: ImageData,
   format: ImageFormat,
   quality: number,
@@ -177,12 +185,21 @@ const encode = async (
     case "png":
       return new Uint8Array(await (await import("@jsquash/png/encode")).default(image))
     case "jpeg":
+      // Baseline halves encode time; progressive scan optimization buys ~1%
+      // smaller files for twice the CPU.
       return new Uint8Array(
-        await (await import("@jsquash/jpeg/encode")).default(image, { quality }),
+        await (
+          await import("@jsquash/jpeg/encode")
+        ).default(image, {
+          quality,
+          progressive: false,
+        }),
       )
     case "webp":
+      // `method` is libwebp's effort level. 2 encodes ~2x faster than the
+      // default 4 with no meaningful size change at this quality.
       return new Uint8Array(
-        await (await import("@jsquash/webp/encode")).default(image, { quality }),
+        await (await import("@jsquash/webp/encode")).default(image, { quality, method: 2 }),
       )
     case "avif":
       // `speed` trades size for time: the default 6 spends seconds on a 1.5 MP
@@ -196,6 +213,16 @@ const encode = async (
       return encodeTiff(image)
   }
 }
+
+const encode = (
+  image: ImageData,
+  format: ImageFormat,
+  quality: number,
+): Effect.Effect<Uint8Array<ArrayBuffer>, ImageProcessingError> =>
+  Effect.tryPromise({
+    try: () => encodeImage(image, format, quality),
+    catch: () => new ImageProcessingError({ message: `Could not encode the image as ${format}.` }),
+  })
 
 const detectFormat = Effect.fn("ImageProcessor.detectFormat")(function* (input: Uint8Array) {
   const detected = detect(input)
@@ -230,15 +257,8 @@ export class ImageProcessor extends Context.Service<
         quality: number,
       ) {
         const source = yield* detectFormat(input)
-        const image = yield* Effect.tryPromise({
-          try: () => decode(input, source),
-          catch: () => new ImageProcessingError({ message: "Could not read this image." }),
-        })
-        const data = yield* Effect.tryPromise({
-          try: () => encode(image, format, quality),
-          catch: () =>
-            new ImageProcessingError({ message: `Could not encode the image as ${format}.` }),
-        })
+        const image = yield* decode(input, source)
+        const data = yield* encode(image, format, quality)
 
         return { data, format }
       }),

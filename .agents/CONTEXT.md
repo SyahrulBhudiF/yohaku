@@ -48,4 +48,7 @@ excel→pdf) are planned and already listed as "coming soon" in the registry.
 13. **Data-oriented hot paths.** Pixels and bytes are flat typed arrays, hot
     loops avoid per-pixel allocations, and a buffer is copied once at the
     boundary that needs it. `pnpm bench` measures the codecs; AVIF encodes at
-    `speed: 9` because the default 6 is ~9x slower for ~2% smaller files.
+    `speed: 9` (default 6 is ~9x slower), WebP at `method: 2` (default 4 is
+    ~2x slower), and JPEG with `progressive: false` (~2x faster, ~1% larger).
+14. **Tagged errors only.** No plain `Error` in `src/`; codec exceptions are
+    mapped to `ImageProcessingError` at the `Effect.tryPromise` boundary.
