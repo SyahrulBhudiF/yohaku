@@ -4,7 +4,7 @@ Read this with the root `AGENTS.md` before making architectural changes.
 
 ## What
 
-Tools is a single TanStack Start app that hosts small file utilities. Image
+Yohaku is a single TanStack Start app that hosts small file utilities. Image
 convert and compress ship first. PDF and document tools (merge, split, word↔pdf,
 excel→pdf) are planned and already listed as "coming soon" in the registry.
 

@@ -22,7 +22,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "Tools",
+        title: "Yohaku",
       },
     ],
     links: [
@@ -47,7 +47,7 @@ function AppShell() {
     <>
       <header className="flex h-16 items-center bg-surface px-6">
         <Link to="/" className="text-xl font-medium tracking-tight">
-          Tools
+          Yohaku
         </Link>
       </header>
       <main className="px-6 pt-4 pb-16">

@@ -1,4 +1,4 @@
-# Tools
+# Yohaku
 
 Centralized file tools in one web app. Today: convert images between formats and
 compress images. Planned: PDF merge/split, Word↔PDF, Excel→PDF.

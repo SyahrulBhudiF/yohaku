@@ -1,6 +1,6 @@
-# Tools — Agent Rules
+# Yohaku — Agent Rules
 
-A centralized web app of file tools (image convert and compress today; PDF and
+Yohaku is a centralized web app of file tools (image convert and compress today; PDF and
 document tools later). One TanStack Start app deployed to Cloudflare Workers.
 Image work runs in the browser in Effect v4; server work, when a tool needs it,
 also runs in Effect v4. UI is shadcn on Base UI, styled after Material Design 3.
