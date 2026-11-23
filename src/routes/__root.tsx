@@ -5,10 +5,13 @@ import {
   Outlet,
   Scripts,
   createRootRouteWithContext,
+  useRouterState,
 } from "@tanstack/react-router"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
+import { ArrowLeftIcon } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
 import appCss from "../styles.css?url"
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -30,6 +33,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      {
+        rel: "icon",
+        href: "/favicon.ico",
+        sizes: "any",
+      },
     ],
   }),
   notFoundComponent: () => (
@@ -43,12 +51,26 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 })
 
 function AppShell() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
+
   return (
     <>
       <header className="flex h-16 items-center bg-surface px-6">
-        <Link to="/" className="text-xl font-medium tracking-tight">
+        <Link to="/" className="flex items-center gap-2 text-xl font-medium tracking-tight">
+          <img src="/yohaku-icon.png" alt="" className="size-8 dark:invert" />
           Yohaku
         </Link>
+        {pathname !== "/" && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto"
+            render={<Link to="/" />}
+            nativeButton={false}
+          >
+            <ArrowLeftIcon /> All tools
+          </Button>
+        )}
       </header>
       <main className="px-6 pt-4 pb-16">
         <Outlet />

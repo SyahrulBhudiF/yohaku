@@ -4,6 +4,7 @@ import {
   FileSpreadsheetIcon,
   FilesIcon,
   ImageUpIcon,
+  PenLineIcon,
   RepeatIcon,
   ScissorsIcon,
   WandSparklesIcon,
@@ -26,6 +27,7 @@ export interface ToolDefinition {
     | "/pdf/merge"
     | "/pdf/split"
     | "/pdf/to-image"
+    | "/pdf/sign"
     | "/excel/to-pdf"
     | null
 }
@@ -87,6 +89,14 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     icon: FileImageIcon,
     category: "pdf",
     to: "/pdf/to-image",
+  },
+  {
+    id: "pdf-sign",
+    title: "Sign PDF",
+    description: "Draw or upload signatures and place them on PDF pages.",
+    icon: PenLineIcon,
+    category: "pdf",
+    to: "/pdf/sign",
   },
   {
     id: "excel-to-pdf",

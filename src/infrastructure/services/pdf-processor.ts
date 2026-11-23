@@ -3,6 +3,7 @@ import { Context, Layer, type Effect } from "effect"
 import { PdfPasswordError, PdfProcessingError } from "@/infrastructure/errors/pdf"
 import type { ImagePdfPageSize } from "@/libs/schemas/pdf"
 import { imagesToPdf, type PdfImageInput } from "@/libs/utils/pdf/images-to-pdf"
+import { signPdf, type SignaturePlacement } from "@/libs/utils/pdf/sign"
 import {
   mergePages,
   splitPdf,
@@ -24,10 +25,14 @@ export class PdfProcessor extends Context.Service<
       images: ReadonlyArray<PdfImageInput>,
       pageSize: ImagePdfPageSize,
     ) => Effect.Effect<Uint8Array<ArrayBuffer>, PdfProcessingError>
+    readonly sign: (
+      file: File,
+      placements: ReadonlyArray<SignaturePlacement>,
+    ) => Effect.Effect<Blob, PdfProcessingError>
   }
 >()("tools/PdfProcessor") {
   static readonly layer = Layer.succeed(
     PdfProcessor,
-    PdfProcessor.of({ mergePages, split: splitPdf, imagesToPdf }),
+    PdfProcessor.of({ mergePages, split: splitPdf, imagesToPdf, sign: signPdf }),
   )
 }
