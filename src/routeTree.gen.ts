@@ -16,6 +16,7 @@ import { Route as ImageConvertRouteImport } from './routes/image/convert'
 import { Route as ImageRemoveBackgroundRouteImport } from './routes/image/remove-background'
 import { Route as ImageToPdfRouteImport } from './routes/image/to-pdf'
 import { Route as PdfCompressRouteImport } from './routes/pdf/compress'
+import { Route as PdfExtractRouteImport } from './routes/pdf/extract'
 import { Route as PdfMergeRouteImport } from './routes/pdf/merge'
 import { Route as PdfSignRouteImport } from './routes/pdf/sign'
 import { Route as PdfSplitRouteImport } from './routes/pdf/split'
@@ -56,6 +57,11 @@ const PdfCompressRoute = PdfCompressRouteImport.update({
   path: '/pdf/compress',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PdfExtractRoute = PdfExtractRouteImport.update({
+  id: '/pdf/extract',
+  path: '/pdf/extract',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PdfMergeRoute = PdfMergeRouteImport.update({
   id: '/pdf/merge',
   path: '/pdf/merge',
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
   '/image/to-pdf': typeof ImageToPdfRoute
   '/pdf/compress': typeof PdfCompressRoute
+  '/pdf/extract': typeof PdfExtractRoute
   '/pdf/merge': typeof PdfMergeRoute
   '/pdf/sign': typeof PdfSignRoute
   '/pdf/split': typeof PdfSplitRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByTo {
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
   '/image/to-pdf': typeof ImageToPdfRoute
   '/pdf/compress': typeof PdfCompressRoute
+  '/pdf/extract': typeof PdfExtractRoute
   '/pdf/merge': typeof PdfMergeRoute
   '/pdf/sign': typeof PdfSignRoute
   '/pdf/split': typeof PdfSplitRoute
@@ -112,6 +120,7 @@ export interface FileRoutesById {
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
   '/image/to-pdf': typeof ImageToPdfRoute
   '/pdf/compress': typeof PdfCompressRoute
+  '/pdf/extract': typeof PdfExtractRoute
   '/pdf/merge': typeof PdfMergeRoute
   '/pdf/sign': typeof PdfSignRoute
   '/pdf/split': typeof PdfSplitRoute
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/image/remove-background'
     | '/image/to-pdf'
     | '/pdf/compress'
+    | '/pdf/extract'
     | '/pdf/merge'
     | '/pdf/sign'
     | '/pdf/split'
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
     | '/image/remove-background'
     | '/image/to-pdf'
     | '/pdf/compress'
+    | '/pdf/extract'
     | '/pdf/merge'
     | '/pdf/sign'
     | '/pdf/split'
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
     | '/image/remove-background'
     | '/image/to-pdf'
     | '/pdf/compress'
+    | '/pdf/extract'
     | '/pdf/merge'
     | '/pdf/sign'
     | '/pdf/split'
@@ -167,6 +179,7 @@ export interface RootRouteChildren {
   ImageRemoveBackgroundRoute: typeof ImageRemoveBackgroundRoute
   ImageToPdfRoute: typeof ImageToPdfRoute
   PdfCompressRoute: typeof PdfCompressRoute
+  PdfExtractRoute: typeof PdfExtractRoute
   PdfMergeRoute: typeof PdfMergeRoute
   PdfSignRoute: typeof PdfSignRoute
   PdfSplitRoute: typeof PdfSplitRoute
@@ -224,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PdfCompressRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pdf/extract': {
+      id: '/pdf/extract'
+      path: '/pdf/extract'
+      fullPath: '/pdf/extract'
+      preLoaderRoute: typeof PdfExtractRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pdf/merge': {
       id: '/pdf/merge'
       path: '/pdf/merge'
@@ -263,6 +283,7 @@ const rootRouteChildren: RootRouteChildren = {
   ImageRemoveBackgroundRoute: ImageRemoveBackgroundRoute,
   ImageToPdfRoute: ImageToPdfRoute,
   PdfCompressRoute: PdfCompressRoute,
+  PdfExtractRoute: PdfExtractRoute,
   PdfMergeRoute: PdfMergeRoute,
   PdfSignRoute: PdfSignRoute,
   PdfSplitRoute: PdfSplitRoute,

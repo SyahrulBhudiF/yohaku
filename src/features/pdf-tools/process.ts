@@ -208,6 +208,29 @@ export const splitPdf = (input: SplitPdfInput): Promise<SplitPdfOutput> =>
     }),
   )
 
+export interface ExtractPdfPagesInput {
+  readonly file: PdfFileEntry
+  readonly pages: ReadonlyArray<number>
+}
+
+export const extractPdfPages = (input: ExtractPdfPagesInput): Promise<SplitPdfOutput> =>
+  runEffect(
+    Effect.gen(function* () {
+      const processor = yield* PdfProcessor
+      const blob = yield* processor.extractPages(input.file.file, input.pages, input.file.password)
+      const base = input.file.name.replace(/\.pdf$/i, "") || "pdf"
+
+      return {
+        blob: new Blob([blob], { type: "application/pdf" }),
+        fileName: `${base}-pages.pdf`,
+        bytes: blob.byteLength,
+        inputBytes: input.file.size,
+        pages: input.pages.length,
+        outputs: 1,
+      }
+    }),
+  )
+
 export interface RenderPdfImagesInput {
   readonly file: PdfFileEntry
   readonly pages: ReadonlyArray<number>

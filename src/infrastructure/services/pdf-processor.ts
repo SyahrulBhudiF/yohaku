@@ -13,6 +13,7 @@ import {
   compressPdf,
   mergePages,
   splitPdf,
+  extractPages,
   type PdfMergePage,
   type PdfOutput,
   type PdfSplitRequest,
@@ -31,6 +32,11 @@ export class PdfProcessor extends Context.Service<
     readonly split: (
       request: PdfSplitRequest,
     ) => Effect.Effect<ReadonlyArray<PdfOutput>, PdfPasswordError | PdfProcessingError>
+    readonly extractPages: (
+      file: File,
+      pages: ReadonlyArray<number>,
+      password?: string,
+    ) => Effect.Effect<Uint8Array<ArrayBuffer>, PdfPasswordError | PdfProcessingError>
     readonly imagesToPdf: (
       images: ReadonlyArray<PdfImageInput>,
       pageSize: ImagePdfPageSize,
@@ -47,6 +53,7 @@ export class PdfProcessor extends Context.Service<
       mergePages,
       compress: compressPdf,
       split: splitPdf,
+      extractPages,
       imagesToPdf,
       sign: signPdf,
     }),

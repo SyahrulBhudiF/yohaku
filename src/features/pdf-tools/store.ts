@@ -116,6 +116,40 @@ export const useMergeStore = create<MergeState>()((set, get) => ({
   },
 }))
 
+interface PdfExtractState {
+  readonly file: PdfFileEntry | null
+  readonly result: PdfResult | null
+  readonly setFile: (file: PdfFileEntry | null) => void
+  readonly setResult: (result: PdfResultInput) => void
+  readonly reset: () => void
+}
+
+export const usePdfExtractStore = create<PdfExtractState>()((set, get) => ({
+  file: null,
+  result: null,
+  setFile: (file) => {
+    const previous = get().file
+
+    if (previous && previous.id !== file?.id) disposePdfFile(previous.id)
+    revoke(get().result?.url)
+    set({ file, result: null })
+  },
+  setResult: ({ blob, ...result }) => {
+    revoke(get().result?.url)
+    set({ result: { ...result, url: URL.createObjectURL(blob) } })
+  },
+  reset: () => {
+    const file = get().file
+
+    if (file) {
+      disposePdfFile(file.id)
+    }
+
+    revoke(get().result?.url)
+    set({ file: null, result: null })
+  },
+}))
+
 interface SplitState {
   readonly file: PdfFileEntry | null
   readonly result: PdfResult | null

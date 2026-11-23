@@ -27,6 +27,7 @@ export interface ToolDefinition {
     | "/image/remove-background"
     | "/pdf/merge"
     | "/pdf/compress"
+    | "/pdf/extract"
     | "/pdf/split"
     | "/pdf/to-image"
     | "/pdf/sign"
@@ -83,6 +84,14 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     icon: FileDownIcon,
     category: "pdf",
     to: "/pdf/compress",
+  },
+  {
+    id: "pdf-extract",
+    title: "Extract PDF pages",
+    description: "Keep selected pages and save them as a new PDF.",
+    icon: ScissorsIcon,
+    category: "pdf",
+    to: "/pdf/extract",
   },
   {
     id: "pdf-split",

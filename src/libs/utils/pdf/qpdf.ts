@@ -239,6 +239,31 @@ export const compressPdf = (
     } satisfies PdfCompressionResult
   })
 
+export const extractPages = (
+  file: File,
+  pages: ReadonlyArray<number>,
+  password?: string,
+): Effect.Effect<Uint8Array<ArrayBuffer>, PdfPasswordError | PdfProcessingError> =>
+  Effect.gen(function* () {
+    if (pages.length === 0) {
+      return yield* new PdfProcessingError({ message: "Choose at least one page to extract." })
+    }
+
+    const qpdf = yield* Effect.tryPromise({ try: loadEngine, catch: mapError })
+    const selection = pages.join(",")
+    const result = yield* Effect.tryPromise({
+      try: () =>
+        qpdf.selectPages(file, selection, password === undefined ? undefined : { password }),
+      catch: mapError,
+    })
+
+    if (result.output.byteLength === 0) {
+      return yield* new PdfProcessingError({ message: "qpdf did not produce an extracted PDF." })
+    }
+
+    return result.output
+  })
+
 export const splitPdf = (
   request: PdfSplitRequest,
 ): Effect.Effect<ReadonlyArray<PdfOutput>, PdfPasswordError | PdfProcessingError> =>

@@ -84,6 +84,47 @@ describe("PdfProcessor", () => {
     ),
   )
 
+  it.effect("extracts selected pages in ascending page order", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* PdfProcessor
+        const file = yield* Effect.promise(() => fixtureFile("a.pdf"))
+        const extracted = yield* processor.extractPages(file, [1, 3])
+
+        assert.deepEqual(yield* Effect.promise(() => extractPdfText(extracted)), [
+          "a page 1",
+          "a page 3",
+        ])
+      }),
+    ),
+  )
+
+  it.effect("rejects extraction of a page outside the document", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* PdfProcessor
+        const file = yield* Effect.promise(() => fixtureFile("a.pdf"))
+        const error = yield* Effect.flip(processor.extractPages(file, [4]))
+
+        assert.strictEqual(error._tag, "PdfProcessingError")
+      }),
+    ),
+  )
+
+  it.effect("extracts pages from an encrypted PDF with a password", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* PdfProcessor
+        const file = yield* Effect.promise(() => fixtureFile("enc.pdf"))
+        const extracted = yield* processor.extractPages(file, [2], "secret")
+
+        assert.deepEqual(yield* Effect.promise(() => extractPdfText(extracted, "secret")), [
+          "enc page 2",
+        ])
+      }),
+    ),
+  )
+
   it.effect("splits into chunks", () =>
     run(
       Effect.gen(function* () {
