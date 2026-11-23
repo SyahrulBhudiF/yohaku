@@ -120,6 +120,8 @@ export class MyService extends Context.Service<
   loads only when used, and warm the selected encoder with
   `preloadImageCodec()` before the user submits. Keep `optimizeDeps.exclude`
   for the codec packages in `vite.config.ts`.
+- Codec helpers live in `src/libs/utils/image-codec/` (detect, decode, encode,
+  preload); `ImageProcessor` only orchestrates detect → decode → encode.
 - Files are processed in memory and never uploaded or stored.
 - Node cannot fetch the codecs' `file://` wasm. Tests call
   `initImageCodecs()` from `tests/support/image-codecs.ts` before using the

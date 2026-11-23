@@ -2,11 +2,8 @@ import { Effect } from "effect"
 
 import { FileTooLargeError } from "@/infrastructure/errors/image"
 import { runEffect } from "@/infrastructure/runtime"
-import {
-  detectImageFormat,
-  ImageProcessor,
-  preloadImageCodec,
-} from "@/infrastructure/services/image-processor"
+import { ImageProcessor } from "@/infrastructure/services/image-processor"
+import { detectImageFormat, preloadImageCodec } from "@/libs/utils/image-codec"
 import {
   IMAGE_EXTENSION,
   IMAGE_MIME,

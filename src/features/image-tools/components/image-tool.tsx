@@ -20,7 +20,7 @@ import {
   type ImageFormat,
   type ImageToolFormValues,
 } from "@/libs/schemas/image"
-import { preloadImageCodec } from "@/infrastructure/services/image-processor"
+import { preloadImageCodec } from "@/libs/utils/image-codec"
 import { formatBytes } from "@/libs/utils/format"
 import { processImage, type ImageToolMode } from "../process"
 import type { ImageToolStore } from "../store"
