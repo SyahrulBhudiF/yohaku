@@ -1,6 +1,6 @@
 import { createMiddleware, createStart } from "@tanstack/react-start"
 
-import { getRateLimiter } from "@/infrastructure/cloudflare"
+import { getEnv } from "@/env"
 
 const WINDOW_SECONDS = 60
 
@@ -14,10 +14,10 @@ const clientKey = (request: Request) =>
  * assets never reach the Worker, so they are not counted.
  */
 const rateLimit = createMiddleware().server(async ({ next, request }) => {
-  const limiter = await getRateLimiter()
+  const env = await getEnv()
 
-  if (limiter !== undefined) {
-    const { success } = await limiter.limit({ key: clientKey(request) })
+  if (env !== undefined) {
+    const { success } = await env.RATE_LIMIT.limit({ key: clientKey(request) })
 
     if (!success) {
       throw new Response("Too many requests. Try again in a minute.", {

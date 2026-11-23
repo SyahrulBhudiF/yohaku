@@ -19,6 +19,8 @@ export class Website extends Cloudflare.Website.Vite<Website>()("Website", {
   },
 }) {}
 
+export type WebsiteEnv = Cloudflare.InferEnv<typeof Website>
+
 export default Alchemy.Stack(
   "Tools",
   {
