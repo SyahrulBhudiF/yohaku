@@ -82,7 +82,7 @@ export function ImageTool({
   })
   const preload = (choice: ImageToolFormValues["format"]) => {
     if (choice !== "original") {
-      void preloadImageCodec(choice, "encode")
+      preloadImageCodec(choice)
     }
   }
 

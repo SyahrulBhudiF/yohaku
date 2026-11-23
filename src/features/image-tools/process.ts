@@ -45,7 +45,7 @@ const program = (input: ProcessImageInput) =>
     const format = input.format ?? source ?? (yield* processor.detectFormat(bytes))
 
     // Start the encoder download while the source image decodes.
-    void preloadImageCodec(format, "encode")
+    preloadImageCodec(format)
 
     const output = yield* processor.transcode(bytes, format, input.quality)
     const mimeType = IMAGE_MIME[output.format]
