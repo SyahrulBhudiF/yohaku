@@ -1,4 +1,9 @@
 export { decodeImage } from "./decode"
 export { detectImageFormat } from "./detect"
 export { encodeImage } from "./encode"
-export { preloadImageCodec, transcodeInWorker } from "./worker-client"
+export {
+  encodeInWorker,
+  imageWorkerLimit,
+  preloadImageCodec,
+  transcodeInWorker,
+} from "./worker-client"

@@ -1,0 +1,20 @@
+{
+  "name": "xlsx-pdf-core",
+  "type": "module",
+  "description": "Convert XLSX workbooks to PDF in the browser.",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SyahrulBhudiF/yohaku"
+  },
+  "files": [
+    "xlsx_pdf_core_bg.wasm",
+    "xlsx_pdf_core.js",
+    "xlsx_pdf_core.d.ts"
+  ],
+  "main": "xlsx_pdf_core.js",
+  "types": "xlsx_pdf_core.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

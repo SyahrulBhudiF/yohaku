@@ -4,6 +4,7 @@ import { beforeAll } from "vitest"
 
 import { ImageProcessor } from "@/infrastructure/services/image-processor"
 import { decodeGifAnimation, transcodeGif } from "@/libs/utils/image-codec/gif"
+import { jpegOrientation } from "@/libs/utils/image-codec/jpeg"
 import { decodeWebpAnimation, isAnimatedWebp } from "@/libs/utils/image-codec/webp-animation"
 import { makeAnimatedGif, parseWebpChunks } from "../../support/gif"
 import { initImageCodecs, makePng } from "../../support/image-codecs"
@@ -331,4 +332,24 @@ describe("Animated WebP", () => {
       }),
     ),
   )
+})
+
+describe("JPEG orientation", () => {
+  it("reads a non-default EXIF orientation", async () => {
+    const rotated = await makeOrientedJpeg(40, 20, 6)
+
+    assert.strictEqual(jpegOrientation(rotated), 6)
+  })
+
+  it("treats a JPEG without EXIF as upright", async () => {
+    const encode = (await import("@jsquash/jpeg/encode")).default
+    const data = new Uint8ClampedArray(16 * 16 * 4).fill(180)
+    const jpeg = new Uint8Array(await encode(new ImageData(data, 16, 16), { quality: 90 }))
+
+    assert.strictEqual(jpegOrientation(jpeg), 1)
+  })
+
+  it("treats malformed bytes as upright", () => {
+    assert.strictEqual(jpegOrientation(new Uint8Array([0xff, 0xd8])), 1)
+  })
 })

@@ -72,3 +72,37 @@ export const parsePageRanges = (input: string, pageCount: number): PageRangesRes
 
   return validatePageRanges(ranges, pageCount)
 }
+
+export type PageSelectionResult =
+  | { readonly ok: true; readonly pages: ReadonlyArray<number> }
+  | { readonly ok: false; readonly message: string }
+
+export const expandPageRanges = (ranges: ReadonlyArray<PdfPageRange>): ReadonlyArray<number> => {
+  const pages = new Set<number>()
+
+  for (const range of ranges) {
+    for (let page = range.start; page <= range.end; page++) {
+      pages.add(page)
+    }
+  }
+
+  return [...pages].sort((a, b) => a - b)
+}
+
+/** Empty input means every page; otherwise parse comma-separated pages/ranges. */
+export const parsePageSelection = (input: string, pageCount: number): PageSelectionResult => {
+  if (input.trim() === "") {
+    return {
+      ok: true,
+      pages: Array.from({ length: pageCount }, (_, index) => index + 1),
+    }
+  }
+
+  const parsed = parsePageRanges(input, pageCount)
+
+  if (!parsed.ok) {
+    return parsed
+  }
+
+  return { ok: true, pages: expandPageRanges(parsed.ranges) }
+}

@@ -5,17 +5,20 @@ Read this with the root `AGENTS.md` before making architectural changes.
 ## What
 
 Yohaku is a single TanStack Start app that hosts small file utilities. Image
-convert and compress, and PDF merge and split, ship today. PDF to images, images
-to PDF, PDF compression, and Word/Excel conversion are not built yet.
+convert and compress, PDF merge and split, PDF to image, image to PDF, and
+Excel to PDF ship today. PDF compression, Word conversion, and PDF to Excel are
+not built yet.
 
 ## Architecture decisions
 
 1. **Keep routes thin.** Route files render feature modules from
    `src/features/`. Page behavior belongs in the feature.
 2. **One tool, one slice.** A tool has a page route in `src/routes/<tool>/`,
-   schemas in `src/libs/schemas/`, a feature folder, and a registry entry. A tool
-   that needs a server adds a `createServerFn` in `src/apis/<tool>.ts` with its
-   Effect handler in `<tool>.server.ts`.
+   schemas in `src/libs/schemas/`, a feature folder, and a registry entry tagged
+   `category: "image" | "pdf" | "document"`. The home page renders one section
+   per category.
+   A tool that needs a server adds a `createServerFn` in `src/apis/<tool>.ts`
+   with its Effect handler in `<tool>.server.ts`.
 3. **Use Effect where it earns its keep.** Processing sits behind
    `Context.Service` classes (`ImageProcessor`, `PdfProcessor`). Typed failures
    are `Schema.TaggedError`s mapped once at the boundary that presents them.
@@ -27,8 +30,12 @@ to PDF, PDF compression, and Word/Excel conversion are not built yet.
 6. **Process in the browser.** Cloudflare Workers Free allows 10 ms of CPU per
    request, so no native or WASM encoder can run on the server. Image work uses
    `@jsquash` codecs in the browser behind `ImageProcessor`; PDF merge/split uses
-   `@mssio/qpdf-wasm` behind `PdfProcessor`, and pdf.js renders thumbnails. The
-   Worker only serves the app. This keeps the app free, fast, and private.
+   `@mssio/qpdf-wasm` behind `PdfProcessor`, pdf.js renders pages for PDF to
+   image, and pdf-lib writes image-only PDFs. PDF to image uses the native
+   canvas encoder for PNG/JPEG and a bounded worker pool for the other formats.
+   Excel to PDF uses a Rust/WASM core (`calamine` + `pdf-writer`) that reads
+   rows into a flat span arena and writes compressed PDF tables. The Worker only
+   serves the app. This keeps the app free, fast, and private.
 7. **Shared UI boundary.** Primitives under `src/components/ui/` wrap Base UI and
    follow Material Design 3. Feature UI lives under `src/features/`.
 8. **Query, Form, Zustand.** TanStack Query runs mutations, TanStack Form owns
@@ -54,7 +61,15 @@ to PDF, PDF compression, and Word/Excel conversion are not built yet.
     ~2x slower), and JPEG with `progressive: false` (~2x faster, ~1% larger).
 14. **Tagged errors only.** No plain `Error` in `src/`; codec and PDF
     exceptions are mapped to tagged errors at the `Effect.tryPromise` boundary.
-15. **PDF pages are a sortable grid.** dnd-kit reorders page thumbnails; qpdf
-    receives page runs in that order. qpdf detaches a raw `Uint8Array` it is
-    given, so pass `File`/`Blob` inputs. Merge uses `--empty --pages` and split
-    uses qpdf's page selection; bookmarks and forms are not preserved.
+15. **PDF pages and image cards are sortable grids.** dnd-kit reorders page
+    thumbnails and image-to-PDF cards; qpdf receives page runs in that order.
+    qpdf detaches a raw `Uint8Array` it is given, so pass `File`/`Blob` inputs.
+    Merge uses `--empty --pages` and split uses qpdf's page selection; bookmarks
+    and forms are not preserved. Image to PDF embeds PNG and upright JPEG bytes
+    as-is, and normalizes rotated JPEGs and other formats through
+    `ImageProcessor` before pdf-lib writes the pages.
+16. **Rust/WASM cores are narrow and committed.** Excel to PDF keeps parsing and
+    PDF writing in `packages/xlsx-pdf-core`; the generated package under
+    `src/libs/wasm/` is committed so the app build does not need Rust. CI runs
+    the crate tests. Run `pnpm wasm:build` after changing the Rust source and
+    `pnpm wasm:test` for the native crate tests.

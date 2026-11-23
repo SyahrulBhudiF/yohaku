@@ -22,6 +22,7 @@ import {
 } from "@/libs/schemas/image"
 import { preloadImageCodec } from "@/libs/utils/image-codec"
 import { formatBytes } from "@/libs/utils/format"
+import { isPreviewableImageMime } from "@/libs/utils/image-preview"
 import { processImage, type ImageToolMode } from "../process"
 import type { ImageToolStore } from "../store"
 import { Dropzone } from "./dropzone"
@@ -45,14 +46,6 @@ const toChoice = (value: string | null): ImageToolFormValues["format"] | null =>
   return value !== null && isImageFormat(value) ? value : null
 }
 
-const PREVIEWABLE_MIME_TYPES = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-  "image/avif",
-  "image/gif",
-])
-
 function ResultPreview({
   url,
   mimeType,
@@ -64,7 +57,7 @@ function ResultPreview({
 }) {
   const [failed, setFailed] = useState(false)
 
-  if (!PREVIEWABLE_MIME_TYPES.has(mimeType) || failed) {
+  if (!isPreviewableImageMime(mimeType) || failed) {
     return (
       <p className="text-sm">
         {failed
@@ -144,7 +137,7 @@ export function ImageTool({
       </div>
 
       {file === null ? (
-        <Dropzone onFile={setFile} />
+        <Dropzone onFiles={(files) => setFile(files[0] ?? null)} />
       ) : (
         <Card>
           <CardHeader>

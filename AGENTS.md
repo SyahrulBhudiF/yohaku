@@ -1,9 +1,10 @@
 # Yohaku — Agent Rules
 
-Yohaku is a centralized web app of file tools (image convert and compress today; PDF and
-document tools later). One TanStack Start app deployed to Cloudflare Workers.
-Image work runs in the browser in Effect v4; server work, when a tool needs it,
-also runs in Effect v4. UI is shadcn on Base UI, styled after Material Design 3.
+Yohaku is a centralized web app of file tools (image, PDF, and Excel to PDF
+today; more document tools later). One TanStack Start app deployed to Cloudflare
+Workers. Image and document work runs in the browser in Effect v4; server work,
+when a tool needs it, also runs in Effect v4. UI is shadcn on Base UI, styled
+after Material Design 3.
 
 Read [.agents/CONTEXT.md](.agents/CONTEXT.md) for architecture decisions. Use the
 matching workflow in `.agents/skills/` when building server features, web
@@ -27,6 +28,8 @@ with `pnpm repos:sync` (`.agents/setup` runs it). Never edit files under `repos/
 - `pnpm check` — format check + lint + typecheck
 - `pnpm test:run` — run tests once (vitest)
 - `pnpm bench` — run the image codec benchmarks
+- `pnpm wasm:build` — rebuild the Excel→PDF Rust/WASM package
+- `pnpm wasm:test` — run the Rust crate tests
 - `pnpm lint:fix` / `pnpm format` — auto-fix lint / format
 - Single test: `pnpm test:run tests/infrastructure/services/image-processor.test.ts`
 - Pre-commit (husky): `pnpm check && pnpm test:run`
@@ -61,6 +64,7 @@ src/libs/utils/           Client and shared helpers
 src/libs/stores/          Cross-feature Zustand stores
 src/styles.css            M3 tokens (--md-*) mapped onto shadcn tokens
 tests/                    Mirrors src/ paths; tests/support/ holds shared fixtures
+packages/                 Rust/WASM cores (generated packages go under src/libs/wasm/)
 repos/                    Vendored upstream source (read-only)
 ```
 
@@ -128,6 +132,35 @@ export class MyService extends Context.Service<
 - Node cannot fetch the codecs' `file://` wasm. Tests call
   `initImageCodecs()` from `tests/support/image-codecs.ts` before using the
   processor.
+
+## PDF processing
+
+- PDF merge and split run qpdf as WebAssembly in the browser behind
+  `PdfProcessor`; pass `File`/`Blob` inputs because qpdf detaches raw byte views.
+- PDF to image renders selected pages (empty means all; ranges like `1-3, 5`)
+  with pdf.js at 72/150/300 DPI. PNG and JPEG use the browser's native canvas
+  encoder; WebP/AVIF/GIF/TIFF encode through a bounded `ImageProcessor` worker
+  pool with pipelined rendering.
+- Image to PDF assembles pages with `pdf-lib`. PNG and upright JPEG bytes are
+  embedded as-is; rotated JPEGs and other formats are normalized first.
+- dnd-kit orders PDF pages and image-to-PDF cards. OS file drops stay on native
+  `drop` events because dnd-kit only tracks in-app drags.
+
+## Document processing
+
+- Excel→PDF lives in `packages/xlsx-pdf-core` (`calamine` + `pdf-writer`) and is
+  called from the browser through the generated package in
+  `src/libs/wasm/xlsx-pdf-core/`.
+- Keep the core data-oriented: one UTF-8 text arena and flat `Span` records per
+  sheet, flat `u16` widths, and a `soa-rs` `Soa<Column>` for width/x-offset.
+  Avoid `Vec<Vec<String>>` and per-cell allocations in hot loops.
+- `lib.rs` is the public API and WASM boundary only. Parsing, layout, rendering,
+  limits, and errors live in their own modules.
+- Rebuild with `pnpm wasm:build` and test with `pnpm wasm:test`; commit the
+  generated package so the app build does not need Rust. CI runs the crate
+  tests with a stable Rust toolchain.
+- Excel→PDF is a table export: no formulas, charts, merged cells, or full
+  Unicode. Standard Helvetica uses WinAnsi encoding.
 
 ## Data-oriented design
 

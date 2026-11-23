@@ -48,3 +48,83 @@ export const useConvertStore = createImageToolStore()
 export const useCompressStore = createImageToolStore()
 
 export type ImageToolStore = typeof useConvertStore
+
+export interface ImagePdfFileEntry {
+  readonly id: string
+  readonly file: File
+  readonly name: string
+  readonly size: number
+  readonly previewUrl: string
+}
+
+export interface ImagePdfResult {
+  readonly url: string
+  readonly fileName: string
+  readonly bytes: number
+  readonly inputBytes: number
+  readonly images: number
+  readonly pdfs: number
+}
+
+type ImagePdfResultInput = Omit<ImagePdfResult, "url"> & { readonly blob: Blob }
+
+export const newImageId = () => globalThis.crypto.randomUUID()
+
+interface ImagePdfState {
+  readonly files: Array<ImagePdfFileEntry>
+  readonly result: ImagePdfResult | null
+  readonly addFiles: (files: ReadonlyArray<File>) => void
+  readonly removeFile: (id: string) => void
+  readonly setFiles: (files: ReadonlyArray<ImagePdfFileEntry>) => void
+  readonly setResult: (result: ImagePdfResultInput) => void
+  readonly clearResult: () => void
+  readonly reset: () => void
+}
+
+export const useImageToPdfStore = create<ImagePdfState>()((set, get) => ({
+  files: [],
+  result: null,
+  addFiles: (incoming) => {
+    revoke(get().result?.url)
+
+    const entries = incoming.map((file) => ({
+      id: newImageId(),
+      file,
+      name: file.name,
+      size: file.size,
+      previewUrl: URL.createObjectURL(file),
+    }))
+
+    set({ files: [...get().files, ...entries], result: null })
+  },
+  removeFile: (id) => {
+    const entry = get().files.find((file) => file.id === id)
+
+    if (entry) {
+      revoke(entry.previewUrl)
+    }
+
+    revoke(get().result?.url)
+    set({ files: get().files.filter((file) => file.id !== id), result: null })
+  },
+  setFiles: (files) => {
+    revoke(get().result?.url)
+    set({ files: [...files], result: null })
+  },
+  setResult: ({ blob, ...result }) => {
+    revoke(get().result?.url)
+    set({ result: { ...result, url: URL.createObjectURL(blob) } })
+  },
+  clearResult: () => {
+    revoke(get().result?.url)
+    set({ result: null })
+  },
+  reset: () => {
+    for (const entry of get().files) {
+      revoke(entry.previewUrl)
+    }
+
+    revoke(get().result?.url)
+    set({ files: [], result: null })
+  },
+}))

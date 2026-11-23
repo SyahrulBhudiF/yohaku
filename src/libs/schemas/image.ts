@@ -1,6 +1,8 @@
 import { Schema } from "effect"
 
 export const MAX_IMAGE_BYTES = 25 * 1024 * 1024
+export const MAX_IMAGE_FILES = 50
+export const MAX_IMAGE_TOTAL_BYTES = 250 * 1024 * 1024
 
 export const ImageFormatSchema = Schema.Literals(["png", "jpeg", "webp", "avif", "gif", "tiff"])
 

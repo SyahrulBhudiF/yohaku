@@ -10,14 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ExcelToPdfRouteImport } from './routes/excel/to-pdf'
 import { Route as ImageCompressRouteImport } from './routes/image/compress'
 import { Route as ImageConvertRouteImport } from './routes/image/convert'
+import { Route as ImageToPdfRouteImport } from './routes/image/to-pdf'
 import { Route as PdfMergeRouteImport } from './routes/pdf/merge'
 import { Route as PdfSplitRouteImport } from './routes/pdf/split'
+import { Route as PdfToImageRouteImport } from './routes/pdf/to-image'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExcelToPdfRoute = ExcelToPdfRouteImport.update({
+  id: '/excel/to-pdf',
+  path: '/excel/to-pdf',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImageCompressRoute = ImageCompressRouteImport.update({
@@ -30,6 +38,11 @@ const ImageConvertRoute = ImageConvertRouteImport.update({
   path: '/image/convert',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ImageToPdfRoute = ImageToPdfRouteImport.update({
+  id: '/image/to-pdf',
+  path: '/image/to-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PdfMergeRoute = PdfMergeRouteImport.update({
   id: '/pdf/merge',
   path: '/pdf/merge',
@@ -40,50 +53,85 @@ const PdfSplitRoute = PdfSplitRouteImport.update({
   path: '/pdf/split',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PdfToImageRoute = PdfToImageRouteImport.update({
+  id: '/pdf/to-image',
+  path: '/pdf/to-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/excel/to-pdf': typeof ExcelToPdfRoute
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
+  '/image/to-pdf': typeof ImageToPdfRoute
   '/pdf/merge': typeof PdfMergeRoute
   '/pdf/split': typeof PdfSplitRoute
+  '/pdf/to-image': typeof PdfToImageRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/excel/to-pdf': typeof ExcelToPdfRoute
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
+  '/image/to-pdf': typeof ImageToPdfRoute
   '/pdf/merge': typeof PdfMergeRoute
   '/pdf/split': typeof PdfSplitRoute
+  '/pdf/to-image': typeof PdfToImageRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/excel/to-pdf': typeof ExcelToPdfRoute
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
+  '/image/to-pdf': typeof ImageToPdfRoute
   '/pdf/merge': typeof PdfMergeRoute
   '/pdf/split': typeof PdfSplitRoute
+  '/pdf/to-image': typeof PdfToImageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/image/compress' | '/image/convert' | '/pdf/merge' | '/pdf/split'
+    | '/'
+    | '/excel/to-pdf'
+    | '/image/compress'
+    | '/image/convert'
+    | '/image/to-pdf'
+    | '/pdf/merge'
+    | '/pdf/split'
+    | '/pdf/to-image'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/image/compress' | '/image/convert' | '/pdf/merge' | '/pdf/split'
+  to:
+    | '/'
+    | '/excel/to-pdf'
+    | '/image/compress'
+    | '/image/convert'
+    | '/image/to-pdf'
+    | '/pdf/merge'
+    | '/pdf/split'
+    | '/pdf/to-image'
   id:
     | '__root__'
     | '/'
+    | '/excel/to-pdf'
     | '/image/compress'
     | '/image/convert'
+    | '/image/to-pdf'
     | '/pdf/merge'
     | '/pdf/split'
+    | '/pdf/to-image'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ExcelToPdfRoute: typeof ExcelToPdfRoute
   ImageCompressRoute: typeof ImageCompressRoute
   ImageConvertRoute: typeof ImageConvertRoute
+  ImageToPdfRoute: typeof ImageToPdfRoute
   PdfMergeRoute: typeof PdfMergeRoute
   PdfSplitRoute: typeof PdfSplitRoute
+  PdfToImageRoute: typeof PdfToImageRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -93,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/excel/to-pdf': {
+      id: '/excel/to-pdf'
+      path: '/excel/to-pdf'
+      fullPath: '/excel/to-pdf'
+      preLoaderRoute: typeof ExcelToPdfRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/image/compress': {
@@ -109,6 +164,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ImageConvertRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/image/to-pdf': {
+      id: '/image/to-pdf'
+      path: '/image/to-pdf'
+      fullPath: '/image/to-pdf'
+      preLoaderRoute: typeof ImageToPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pdf/merge': {
       id: '/pdf/merge'
       path: '/pdf/merge'
@@ -123,15 +185,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PdfSplitRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pdf/to-image': {
+      id: '/pdf/to-image'
+      path: '/pdf/to-image'
+      fullPath: '/pdf/to-image'
+      preLoaderRoute: typeof PdfToImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ExcelToPdfRoute: ExcelToPdfRoute,
   ImageCompressRoute: ImageCompressRoute,
   ImageConvertRoute: ImageConvertRoute,
+  ImageToPdfRoute: ImageToPdfRoute,
   PdfMergeRoute: PdfMergeRoute,
   PdfSplitRoute: PdfSplitRoute,
+  PdfToImageRoute: PdfToImageRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

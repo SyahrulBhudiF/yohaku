@@ -17,6 +17,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "bench": "vitest bench",
+    "wasm:build": "bash scripts/wasm.sh build",
+    "wasm:test": "bash scripts/wasm.sh test",
     "repos:sync": "bash scripts/sync-repos.sh",
     "prepare": "husky && effect-tsgo patch --typescript --oxlint"
   },
@@ -48,6 +50,7 @@
     "gifenc": "^1.0.3",
     "gifuct-js": "^2.1.2",
     "lucide-react": "^1.77.0",
+    "pdf-lib": "1.17.1",
     "pdfjs-dist": "6.5.438",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

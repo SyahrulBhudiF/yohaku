@@ -1,8 +1,12 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect } from "effect"
+import { beforeAll } from "vitest"
 
 import { PdfProcessor } from "@/infrastructure/services/pdf-processor"
+import { initImageCodecs, makePng } from "../../support/image-codecs"
 import { extractPdfText, fixtureFile } from "../../support/pdf"
+
+beforeAll(initImageCodecs, 60_000)
 
 const run = <A, E>(effect: Effect.Effect<A, E, PdfProcessor>) =>
   Effect.provide(effect, PdfProcessor.layer)
@@ -125,6 +129,56 @@ describe("PdfProcessor", () => {
         )
 
         assert.strictEqual(error._tag, "PdfPasswordError")
+      }),
+    ),
+  )
+
+  it.effect("creates one PDF page per image and fits the long side", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* PdfProcessor
+        const png = yield* Effect.promise(() => makePng(120, 80))
+        const output = yield* processor.imagesToPdf(
+          [
+            { data: png, format: "png" },
+            { data: png, format: "png" },
+          ],
+          "fit",
+        )
+        const { PDFDocument } = yield* Effect.promise(() => import("pdf-lib"))
+        const document = yield* Effect.promise(() => PDFDocument.load(output))
+        const page = document.getPage(0)
+
+        assert.strictEqual(document.getPageCount(), 2)
+        assert.closeTo(page.getWidth(), 842, 0.5)
+        assert.closeTo(page.getHeight(), 561.33, 0.5)
+      }),
+    ),
+  )
+
+  it.effect("places a landscape image on a landscape A4 page", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* PdfProcessor
+        const png = yield* Effect.promise(() => makePng(120, 80))
+        const output = yield* processor.imagesToPdf([{ data: png, format: "png" }], "a4")
+        const { PDFDocument } = yield* Effect.promise(() => import("pdf-lib"))
+        const document = yield* Effect.promise(() => PDFDocument.load(output))
+        const page = document.getPage(0)
+
+        assert.closeTo(page.getWidth(), 841.89, 0.5)
+        assert.closeTo(page.getHeight(), 595.28, 0.5)
+      }),
+    ),
+  )
+
+  it.effect("rejects an empty image list", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* PdfProcessor
+        const error = yield* Effect.flip(processor.imagesToPdf([], "fit"))
+
+        assert.strictEqual(error._tag, "PdfProcessingError")
       }),
     ),
   )

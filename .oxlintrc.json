@@ -13,6 +13,7 @@
     ".nitro/**",
     ".tanstack/**",
     "repos/**",
+    "src/libs/wasm/**",
     "src/routeTree.gen.ts"
   ],
   "rules": {

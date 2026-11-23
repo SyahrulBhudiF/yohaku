@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
 
 import { groupConsecutivePages } from "@/libs/utils/pdf/pages"
-import { parsePageRanges, validatePageRanges } from "@/libs/utils/pdf/ranges"
+import { parsePageRanges, parsePageSelection, validatePageRanges } from "@/libs/utils/pdf/ranges"
 
 describe("PDF page ranges", () => {
   it("parses page numbers and ranges", () => {
@@ -55,5 +55,31 @@ describe("PDF page ranges", () => {
       { fileId: "b", pages: [1] },
       { fileId: "a", pages: [3] },
     ])
+  })
+
+  it("expands an empty selection to every page", () => {
+    const result = parsePageSelection("", 4)
+
+    assert.isTrue(result.ok)
+
+    if (result.ok) {
+      assert.deepEqual(result.pages, [1, 2, 3, 4])
+    }
+  })
+
+  it("expands ranges, single pages, and overlaps in order", () => {
+    const result = parsePageSelection("3-5, 1, 2-4", 10)
+
+    assert.isTrue(result.ok)
+
+    if (result.ok) {
+      assert.deepEqual(result.pages, [1, 2, 3, 4, 5])
+    }
+  })
+
+  it("rejects an out-of-bounds page selection", () => {
+    const result = parsePageSelection("1-11", 10)
+
+    assert.isFalse(result.ok)
   })
 })

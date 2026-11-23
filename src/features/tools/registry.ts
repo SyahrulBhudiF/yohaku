@@ -1,11 +1,31 @@
-import { FilesIcon, ImageUpIcon, RepeatIcon, ScissorsIcon, type LucideIcon } from "lucide-react"
+import {
+  FileImageIcon,
+  FilePlus2Icon,
+  FileSpreadsheetIcon,
+  FilesIcon,
+  ImageUpIcon,
+  RepeatIcon,
+  ScissorsIcon,
+  type LucideIcon,
+} from "lucide-react"
+
+export type ToolCategory = "image" | "pdf" | "document"
 
 export interface ToolDefinition {
   readonly id: string
   readonly title: string
   readonly description: string
   readonly icon: LucideIcon
-  readonly to: "/image/convert" | "/image/compress" | "/pdf/merge" | "/pdf/split" | null
+  readonly category: ToolCategory
+  readonly to:
+    | "/image/convert"
+    | "/image/compress"
+    | "/image/to-pdf"
+    | "/pdf/merge"
+    | "/pdf/split"
+    | "/pdf/to-image"
+    | "/excel/to-pdf"
+    | null
 }
 
 /** Add new tools here. `to: null` renders a "coming soon" card. */
@@ -15,6 +35,7 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     title: "Convert image",
     description: "Switch between PNG, JPEG, WebP, AVIF, GIF and TIFF.",
     icon: RepeatIcon,
+    category: "image",
     to: "/image/convert",
   },
   {
@@ -22,13 +43,23 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     title: "Compress image",
     description: "Shrink file size and see how much you saved.",
     icon: ImageUpIcon,
+    category: "image",
     to: "/image/compress",
+  },
+  {
+    id: "image-to-pdf",
+    title: "Image to PDF",
+    description: "Combine images into one PDF, or make one PDF per image.",
+    icon: FilePlus2Icon,
+    category: "image",
+    to: "/image/to-pdf",
   },
   {
     id: "pdf-merge",
     title: "Merge PDF",
     description: "Combine PDFs and reorder pages with drag and drop.",
     icon: FilesIcon,
+    category: "pdf",
     to: "/pdf/merge",
   },
   {
@@ -36,6 +67,23 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     title: "Split PDF",
     description: "Split by page ranges and download the results as a ZIP.",
     icon: ScissorsIcon,
+    category: "pdf",
     to: "/pdf/split",
+  },
+  {
+    id: "pdf-to-image",
+    title: "PDF to image",
+    description: "Render every PDF page as a PNG, JPEG, WebP, AVIF, GIF or TIFF.",
+    icon: FileImageIcon,
+    category: "pdf",
+    to: "/pdf/to-image",
+  },
+  {
+    id: "excel-to-pdf",
+    title: "Excel to PDF",
+    description: "Turn every sheet into a clean, printable PDF table.",
+    icon: FileSpreadsheetIcon,
+    category: "document",
+    to: "/excel/to-pdf",
   },
 ]

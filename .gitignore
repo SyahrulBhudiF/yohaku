@@ -22,3 +22,6 @@ todos.json
 
 # vendored upstream source for agents (pnpm repos:sync)
 repos
+
+# Rust build output
+packages/**/target

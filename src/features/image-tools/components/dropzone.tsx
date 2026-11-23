@@ -1,55 +1,94 @@
 import { UploadIcon } from "lucide-react"
 import { useRef, useState } from "react"
 
+import { MAX_IMAGE_BYTES } from "@/libs/schemas/image"
 import { cn } from "@/libs/utils/cn"
 
 interface DropzoneProps {
-  readonly onFile: (file: File) => void
+  readonly onFiles: (files: ReadonlyArray<File>) => void
+  readonly multiple?: boolean
+  readonly compact?: boolean
+  readonly disabled?: boolean
+  readonly label?: string
+  readonly hint?: string
 }
 
-export function Dropzone({ onFile }: DropzoneProps) {
+export function Dropzone({
+  onFiles,
+  multiple = false,
+  compact = false,
+  disabled = false,
+  label,
+  hint,
+}: DropzoneProps) {
   const input = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
 
-  const accept = (file: File | undefined) => {
-    if (file) {
-      onFile(file)
+  const accept = (files: FileList | null) => {
+    if (!files || files.length === 0) {
+      return
     }
+
+    onFiles(multiple ? [...files] : [files[0]!])
   }
 
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={() => input.current?.click()}
+      // dnd-kit handles in-app ordering. An OS file drag exposes its files only
+      // on the native drop event, so the upload target keeps these handlers.
       onDragOver={(event) => {
         event.preventDefault()
-        setDragging(true)
+
+        if (!disabled) {
+          setDragging(true)
+        }
       }}
       onDragLeave={() => setDragging(false)}
       onDrop={(event) => {
         event.preventDefault()
         setDragging(false)
-        accept(event.dataTransfer.files[0])
+
+        if (!disabled) {
+          accept(event.dataTransfer.files)
+        }
       }}
       className={cn(
-        "flex w-full flex-col items-center gap-3 rounded-xl border-2 border-dashed border-outline bg-surface-container-low px-6 py-16 text-center transition-colors outline-none hover:bg-surface-container focus-visible:ring-3 focus-visible:ring-ring/50",
+        "flex w-full items-center rounded-xl border-2 border-dashed border-outline bg-surface-container-low text-left transition-colors outline-none hover:bg-surface-container focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
+        compact ? "gap-3 px-4 py-3" : "flex-col gap-3 px-6 py-16 text-center",
         dragging && "border-primary bg-primary-container",
       )}
     >
-      <span className="flex size-14 items-center justify-center rounded-full bg-primary-container text-on-primary-container">
-        <UploadIcon className="size-6" />
+      <span
+        className={cn(
+          "flex items-center justify-center rounded-full bg-primary-container text-on-primary-container",
+          compact ? "size-10" : "size-14",
+        )}
+      >
+        <UploadIcon className={compact ? "size-5" : "size-6"} />
       </span>
-      <span className="text-base font-medium">Drop an image here, or click to browse</span>
-      <span className="text-sm text-muted-foreground">
-        PNG, JPEG, WebP, AVIF, GIF or TIFF, up to 25 MB
+      <span className="flex flex-col gap-0.5">
+        <span className={cn("font-medium", compact ? "text-sm" : "text-base")}>
+          {label ??
+            (multiple
+              ? "Drop images here, or click to browse"
+              : "Drop an image here, or click to browse")}
+        </span>
+        <span className="text-sm text-muted-foreground">
+          {hint ??
+            `PNG, JPEG, WebP, AVIF, GIF or TIFF, up to ${MAX_IMAGE_BYTES / 1024 / 1024} MB${multiple ? " each" : ""}`}
+        </span>
       </span>
       <input
         ref={input}
         type="file"
         accept="image/*"
+        multiple={multiple}
         hidden
         onChange={(event) => {
-          accept(event.target.files?.[0])
+          accept(event.target.files)
           event.target.value = ""
         }}
       />

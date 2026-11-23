@@ -157,3 +157,74 @@ export const useSplitStore = create<SplitState>()((set, get) => ({
     set({ file: null, result: null })
   },
 }))
+
+export interface PdfImageResult {
+  readonly url: string
+  readonly fileName: string
+  readonly bytes: number
+  readonly inputBytes: number
+  readonly images: number
+  readonly previewUrl?: string
+  readonly previewMimeType?: string
+}
+
+type PdfImageResultInput = Omit<PdfImageResult, "url" | "previewUrl" | "previewMimeType"> & {
+  readonly blob: Blob
+  readonly preview?: { readonly blob: Blob; readonly mimeType: string } | null
+}
+
+interface PdfToImageState {
+  readonly file: PdfFileEntry | null
+  readonly result: PdfImageResult | null
+  readonly setFile: (file: PdfFileEntry | null) => void
+  readonly setResult: (result: PdfImageResultInput) => void
+  readonly clearResult: () => void
+  readonly reset: () => void
+}
+
+export const usePdfToImageStore = create<PdfToImageState>()((set, get) => ({
+  file: null,
+  result: null,
+  setFile: (file) => {
+    const previous = get().file
+
+    if (previous && previous.id !== file?.id) {
+      disposePdfFile(previous.id)
+    }
+
+    revoke(get().result?.url)
+    revoke(get().result?.previewUrl)
+    set({ file, result: null })
+  },
+  setResult: ({ blob, preview, ...result }) => {
+    const previous = get().result
+
+    revoke(previous?.url)
+    revoke(previous?.previewUrl)
+    set({
+      result: {
+        ...result,
+        url: URL.createObjectURL(blob),
+        ...(preview
+          ? { previewUrl: URL.createObjectURL(preview.blob), previewMimeType: preview.mimeType }
+          : {}),
+      },
+    })
+  },
+  clearResult: () => {
+    revoke(get().result?.url)
+    revoke(get().result?.previewUrl)
+    set({ result: null })
+  },
+  reset: () => {
+    const file = get().file
+
+    if (file) {
+      disposePdfFile(file.id)
+    }
+
+    revoke(get().result?.url)
+    revoke(get().result?.previewUrl)
+    set({ file: null, result: null })
+  },
+}))

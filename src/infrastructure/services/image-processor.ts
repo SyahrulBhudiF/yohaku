@@ -8,6 +8,7 @@ import {
   decodeImage,
   detectImageFormat,
   encodeImage,
+  encodeInWorker,
   transcodeInWorker,
 } from "@/libs/utils/image-codec"
 import { transcodeGif } from "@/libs/utils/image-codec/gif"
@@ -106,6 +107,23 @@ const transcodeInWorkerEffect = Effect.fn("ImageProcessor.transcodeInWorker")(fu
   return { data: response.data, format: response.format }
 })
 
+const encodeInWorkerEffect = Effect.fn("ImageProcessor.encode")(function* (
+  image: ImageData,
+  format: ImageFormat,
+  quality: number,
+) {
+  const response = yield* Effect.tryPromise({
+    try: () => encodeInWorker(image, format, quality),
+    catch: () => new ImageProcessingError({ message: "Could not process this image." }),
+  })
+
+  if (!response.ok) {
+    return yield* new ImageProcessingError({ message: response.message })
+  }
+
+  return response.data
+})
+
 export class ImageProcessor extends Context.Service<
   ImageProcessor,
   {
@@ -117,17 +135,27 @@ export class ImageProcessor extends Context.Service<
       format: ImageFormat,
       quality: number,
     ) => Effect.Effect<ProcessedImage, ImageProcessingError | UnsupportedFormatError>
+    /** Encodes RGBA pixels; the worker layer may take ownership of the buffer. */
+    readonly encode: (
+      image: ImageData,
+      format: ImageFormat,
+      quality: number,
+    ) => Effect.Effect<Uint8Array<ArrayBuffer>, ImageProcessingError>
   }
 >()("tools/ImageProcessor") {
   /** Runs the codecs on the calling thread. Used by tests and non-worker hosts. */
   static readonly layer = Layer.succeed(
     ImageProcessor,
-    ImageProcessor.of({ detectFormat, transcode }),
+    ImageProcessor.of({ detectFormat, transcode, encode }),
   )
 
   /** Runs the codecs in a Web Worker so encoding never blocks the UI. */
   static readonly workerLayer = Layer.succeed(
     ImageProcessor,
-    ImageProcessor.of({ detectFormat, transcode: transcodeInWorkerEffect }),
+    ImageProcessor.of({
+      detectFormat,
+      transcode: transcodeInWorkerEffect,
+      encode: encodeInWorkerEffect,
+    }),
   )
 }
