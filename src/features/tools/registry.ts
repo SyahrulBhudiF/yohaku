@@ -1,6 +1,7 @@
 import {
   FileImageIcon,
   FilePlus2Icon,
+  FileDownIcon,
   FileSpreadsheetIcon,
   FilesIcon,
   ImageUpIcon,
@@ -25,6 +26,7 @@ export interface ToolDefinition {
     | "/image/to-pdf"
     | "/image/remove-background"
     | "/pdf/merge"
+    | "/pdf/compress"
     | "/pdf/split"
     | "/pdf/to-image"
     | "/pdf/sign"
@@ -73,6 +75,14 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     icon: FilesIcon,
     category: "pdf",
     to: "/pdf/merge",
+  },
+  {
+    id: "pdf-compress",
+    title: "Compress PDF",
+    description: "Reduce PDF file size with lossless optimization, in your browser.",
+    icon: FileDownIcon,
+    category: "pdf",
+    to: "/pdf/compress",
   },
   {
     id: "pdf-split",

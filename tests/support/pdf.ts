@@ -7,10 +7,11 @@ export const fixtureBytes = async (name: string) =>
 export const fixtureFile = async (name: string) =>
   new File([await fixtureBytes(name)], name, { type: "application/pdf" })
 
-export const extractPdfText = async (bytes: Uint8Array) => {
+export const extractPdfText = async (bytes: Uint8Array, password?: string) => {
   const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs")
   const task = getDocument({
     data: new Uint8Array(bytes),
+    password,
     useWorkerFetch: false,
   })
   const document = await task.promise

@@ -6,8 +6,8 @@ Read this with the root `AGENTS.md` before making architectural changes.
 
 Yohaku is a single TanStack Start app that hosts small file utilities. Image
 convert and compress, background removal, image to SVG, PDF merge and split,
-PDF to image, image to PDF, and Excel to PDF ship today. PDF compression, Word
-conversion, and PDF to Excel are not built yet.
+PDF compression, PDF to image, image to PDF, and Excel to PDF ship today. Word
+conversion and PDF to Excel are not built yet.
 
 ## Architecture decisions
 
@@ -29,8 +29,8 @@ conversion, and PDF to Excel are not built yet.
    `src/libs/schemas/pdf.ts`.
 6. **Process in the browser.** Cloudflare Workers Free allows 10 ms of CPU per
    request, so no native or WASM encoder can run on the server. Image work uses
-   `@jsquash` codecs in the browser behind `ImageProcessor`; PDF merge/split uses
-   `@mssio/qpdf-wasm` behind `PdfProcessor`, pdf.js renders pages for PDF to
+   `@jsquash` codecs in the browser behind `ImageProcessor`; PDF merge/split and
+   lossless compression use `@mssio/qpdf-wasm` behind `PdfProcessor`, pdf.js renders pages for PDF to
    image, and the `image-pdf-core` Rust/WASM package writes image-only PDFs. PDF
    to image uses the native canvas encoder for PNG/JPEG and a bounded worker
    pool for the other formats. Excel to PDF uses a Rust/WASM core (`calamine` +

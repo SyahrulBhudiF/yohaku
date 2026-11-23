@@ -5,6 +5,7 @@ import { PdfProcessor } from "@/infrastructure/services/pdf-processor"
 import type { ImagePdfPageSize } from "@/libs/schemas/pdf"
 import type { PdfImageInput } from "@/libs/utils/pdf/images-to-pdf"
 import { initImageCodecs, makePng } from "../../support/image-codecs"
+import { fixtureFile } from "../../support/pdf"
 import { initImagePdf } from "../../support/image-pdf"
 
 const run = (images: ReadonlyArray<PdfImageInput>, pageSize: ImagePdfPageSize) =>
@@ -16,11 +17,18 @@ const run = (images: ReadonlyArray<PdfImageInput>, pageSize: ImagePdfPageSize) =
   )
 
 const options = (name: string) => ({
-  time: 2_000,
+  time: 1_000,
   warmupTime: 0,
   iterations: 3,
   writeResult: `.amp/in/bench-pdf-${name}.json`,
 })
+
+const compressionOptions = {
+  time: 500,
+  warmupTime: 100,
+  iterations: 3,
+  writeResult: ".amp/in/bench-pdf-compress-a.json",
+}
 
 const IMAGE_COUNT = 10
 
@@ -40,6 +48,19 @@ beforeAll(async () => {
   pngs = Array.from({ length: IMAGE_COUNT }, () => ({ data: png, format: "png" as const }))
   jpegs = Array.from({ length: IMAGE_COUNT }, () => ({ data: jpeg, format: "jpeg" as const }))
 }, 60_000)
+
+test("compresses a representative PDF", { timeout: 240_000 }, async ({ bench }) => {
+  const file = await fixtureFile("a.pdf")
+
+  await bench("qpdf lossless compression", compressionOptions, () =>
+    Effect.runPromise(
+      Effect.provide(
+        Effect.flatMap(PdfProcessor, (processor) => processor.compress(file)),
+        PdfProcessor.layer,
+      ),
+    ),
+  ).run()
+})
 
 test("writes ten images into a PDF", { timeout: 240_000 }, async ({ bench }) => {
   await bench.compare(

@@ -13,3 +13,17 @@ export class PdfProcessingError extends Schema.TaggedError<
 >()("PdfProcessingError", {
   message: Schema.String,
 }) {}
+
+export class PdfCompressionError extends Schema.TaggedError<
+  PdfCompressionError,
+  { readonly brand: unique symbol }
+>()("PdfCompressionError", {
+  message: Schema.String,
+}) {}
+
+export class PdfInvalidFileError extends Schema.TaggedError<
+  PdfInvalidFileError,
+  { readonly brand: unique symbol }
+>()("PdfInvalidFileError", {
+  message: Schema.String,
+}) {}

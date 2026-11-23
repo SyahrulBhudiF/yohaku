@@ -37,6 +37,53 @@ describe("PdfProcessor", () => {
     ),
   )
 
+  it.effect("losslessly compresses a PDF and preserves its text and pages", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* PdfProcessor
+        const file = yield* Effect.promise(() => fixtureFile("a.pdf"))
+        const result = yield* processor.compress(file)
+        const output = new Uint8Array(result.data)
+
+        assert.strictEqual(result.inputBytes, file.size)
+        assert.strictEqual(result.outputBytes, output.byteLength)
+        assert.strictEqual(result.pages, 3)
+        assert.deepEqual(yield* Effect.promise(() => extractPdfText(output)), [
+          "a page 1",
+          "a page 2",
+          "a page 3",
+        ])
+      }),
+    ),
+  )
+
+  it.effect("compresses an encrypted PDF with a password", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* PdfProcessor
+        const file = yield* Effect.promise(() => fixtureFile("enc.pdf"))
+        const result = yield* processor.compress(file, "secret")
+
+        assert.deepEqual(yield* Effect.promise(() => extractPdfText(result.data, "secret")), [
+          "enc page 1",
+          "enc page 2",
+        ])
+      }),
+    ),
+  )
+
+  it.effect("rejects compression with an incorrect password", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* PdfProcessor
+        const file = yield* Effect.promise(() => fixtureFile("enc.pdf"))
+        const error = yield* Effect.flip(processor.compress(file, "wrong"))
+
+        assert.strictEqual(error._tag, "PdfPasswordError")
+      }),
+    ),
+  )
+
   it.effect("splits into chunks", () =>
     run(
       Effect.gen(function* () {

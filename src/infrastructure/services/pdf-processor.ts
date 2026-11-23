@@ -1,10 +1,16 @@
 import { Context, Layer, type Effect } from "effect"
 
-import { PdfPasswordError, PdfProcessingError } from "@/infrastructure/errors/pdf"
+import {
+  PdfCompressionError,
+  PdfPasswordError,
+  PdfProcessingError,
+} from "@/infrastructure/errors/pdf"
 import type { ImagePdfPageSize } from "@/libs/schemas/pdf"
+import type { PdfCompressionResult } from "@/libs/utils/pdf/qpdf"
 import { imagesToPdf, type PdfImageInput } from "@/libs/utils/pdf/images-to-pdf"
 import { signPdf, type SignaturePlacement } from "@/libs/utils/pdf/sign"
 import {
+  compressPdf,
   mergePages,
   splitPdf,
   type PdfMergePage,
@@ -18,6 +24,10 @@ export class PdfProcessor extends Context.Service<
     readonly mergePages: (
       pages: ReadonlyArray<PdfMergePage>,
     ) => Effect.Effect<Uint8Array<ArrayBuffer>, PdfPasswordError | PdfProcessingError>
+    readonly compress: (
+      file: File,
+      password?: string,
+    ) => Effect.Effect<PdfCompressionResult, PdfPasswordError | PdfCompressionError>
     readonly split: (
       request: PdfSplitRequest,
     ) => Effect.Effect<ReadonlyArray<PdfOutput>, PdfPasswordError | PdfProcessingError>
@@ -33,6 +43,12 @@ export class PdfProcessor extends Context.Service<
 >()("tools/PdfProcessor") {
   static readonly layer = Layer.succeed(
     PdfProcessor,
-    PdfProcessor.of({ mergePages, split: splitPdf, imagesToPdf, sign: signPdf }),
+    PdfProcessor.of({
+      mergePages,
+      compress: compressPdf,
+      split: splitPdf,
+      imagesToPdf,
+      sign: signPdf,
+    }),
   )
 }

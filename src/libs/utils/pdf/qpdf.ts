@@ -1,6 +1,10 @@
 import { Effect } from "effect"
 
-import { PdfPasswordError, PdfProcessingError } from "@/infrastructure/errors/pdf"
+import {
+  PdfCompressionError,
+  PdfPasswordError,
+  PdfProcessingError,
+} from "@/infrastructure/errors/pdf"
 import type { PdfPageRange } from "@/libs/schemas/pdf"
 import { groupConsecutivePages } from "./pages"
 
@@ -43,6 +47,29 @@ const loadEngine = () => {
   }
 
   return engine
+}
+
+const describeCause = (cause: unknown) => {
+  if (typeof cause === "object" && cause !== null && "message" in cause) {
+    return String(cause.message)
+  }
+
+  return String(cause)
+}
+
+const mapCompressionError = (cause: unknown) => {
+  if (errorCode(cause) === "INVALID_PASSWORD" || /invalid password/i.test(describeCause(cause))) {
+    return new PdfPasswordError({ message: "That password did not open the PDF." })
+  }
+
+  const message = describeCause(cause)
+  const detail = message.match(/(?:qpdf failed:|Error: )([^\r\n]+)/i)?.[1]?.trim()
+
+  return new PdfCompressionError({
+    message: detail
+      ? `Could not compress this PDF: ${detail}`
+      : "Could not compress this PDF. The file may use an unsupported PDF feature.",
+  })
 }
 
 const errorCode = (cause: unknown) => {
@@ -169,6 +196,48 @@ const createOutputNamer = () => {
     return name
   }
 }
+
+export interface PdfCompressionResult {
+  readonly data: Uint8Array<ArrayBuffer>
+  readonly inputBytes: number
+  readonly outputBytes: number
+  readonly pages: number
+}
+
+export const compressPdf = (
+  file: File,
+  password?: string,
+): Effect.Effect<PdfCompressionResult, PdfPasswordError | PdfCompressionError> =>
+  Effect.gen(function* () {
+    const qpdf = yield* Effect.tryPromise({
+      try: loadEngine,
+      catch: (cause) =>
+        new PdfCompressionError({
+          message: `Could not start the PDF compression engine: ${describeCause(cause)}`,
+        }),
+    })
+    const info = yield* Effect.tryPromise({
+      try: () => qpdf.info(file, password === undefined ? {} : { password }),
+      catch: mapCompressionError,
+    })
+    const result = yield* Effect.tryPromise({
+      try: () => qpdf.compress(file, password === undefined ? {} : { password }),
+      catch: mapCompressionError,
+    })
+
+    if (result.output.byteLength === 0) {
+      return yield* new PdfCompressionError({
+        message: "qpdf finished without producing an output file.",
+      })
+    }
+
+    return {
+      data: result.output,
+      inputBytes: file.size,
+      outputBytes: result.output.byteLength,
+      pages: info.pageCount,
+    } satisfies PdfCompressionResult
+  })
 
 export const splitPdf = (
   request: PdfSplitRequest,
