@@ -81,7 +81,7 @@ function ToolCard({
         tool.to ? "hover:bg-surface-container" : "opacity-60",
       )}
     >
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 self-start">
         <span className="mb-2 inline-flex rounded-md bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
           <span lang="ja">{japanese}</span>
           {japanese !== categoryLabel && (
