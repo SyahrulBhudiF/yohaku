@@ -3,7 +3,7 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/roboto-flex";
 
-@custom-variant dark (@media (prefers-color-scheme: dark));
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* Material Design 3 color roles (baseline scheme) mapped onto the shadcn token names. */
 @theme inline {
@@ -46,14 +46,14 @@
   --color-outline: var(--md-outline);
   --color-outline-variant: var(--md-outline-variant);
 
-  /* M3 shape scale: extra-small 4, small 8, medium 12, large 16, extra-large 28 */
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.75rem;
-  --radius-2xl: 1.75rem;
-  --radius-3xl: 1.75rem;
-  --radius-4xl: 1.75rem;
+  /* One corner radius for interface surfaces and controls. */
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+  --radius-3xl: var(--radius);
+  --radius-4xl: var(--radius);
 
   /* M3 elevation levels 1-3 */
   --shadow-elevation-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
@@ -62,56 +62,64 @@
 }
 
 :root {
-  --md-primary: #6750a4;
+  color-scheme: light;
+  --md-primary: #4b5c42;
   --md-on-primary: #ffffff;
-  --md-primary-container: #eaddff;
-  --md-on-primary-container: #21005d;
-  --md-secondary-container: #e8def8;
-  --md-on-secondary-container: #1d192b;
-  --md-tertiary: #7d5260;
-  --md-tertiary-container: #ffd8e4;
-  --md-on-tertiary-container: #31111d;
+  --md-primary-container: #dce5d3;
+  --md-on-primary-container: #263a20;
+  --md-secondary-container: #e8e9de;
+  --md-on-secondary-container: #30382d;
+  --md-tertiary: #71532a;
+  --md-tertiary-container: #f0dfc3;
+  --md-on-tertiary-container: #39290f;
   --md-error: #b3261e;
   --md-error-container: #f9dedc;
   --md-on-error-container: #410e0b;
-  --md-surface: #fef7ff;
-  --md-on-surface: #1d1b20;
-  --md-on-surface-variant: #49454f;
-  --md-outline: #79747e;
-  --md-outline-variant: #cac4d0;
+  --md-surface: #f5f3ec;
+  --md-on-surface: #272b24;
+  --md-on-surface-variant: #55584f;
+  --md-outline: #72776b;
+  --md-outline-variant: #d5d4ca;
   --md-surface-container-lowest: #ffffff;
-  --md-surface-container-low: #f7f2fa;
-  --md-surface-container: #f3edf7;
-  --md-surface-container-high: #ece6f0;
-  --md-surface-container-highest: #e6e0e9;
+  --md-surface-container-low: #fbfaf6;
+  --md-surface-container: #f0eee7;
+  --md-surface-container-high: #e9e8e0;
+  --md-surface-container-highest: #e1e2d8;
+  --yohaku-ink: #272b24;
+  --yohaku-sage: #829175;
+  --yohaku-sand: #c8a570;
+  --yohaku-paper: #f5f3ec;
   --radius: 0.75rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --md-primary: #d0bcff;
-    --md-on-primary: #381e72;
-    --md-primary-container: #4f378b;
-    --md-on-primary-container: #eaddff;
-    --md-secondary-container: #4a4458;
-    --md-on-secondary-container: #e8def8;
-    --md-tertiary: #efb8c8;
-    --md-tertiary-container: #633b48;
-    --md-on-tertiary-container: #ffd8e4;
-    --md-error: #f2b8b5;
-    --md-error-container: #8c1d18;
-    --md-on-error-container: #f9dedc;
-    --md-surface: #141218;
-    --md-on-surface: #e6e0e9;
-    --md-on-surface-variant: #cac4d0;
-    --md-outline: #938f99;
-    --md-outline-variant: #49454f;
-    --md-surface-container-lowest: #0f0d13;
-    --md-surface-container-low: #1d1b20;
-    --md-surface-container: #211f26;
-    --md-surface-container-high: #2b2930;
-    --md-surface-container-highest: #36343b;
-  }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --md-primary: #bdcdb0;
+  --md-on-primary: #263a20;
+  --md-primary-container: #374a31;
+  --md-on-primary-container: #dce5d3;
+  --md-secondary-container: #42493d;
+  --md-on-secondary-container: #e1e5d9;
+  --md-tertiary: #e3c18c;
+  --md-tertiary-container: #584126;
+  --md-on-tertiary-container: #f0dfc3;
+  --md-error: #f2b8b5;
+  --md-error-container: #8c1d18;
+  --md-on-error-container: #f9dedc;
+  --md-surface: #171b16;
+  --md-on-surface: #e4e4d9;
+  --md-on-surface-variant: #c1c7b9;
+  --md-outline: #919b8a;
+  --md-outline-variant: #424a3e;
+  --md-surface-container-lowest: #111510;
+  --md-surface-container-low: #1f241d;
+  --md-surface-container: #242a22;
+  --md-surface-container-high: #2e342b;
+  --md-surface-container-highest: #394036;
+  --yohaku-ink: #e4e4d9;
+  --yohaku-sage: #aaba9d;
+  --yohaku-sand: #e3c18c;
+  --yohaku-paper: #171b16;
 }
 
 @layer base {
