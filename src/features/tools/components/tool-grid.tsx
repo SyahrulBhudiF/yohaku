@@ -44,6 +44,15 @@ const SECTIONS: ReadonlyArray<{
   },
 ]
 
+const CATEGORY_ITEMS: ReadonlyArray<{
+  readonly id: ToolCategory | "all"
+  readonly label: string
+  readonly japanese: string
+}> = [
+  { id: "all", label: "All", japanese: "すべて" },
+  ...SECTIONS.map(({ id, label, japanese }) => ({ id, label, japanese })),
+]
+
 const JAPANESE_TITLES: Record<string, string> = {
   "image-convert": "画像の変換",
   "image-compress": "画像の圧縮",
@@ -77,7 +86,7 @@ function ToolCard({
   const card = (
     <article
       className={cn(
-        "group relative flex h-full min-h-36 items-center gap-3 rounded-md border border-outline-variant bg-card p-4 transition-colors motion-reduce:transition-none",
+        "group relative flex h-full min-h-40 items-center gap-4 rounded-md border border-outline-variant bg-card p-4 transition-colors motion-reduce:transition-none",
         tool.to ? "hover:bg-surface-container" : "opacity-60",
       )}
     >
@@ -101,10 +110,7 @@ function ToolCard({
           {tool.to ? tool.description : `${tool.description} Coming soon.`}
         </p>
       </div>
-      <ToolPictogram
-        id={tool.id}
-        className="mr-2 size-16 shrink-0 transition-transform group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100 sm:size-20"
-      />
+      <ToolPictogram id={tool.id} className="mr-2 size-20 shrink-0 sm:size-24" />
       {tool.to && (
         <ArrowUpRightIcon
           aria-hidden="true"
@@ -238,47 +244,72 @@ export function ToolGrid() {
           className="rounded-md bg-surface-container-low pl-12"
         />
       </div>
-      <nav aria-label="Tool categories" className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          aria-pressed={category === "all"}
-          onClick={() => setCategory("all")}
-          className="rounded-md border border-outline-variant px-4 py-2 text-sm aria-pressed:bg-primary aria-pressed:text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
-          All tools
-        </button>
-        {SECTIONS.map((section) => (
-          <button
-            key={section.id}
-            type="button"
-            aria-pressed={category === section.id}
-            onClick={() => setCategory(section.id)}
-            className="rounded-md border border-outline-variant px-4 py-2 text-sm aria-pressed:bg-primary aria-pressed:text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            {section.title}
-          </button>
-        ))}
+      <nav
+        aria-label="Tool categories"
+        className="flex flex-wrap items-start gap-x-8 gap-y-4 border-t border-outline-variant pt-4 sm:justify-between sm:gap-x-6"
+      >
+        {CATEGORY_ITEMS.map((item) => {
+          const active = category === item.id
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setCategory(item.id)}
+              className="group flex flex-col items-start gap-1.5 text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+            >
+              <span
+                lang="ja"
+                className={cn(
+                  "text-[0.6875rem] leading-none tracking-wide transition-colors",
+                  active ? "text-foreground" : "text-muted-foreground group-hover:text-foreground",
+                )}
+              >
+                {item.japanese}
+              </span>
+              <span
+                className={cn(
+                  "border-b-2 pb-1 text-sm leading-none font-medium transition-colors",
+                  active
+                    ? "border-foreground text-foreground"
+                    : "border-transparent text-muted-foreground group-hover:text-foreground",
+                )}
+              >
+                {item.label}
+              </span>
+            </button>
+          )
+        })}
       </nav>
       {matches.length === 0 && (
         <output className="text-sm text-muted-foreground">
           No tools found. Try a different search.
         </output>
       )}
-      {SECTIONS.map((section) => {
+      {SECTIONS.map((section, sectionIndex) => {
         const tools = matches.filter((tool) => tool.category === section.id)
 
         if (tools.length === 0) return null
 
         return (
-          <section key={section.id} className="flex flex-col gap-3">
-            <div className="flex flex-col gap-0.5">
-              <h2 className="text-xl font-medium">
-                {section.title}{" "}
-                <span lang="ja" className="ml-2 text-sm font-normal text-muted-foreground">
+          <section key={section.id} className="flex flex-col gap-4">
+            <div className="border-t border-outline-variant pt-4">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {String(sectionIndex + 1).padStart(2, "0")}
+                </span>
+                <h2 className="text-xl font-medium">{section.title}</h2>
+                <span lang="ja" className="text-sm text-muted-foreground">
                   {section.japanese}
                 </span>
-              </h2>
-              <p className="text-sm text-muted-foreground">{section.description}</p>
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {String(tools.length).padStart(2, "0")} utilities
+                </span>
+              </div>
+              <div className="mt-3 border-t border-outline-variant pt-3">
+                <p className="text-sm text-muted-foreground">{section.description}</p>
+              </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {tools.map((tool) => (
