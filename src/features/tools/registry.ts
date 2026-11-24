@@ -150,8 +150,8 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
   },
   {
     id: "social-media-downloader",
-    title: "YouTube & Instagram downloader",
-    description: "Download public videos or extract their audio as MP3.",
+    title: "YouTube, Instagram & Facebook downloader",
+    description: "Download public YouTube, Instagram or Facebook videos, or extract their audio.",
     category: "media",
     to: "/media/social-downloader",
   },

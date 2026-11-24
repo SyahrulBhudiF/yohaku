@@ -1519,7 +1519,9 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "js-sys",
+ "serde",
  "serde-wasm-bindgen",
+ "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "ytdown",

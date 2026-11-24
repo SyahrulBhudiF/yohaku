@@ -64,6 +64,53 @@ describe("social media proxy", () => {
     expect(upstreamHeaders?.get("referer")).toBe("https://www.youtube.com/")
   })
 
+  it("uses the Facebook origin for Facebook control requests", async () => {
+    let upstreamHeaders: Headers | undefined
+    const fetcher = async (_url: string, init: RequestInit) => {
+      upstreamHeaders = new Headers(init.headers)
+
+      return new Response("metadata", { headers: { "content-type": "text/html" } })
+    }
+    const target = "https://www.facebook.com/watch/?v=10153231379946729"
+    const request = new Request(
+      `${origin}/api/media/resolve-proxy?url=${encodeURIComponent(target)}`,
+      { headers: { origin } },
+    )
+
+    const response = await handleMediaResolveProxy(request, fetcher)
+
+    expect(response.status).toBe(200)
+    expect(upstreamHeaders?.get("referer")).toBe("https://www.facebook.com/")
+    expect(upstreamHeaders?.get("origin")).toBe("https://www.facebook.com")
+  })
+
+  it("streams Facebook CDN media with the Facebook origin", async () => {
+    let upstreamHeaders: Headers | undefined
+    const fetcher = async (_url: string, init: RequestInit) => {
+      upstreamHeaders = new Headers(init.headers)
+
+      return new Response(new Uint8Array([1, 2]), {
+        headers: { "content-length": "2", "content-type": "video/mp4" },
+      })
+    }
+    const request = new Request(`${origin}/api/media/download`, {
+      method: "POST",
+      headers: { origin, "content-type": "application/json" },
+      body: JSON.stringify({
+        url: "https://video.xx.fbcdn.net/o1/v/t2/f2/m412/sample.mp4",
+        platform: "facebook",
+        fileName: "sample.mp4",
+        headers: [],
+      }),
+    })
+
+    const response = await handleMediaDownloadProxy(request, fetcher)
+
+    expect(response.status).toBe(200)
+    expect(upstreamHeaders?.get("referer")).toBe("https://www.facebook.com/")
+    expect(upstreamHeaders?.get("origin")).toBe("https://www.facebook.com")
+  })
+
   it("does not forward a stale content length on control responses", async () => {
     const body = JSON.stringify({ result: "complete".repeat(40) })
     const fetcher = async () =>

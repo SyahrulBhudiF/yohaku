@@ -1,4 +1,7 @@
-//! Browser-side metadata resolution for public YouTube and Instagram videos.
+//! Browser-side metadata resolution for public YouTube, Instagram, and Facebook videos.
+
+#[cfg(any(target_arch = "wasm32", test))]
+mod facebook;
 
 #[cfg(target_arch = "wasm32")]
 mod resolver;

@@ -30,7 +30,7 @@ export function VideoToMp3Page() {
       />
       <p className="text-sm text-muted-foreground">
         Uses your browser’s media decoders and a small WASM MP3 encoder in a worker. For public
-        YouTube or Instagram links, use the separate media downloader.
+        YouTube, Instagram, or Facebook links, use the separate media downloader.
       </p>
       {error && (
         <p

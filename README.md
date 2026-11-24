@@ -9,9 +9,9 @@ Yohaku is a browser-based toolkit for working with images, PDFs, documents, and 
 - **Images:** convert and compress PNG, JPEG, WebP, AVIF, GIF, and TIFF; preserve animation when converting animated GIF/WebP to GIF or WebP; remove solid studio backgrounds; trace images to SVG.
 - **PDF:** merge, split, reorganize, protect, and sign PDFs; render pages to images; convert PDF text to Word or Excel; and create PDFs from images.
 - **Documents:** convert Word documents and Excel worksheets to PDF.
-- **Media:** download public YouTube videos and Instagram Reels, extract their audio as MP3, or convert a local video/audio file to MP3.
+- **Media:** download public YouTube videos, Instagram Reels, and Facebook videos, extract their audio as MP3, or convert a local video/audio file to MP3.
 
-Local files are processed in your browser and are not uploaded or stored. Public video downloads are streamed through a same-origin Cloudflare Worker proxy restricted to YouTube, Instagram, and their media CDNs; the Worker does not save media. Private or login-protected posts are not supported. CPU-intensive processing stays client-side to fit Workers runtime limits. Background removal targets uniform backgrounds and is not an AI subject-segmentation tool. Excel export focuses on table data; it does not preserve formulas, charts, or merged cells.
+Local files are processed in your browser and are not uploaded or stored. Public video downloads are streamed through a same-origin Cloudflare Worker proxy restricted to YouTube, Instagram, Facebook, and their media CDNs; the Worker does not save media. Private or login-protected posts are not supported. CPU-intensive processing stays client-side to fit Workers runtime limits. Background removal targets uniform backgrounds and is not an AI subject-segmentation tool. Excel export focuses on table data; it does not preserve formulas, charts, or merged cells.
 
 ## Development
 
@@ -33,7 +33,7 @@ Run one test file with `pnpm test:run tests/path/to/test.test.ts`. Read [AGENTS.
 
 ## Architecture
 
-Yohaku is a TanStack Start application deployed to Cloudflare Workers with Alchemy. Feature pages and UI live in `src/features/`; routes stay thin. Client-side processing is organized behind Effect services. Image codecs use WebAssembly where appropriate, PDF rendering uses pdf.js, PDF assembly and spreadsheet export use focused Rust/WASM cores, and media conversion uses Mediabunny with browser-native decoding and a LAME WASM MP3 encoder in a worker. Public YouTube and Instagram link resolution uses a Rust/WASM adapter; the Worker only validates and streams allowlisted upstream requests. UI components use Base UI with Material Design 3 styling.
+Yohaku is a TanStack Start application deployed to Cloudflare Workers with Alchemy. Feature pages and UI live in `src/features/`; routes stay thin. Client-side processing is organized behind Effect services. Image codecs use WebAssembly where appropriate, PDF rendering uses pdf.js, PDF assembly and spreadsheet export use focused Rust/WASM cores, and media conversion uses Mediabunny with browser-native decoding and a LAME WASM MP3 encoder in a worker. Public YouTube, Instagram, and Facebook link resolution uses a Rust/WASM adapter; the Worker only validates and streams allowlisted upstream requests. UI components use Base UI with Material Design 3 styling.
 
 ## Deployment
 

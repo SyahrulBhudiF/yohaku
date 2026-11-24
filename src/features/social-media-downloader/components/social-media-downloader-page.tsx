@@ -19,6 +19,7 @@ import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import {
   MAX_SOCIAL_MEDIA_AUDIO_BYTES,
   SocialMediaUrlFormSchema,
+  type SocialMediaPlatform,
   type SocialMediaUrlFormValues,
 } from "@/libs/schemas/social-media"
 import { formatBytes } from "@/libs/utils/format"
@@ -64,6 +65,12 @@ const videoExtension = (
   container: string | null | undefined,
   mimeType: string | null | undefined,
 ) => (container === "WebM" || mimeType?.includes("webm") ? "webm" : "mp4")
+
+const PLATFORM_LABELS: Record<SocialMediaPlatform, string> = {
+  youtube: "YouTube",
+  instagram: "Instagram",
+  facebook: "Facebook",
+}
 
 export function SocialMediaDownloaderPage() {
   const model = useSocialMediaDownloader()
@@ -157,10 +164,12 @@ export function SocialMediaDownloaderPage() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <ToolPageHeader id="social-media-downloader" japanese="動画をダウンロード">
-        <h1 className="text-3xl font-normal tracking-tight">YouTube &amp; Instagram downloader</h1>
+        <h1 className="text-3xl font-normal tracking-tight">
+          YouTube, Instagram &amp; Facebook downloader
+        </h1>
         <p className="text-muted-foreground">
-          Paste a public video link and save the video or extract an MP3. Media is streamed through
-          Yohaku and processed in your browser.
+          Paste a public YouTube, Instagram, or Facebook link and save the video or extract an MP3.
+          Media is streamed through Yohaku and processed in your browser.
         </p>
       </ToolPageHeader>
 
@@ -198,7 +207,7 @@ export function SocialMediaDownloaderPage() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <VideoIcon aria-hidden="true" className="size-4" />
                 <CameraIcon aria-hidden="true" className="size-4" />
-                <span>Public videos and Reels</span>
+                <span>Public YouTube, Instagram and Facebook videos</span>
               </div>
               <Button type="submit" disabled={isPending} aria-busy={isPending}>
                 <LinkIcon />
@@ -225,7 +234,7 @@ export function SocialMediaDownloaderPage() {
             <CardDescription className="flex flex-wrap gap-x-3 gap-y-1">
               {resolved.info.uploader && <span>{resolved.info.uploader}</span>}
               {duration && <span>{duration}</span>}
-              {resolved.platform === "youtube" ? <span>YouTube</span> : <span>Instagram</span>}
+              <span>{PLATFORM_LABELS[resolved.platform]}</span>
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">

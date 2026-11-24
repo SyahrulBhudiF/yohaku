@@ -128,24 +128,32 @@ const resolveInWorker = (url: string) =>
     getResolverWorker().postMessage({ id, url })
   })
 
+const PLATFORM_NAMES: Record<SocialMediaPlatform, string> = {
+  youtube: "YouTube",
+  instagram: "Instagram",
+  facebook: "Facebook",
+}
+
 const mapResolveFailure = (cause: unknown, platform: SocialMediaPlatform) => {
   const detail = typeof cause === "string" ? cause : ""
+  const platformName = PLATFORM_NAMES[platform]
 
   if (/bot-check/i.test(detail)) {
     return new SocialMediaDownloaderError({
-      message: `${platform === "youtube" ? "YouTube" : "Instagram"} is asking for a bot check, so this link cannot be resolved right now. Try again later.`,
+      message: `${platformName} is asking for a bot check, so this link cannot be resolved right now. Try again later.`,
     })
   }
 
-  if (/instagram rejected|login wall|http 403|http 401|http 429/i.test(detail)) {
+  if (/instagram rejected|facebook rejected|login wall|http 403|http 401|http 429/i.test(detail)) {
     return new SocialMediaDownloaderError({
-      message: `${platform === "youtube" ? "YouTube" : "Instagram"} blocked this request. Only public posts work, and access can change without notice.`,
+      message: `${platformName} blocked this request. Only public posts work, and access can change without notice.`,
     })
   }
 
-  if (/unsupported url|no extractor|only individual video/i.test(detail)) {
+  if (/unsupported url|no extractor|only individual video|not a public video/i.test(detail)) {
     return new SocialMediaDownloaderError({
-      message: "Paste a direct YouTube video, YouTube Short, Instagram Reel, or video post link.",
+      message:
+        "Paste a direct YouTube video, YouTube Short, Instagram Reel, or Facebook video link.",
     })
   }
 
@@ -155,7 +163,11 @@ const mapResolveFailure = (cause: unknown, platform: SocialMediaPlatform) => {
     })
   }
 
-  if (/image-only|no video|no playable formats|formatnotfound/i.test(detail)) {
+  if (
+    /image-only|no video|no playable formats|formatnotfound|does not expose a downloadable video/i.test(
+      detail,
+    )
+  ) {
     return new SocialMediaDownloaderError({
       message: "This post does not contain a downloadable video.",
     })

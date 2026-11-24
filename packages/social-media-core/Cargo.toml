@@ -9,6 +9,10 @@ publish = false
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+url = "2"
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 async-trait = "0.1"
 js-sys = "0.3"

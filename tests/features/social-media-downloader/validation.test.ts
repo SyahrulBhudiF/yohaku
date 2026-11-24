@@ -53,6 +53,47 @@ describe("parseSocialMediaUrl", () => {
     })
   })
 
+  it("canonicalizes public Facebook videos, Reels, share links, and fb.watch links", () => {
+    expect(
+      parseSocialMediaUrl("https://www.facebook.com/watch/?v=10153231379946729&ref=share"),
+    ).toEqual({
+      ok: true,
+      url: "https://www.facebook.com/watch/?v=10153231379946729",
+      platform: "facebook",
+    })
+    expect(
+      parseSocialMediaUrl(
+        "https://www.facebook.com/facebook/videos/how-to-share/10153231379946729/",
+      ),
+    ).toEqual({
+      ok: true,
+      url: "https://www.facebook.com/facebook/videos/10153231379946729/",
+      platform: "facebook",
+    })
+    expect(parseSocialMediaUrl("https://www.facebook.com/reel/1195289147628387")).toEqual({
+      ok: true,
+      url: "https://www.facebook.com/watch/?v=1195289147628387",
+      platform: "facebook",
+    })
+    expect(parseSocialMediaUrl("https://fb.watch/abc123/?ref=share")).toEqual({
+      ok: true,
+      url: "https://fb.watch/abc123/",
+      platform: "facebook",
+    })
+    expect(parseSocialMediaUrl("https://www.facebook.com/share/v/abc123/?ref=share")).toEqual({
+      ok: true,
+      url: "https://www.facebook.com/share/v/abc123/",
+      platform: "facebook",
+    })
+  })
+
+  it("rejects Facebook profile pages and lookalike hosts", () => {
+    expect(parseSocialMediaUrl("https://www.facebook.com/some.page/").ok).toBe(false)
+    expect(parseSocialMediaUrl("https://facebook.com.attacker.invalid/watch?v=123456").ok).toBe(
+      false,
+    )
+  })
+
   it("rejects lookalike hosts, credentials, and non-HTTPS URLs", () => {
     expect(parseSocialMediaUrl("https://youtube.com.attacker.invalid/watch?v=abc123").ok).toBe(
       false,
@@ -76,6 +117,14 @@ describe("parseSocialMediaUrl", () => {
     expect(getSocialMediaEmbedUrl("youtube", "https://www.instagram.com/reel/AbC123/")).toBeNull()
     expect(
       getSocialMediaEmbedUrl("instagram", "https://www.instagram.com/share/abc123/"),
+    ).toBeNull()
+    expect(
+      getSocialMediaEmbedUrl("facebook", "https://www.facebook.com/watch/?v=10153231379946729"),
+    ).toBe(
+      "https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fwatch%2F%3Fv%3D10153231379946729&show_text=false",
+    )
+    expect(
+      getSocialMediaEmbedUrl("facebook", "https://www.facebook.com/share/v/abc123/"),
     ).toBeNull()
   })
 })

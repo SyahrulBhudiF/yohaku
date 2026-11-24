@@ -19,7 +19,7 @@ export const parseSocialMediaUrl = (input: string): SocialMediaUrlResult => {
   const value = input.trim()
 
   if (!value || value.length > MAX_SOCIAL_MEDIA_URL_LENGTH) {
-    return { ok: false, message: "Paste a YouTube or Instagram video link." }
+    return { ok: false, message: "Paste a YouTube, Instagram, or Facebook video link." }
   }
 
   let url: URL
@@ -31,7 +31,7 @@ export const parseSocialMediaUrl = (input: string): SocialMediaUrlResult => {
   }
 
   if (url.protocol !== "https:" || url.username || url.password || url.port) {
-    return { ok: false, message: "Use a public HTTPS link from YouTube or Instagram." }
+    return { ok: false, message: "Use a public HTTPS link from YouTube, Instagram, or Facebook." }
   }
 
   const host = url.hostname.toLowerCase()
@@ -79,7 +79,97 @@ export const parseSocialMediaUrl = (input: string): SocialMediaUrlResult => {
     return { ok: true, url: url.toString(), platform: "instagram" }
   }
 
-  return { ok: false, message: "Only YouTube and Instagram links are supported." }
+  if (host === "fb.watch" || isHostOrSubdomain(host, "facebook.com")) {
+    return parseFacebookUrl(url)
+  }
+
+  return { ok: false, message: "Only YouTube, Instagram, and Facebook links are supported." }
+}
+
+const FACEBOOK_VIDEO_ID = /^\d{5,25}$/
+
+const facebookVideoId = (url: URL): string | null => {
+  const segments = url.pathname.split("/").filter(Boolean)
+  const numeric = (value: string | undefined) =>
+    value && FACEBOOK_VIDEO_ID.test(value) ? value : null
+
+  if (segments[0] === "watch" || segments[0] === "video.php") {
+    return numeric(url.searchParams.get("v") ?? undefined)
+  }
+
+  if (segments[0] === "video" && segments[1] === "video.php") {
+    return numeric(url.searchParams.get("v") ?? undefined)
+  }
+
+  if (segments[0] === "reel") {
+    return numeric(segments[1])
+  }
+
+  const videosIndex = segments.indexOf("videos")
+
+  if (videosIndex > 0) {
+    return (
+      segments
+        .slice(videosIndex + 1)
+        .reverse()
+        .map((segment) => numeric(segment))
+        .find((id) => id !== null) ?? null
+    )
+  }
+
+  return null
+}
+
+const parseFacebookUrl = (url: URL): SocialMediaUrlResult => {
+  const segments = url.pathname.split("/").filter(Boolean)
+  const isShortLink = url.hostname.toLowerCase() === "fb.watch"
+  const isShareLink = segments[0] === "share" && ["v", "r"].includes(segments[1] ?? "")
+
+  if (isShortLink) {
+    if (!segments[0]) {
+      return { ok: false, message: "Use a direct Facebook video, Reel, or share link." }
+    }
+
+    url.hostname = "fb.watch"
+    url.search = ""
+    url.hash = ""
+
+    return { ok: true, url: url.toString(), platform: "facebook" }
+  }
+
+  if (isShareLink) {
+    if (!segments[2]) {
+      return { ok: false, message: "Use a direct Facebook video, Reel, or share link." }
+    }
+
+    url.hostname = "www.facebook.com"
+    url.search = ""
+    url.hash = ""
+
+    return { ok: true, url: url.toString(), platform: "facebook" }
+  }
+
+  const videoId = facebookVideoId(url)
+
+  if (!videoId) {
+    return { ok: false, message: "Use a direct Facebook video or Reel link." }
+  }
+
+  const videosIndex = segments.indexOf("videos")
+
+  if (videosIndex > 0) {
+    return {
+      ok: true,
+      url: `https://www.facebook.com/${segments[0]}/videos/${videoId}/`,
+      platform: "facebook",
+    }
+  }
+
+  return {
+    ok: true,
+    url: `https://www.facebook.com/watch/?v=${videoId}`,
+    platform: "facebook",
+  }
 }
 
 export const decodeSocialMediaInfo = (input: unknown): SocialMediaInfo | null => {
@@ -100,6 +190,19 @@ export const getSocialMediaEmbedUrl = (
     const videoId = new URL(parsed.url).searchParams.get("v")
 
     return videoId ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}` : null
+  }
+
+  if (platform === "facebook") {
+    const url = new URL(parsed.url)
+    const isVideoPage =
+      url.pathname === "/watch/" ||
+      url.pathname === "/watch" ||
+      /^\/[^/]+\/videos\/\d+\/?$/.test(url.pathname) ||
+      /^\/reel\/\d+\/?$/.test(url.pathname)
+
+    return isVideoPage
+      ? `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url.toString())}&show_text=false`
+      : null
   }
 
   const url = new URL(parsed.url)
@@ -130,6 +233,8 @@ const isSupportedMediaUrl = (value: string) => {
         isHostOrSubdomain(host, "ytimg.com") ||
         isHostOrSubdomain(host, "instagram.com") ||
         isHostOrSubdomain(host, "cdninstagram.com") ||
+        isHostOrSubdomain(host, "facebook.com") ||
+        host === "fb.watch" ||
         isHostOrSubdomain(host, "fbcdn.net") ||
         isHostOrSubdomain(host, "fbsbx.com"))
     )

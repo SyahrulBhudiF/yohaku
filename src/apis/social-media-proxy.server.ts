@@ -17,6 +17,8 @@ const MEDIA_HOST_SUFFIXES = [
   "ytimg.com",
   "instagram.com",
   "cdninstagram.com",
+  "facebook.com",
+  "fb.watch",
   "fbcdn.net",
   "fbsbx.com",
 ] as const
@@ -101,16 +103,23 @@ const isPlatformUrl = (value: string) => {
   return isAllowedHost(url.hostname.toLowerCase())
 }
 
-const inferPlatform = (target: URL): SocialMediaPlatform =>
-  target.hostname.toLowerCase().includes("instagram") ||
-  target.hostname.toLowerCase().includes("cdninstagram") ||
-  target.hostname.toLowerCase().includes("fbcdn") ||
-  target.hostname.toLowerCase().includes("fbsbx")
-    ? "instagram"
-    : "youtube"
+const inferPlatform = (target: URL): SocialMediaPlatform => {
+  const host = target.hostname.toLowerCase()
 
-const platformOrigin = (platform: SocialMediaPlatform) =>
-  platform === "youtube" ? "https://www.youtube.com" : "https://www.instagram.com"
+  if (host.includes("facebook") || host === "fb.watch" || host.includes("fbcdn")) return "facebook"
+  if (host.includes("instagram") || host.includes("cdninstagram") || host.includes("fbsbx"))
+    return "instagram"
+
+  return "youtube"
+}
+
+const PLATFORM_ORIGINS: Record<SocialMediaPlatform, string> = {
+  youtube: "https://www.youtube.com",
+  instagram: "https://www.instagram.com",
+  facebook: "https://www.facebook.com",
+}
+
+const platformOrigin = (platform: SocialMediaPlatform) => PLATFORM_ORIGINS[platform]
 
 const requestHeaders = (source: Headers, platform?: SocialMediaPlatform) => {
   const headers = new Headers()
@@ -411,7 +420,7 @@ export const handleMediaResolveProxy = async (request: Request, fetcher: Fetcher
   const target = parseUpstreamUrl(new URL(request.url).searchParams.get("url"))
 
   if (!target || !isPlatformUrl(target.toString())) {
-    return response("Only public YouTube and Instagram URLs are supported.", 400)
+    return response("Only public YouTube, Instagram, and Facebook URLs are supported.", 400)
   }
 
   return proxy(request, target, "control", fetcher)

@@ -8,7 +8,7 @@ Yohaku is a single TanStack Start app that hosts small file utilities. It
 converts and compresses images, removes uniform backgrounds, traces images to
 SVG, handles PDF pages and signatures, converts between PDF, images, Word, and
 Excel, extracts audio from local media files to MP3, and downloads public
-YouTube or Instagram videos.
+YouTube, Instagram, or Facebook videos.
 
 ## Architecture decisions
 
@@ -44,7 +44,7 @@ YouTube or Instagram videos.
    `imagetracerjs`; the Rust VTracer experiment was reverted for photographic
    quality. Local and public-media audio conversion use Mediabunny for demuxing
    and browser-native decoding, with the LAME WASM encoder in a worker. Public
-   YouTube and Instagram metadata is resolved by the `social-media-core`
+   YouTube, Instagram, and Facebook metadata is resolved by the `social-media-core`
    Rust/WASM package. A same-origin Worker proxy forwards only allowlisted
    platform and CDN hosts, strips credentials, validates redirects, rate-limits
    requests, and streams downloads without storing media. Private or
