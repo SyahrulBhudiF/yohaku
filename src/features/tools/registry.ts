@@ -1,8 +1,10 @@
 import {
   FileImageIcon,
+  FileSpreadsheetIcon,
   FilePlus2Icon,
   FileDownIcon,
-  FileSpreadsheetIcon,
+  FileTextIcon,
+  FileType2Icon,
   FilesIcon,
   ImageUpIcon,
   PenLineIcon,
@@ -30,8 +32,11 @@ export interface ToolDefinition {
     | "/pdf/extract"
     | "/pdf/split"
     | "/pdf/to-image"
+    | "/pdf/to-word"
+    | "/pdf/to-excel"
     | "/pdf/sign"
     | "/excel/to-pdf"
+    | "/word/to-pdf"
     | null
 }
 
@@ -110,6 +115,22 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     to: "/pdf/to-image",
   },
   {
+    id: "pdf-to-word",
+    title: "PDF to Word",
+    description: "Extract selectable PDF text into an editable Word document.",
+    icon: FileTextIcon,
+    category: "pdf",
+    to: "/pdf/to-word",
+  },
+  {
+    id: "pdf-to-excel",
+    title: "PDF to Excel",
+    description: "Extract PDF text into worksheets, with columns inferred from layout.",
+    icon: FileSpreadsheetIcon,
+    category: "pdf",
+    to: "/pdf/to-excel",
+  },
+  {
     id: "pdf-sign",
     title: "Sign PDF",
     description: "Draw or upload signatures and place them on PDF pages.",
@@ -124,5 +145,13 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     icon: FileSpreadsheetIcon,
     category: "document",
     to: "/excel/to-pdf",
+  },
+  {
+    id: "word-to-pdf",
+    title: "Word to PDF",
+    description: "Render DOCX documents to PDF in your browser.",
+    icon: FileType2Icon,
+    category: "document",
+    to: "/word/to-pdf",
   },
 ]

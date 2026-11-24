@@ -20,7 +20,10 @@ import { Route as PdfExtractRouteImport } from './routes/pdf/extract'
 import { Route as PdfMergeRouteImport } from './routes/pdf/merge'
 import { Route as PdfSignRouteImport } from './routes/pdf/sign'
 import { Route as PdfSplitRouteImport } from './routes/pdf/split'
+import { Route as PdfToExcelRouteImport } from './routes/pdf/to-excel'
 import { Route as PdfToImageRouteImport } from './routes/pdf/to-image'
+import { Route as PdfToWordRouteImport } from './routes/pdf/to-word'
+import { Route as WordToPdfRouteImport } from './routes/word/to-pdf'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -77,9 +80,24 @@ const PdfSplitRoute = PdfSplitRouteImport.update({
   path: '/pdf/split',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PdfToExcelRoute = PdfToExcelRouteImport.update({
+  id: '/pdf/to-excel',
+  path: '/pdf/to-excel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PdfToImageRoute = PdfToImageRouteImport.update({
   id: '/pdf/to-image',
   path: '/pdf/to-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PdfToWordRoute = PdfToWordRouteImport.update({
+  id: '/pdf/to-word',
+  path: '/pdf/to-word',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WordToPdfRoute = WordToPdfRouteImport.update({
+  id: '/word/to-pdf',
+  path: '/word/to-pdf',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -95,7 +113,10 @@ export interface FileRoutesByFullPath {
   '/pdf/merge': typeof PdfMergeRoute
   '/pdf/sign': typeof PdfSignRoute
   '/pdf/split': typeof PdfSplitRoute
+  '/pdf/to-excel': typeof PdfToExcelRoute
   '/pdf/to-image': typeof PdfToImageRoute
+  '/pdf/to-word': typeof PdfToWordRoute
+  '/word/to-pdf': typeof WordToPdfRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -109,7 +130,10 @@ export interface FileRoutesByTo {
   '/pdf/merge': typeof PdfMergeRoute
   '/pdf/sign': typeof PdfSignRoute
   '/pdf/split': typeof PdfSplitRoute
+  '/pdf/to-excel': typeof PdfToExcelRoute
   '/pdf/to-image': typeof PdfToImageRoute
+  '/pdf/to-word': typeof PdfToWordRoute
+  '/word/to-pdf': typeof WordToPdfRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -124,7 +148,10 @@ export interface FileRoutesById {
   '/pdf/merge': typeof PdfMergeRoute
   '/pdf/sign': typeof PdfSignRoute
   '/pdf/split': typeof PdfSplitRoute
+  '/pdf/to-excel': typeof PdfToExcelRoute
   '/pdf/to-image': typeof PdfToImageRoute
+  '/pdf/to-word': typeof PdfToWordRoute
+  '/word/to-pdf': typeof WordToPdfRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -140,7 +167,10 @@ export interface FileRouteTypes {
     | '/pdf/merge'
     | '/pdf/sign'
     | '/pdf/split'
+    | '/pdf/to-excel'
     | '/pdf/to-image'
+    | '/pdf/to-word'
+    | '/word/to-pdf'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -154,7 +184,10 @@ export interface FileRouteTypes {
     | '/pdf/merge'
     | '/pdf/sign'
     | '/pdf/split'
+    | '/pdf/to-excel'
     | '/pdf/to-image'
+    | '/pdf/to-word'
+    | '/word/to-pdf'
   id:
     | '__root__'
     | '/'
@@ -168,7 +201,10 @@ export interface FileRouteTypes {
     | '/pdf/merge'
     | '/pdf/sign'
     | '/pdf/split'
+    | '/pdf/to-excel'
     | '/pdf/to-image'
+    | '/pdf/to-word'
+    | '/word/to-pdf'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -183,7 +219,10 @@ export interface RootRouteChildren {
   PdfMergeRoute: typeof PdfMergeRoute
   PdfSignRoute: typeof PdfSignRoute
   PdfSplitRoute: typeof PdfSplitRoute
+  PdfToExcelRoute: typeof PdfToExcelRoute
   PdfToImageRoute: typeof PdfToImageRoute
+  PdfToWordRoute: typeof PdfToWordRoute
+  WordToPdfRoute: typeof WordToPdfRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -265,11 +304,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PdfSplitRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pdf/to-excel': {
+      id: '/pdf/to-excel'
+      path: '/pdf/to-excel'
+      fullPath: '/pdf/to-excel'
+      preLoaderRoute: typeof PdfToExcelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pdf/to-image': {
       id: '/pdf/to-image'
       path: '/pdf/to-image'
       fullPath: '/pdf/to-image'
       preLoaderRoute: typeof PdfToImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pdf/to-word': {
+      id: '/pdf/to-word'
+      path: '/pdf/to-word'
+      fullPath: '/pdf/to-word'
+      preLoaderRoute: typeof PdfToWordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/word/to-pdf': {
+      id: '/word/to-pdf'
+      path: '/word/to-pdf'
+      fullPath: '/word/to-pdf'
+      preLoaderRoute: typeof WordToPdfRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -287,7 +347,10 @@ const rootRouteChildren: RootRouteChildren = {
   PdfMergeRoute: PdfMergeRoute,
   PdfSignRoute: PdfSignRoute,
   PdfSplitRoute: PdfSplitRoute,
+  PdfToExcelRoute: PdfToExcelRoute,
   PdfToImageRoute: PdfToImageRoute,
+  PdfToWordRoute: PdfToWordRoute,
+  WordToPdfRoute: WordToPdfRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
