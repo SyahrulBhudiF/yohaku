@@ -7,6 +7,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import {
   Select,
   SelectContent,
@@ -295,12 +296,12 @@ export function SplitPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
+      <ToolPageHeader id="pdf-split" japanese="PDFを分割">
         <h1 className="text-3xl font-normal tracking-tight">Split PDF</h1>
         <p className="text-muted-foreground">
           Split a PDF by page ranges. Multiple results download together as a ZIP.
         </p>
-      </div>
+      </ToolPageHeader>
 
       {!file && !pending && (
         <PdfDropzone

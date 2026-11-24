@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
+import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import { IMAGE_FORMATS, ImageToolFormSchema, type ImageToolFormValues } from "@/libs/schemas/image"
 import { preloadImageCodec } from "@/libs/utils/image-codec"
 import { formatBytes } from "@/libs/utils/format"
@@ -160,10 +161,13 @@ export function ImageTool({
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
+      <ToolPageHeader
+        id={mode === "convert" ? "image-convert" : "image-compress"}
+        japanese={mode === "convert" ? "画像変換" : "画像圧縮"}
+      >
         <h1 className="text-3xl font-normal tracking-tight">{title}</h1>
         <p className="text-muted-foreground">{description}</p>
-      </div>
+      </ToolPageHeader>
 
       {file === null ? (
         <Dropzone onFiles={(files) => setFile(files[0] ?? null)} />

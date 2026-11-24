@@ -4,6 +4,7 @@ import { useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import { MAX_PDF_BYTES } from "@/libs/schemas/pdf"
 import { formatBytes } from "@/libs/utils/format"
 import { useCompressPdf } from "../use-compress-pdf"
@@ -17,12 +18,12 @@ export function CompressPdfPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
+      <ToolPageHeader id="pdf-compress" japanese="PDFを圧縮">
         <h1 className="text-3xl font-normal tracking-tight">Compress PDF</h1>
         <p className="text-muted-foreground">
           Reduce file size with lossless optimization. Everything runs in your browser.
         </p>
-      </div>
+      </ToolPageHeader>
       {!file ? (
         <>
           <button

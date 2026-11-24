@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { PdfDropzone } from "@/features/pdf-tools/components/pdf-dropzone"
+import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import { MAX_PDF_BYTES, PdfProtectFormSchema, PdfUnlockFormSchema } from "@/libs/schemas/pdf"
 import { formatBytes } from "@/libs/utils/format"
 import { isPdfFile } from "@/features/pdf-tools/validation"
@@ -92,13 +93,13 @@ export function PdfProtectPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
+      <ToolPageHeader id="pdf-protect" japanese="PDFの保護・解除">
         <h1 className="text-3xl font-normal tracking-tight">Protect or unlock PDF</h1>
         <p className="text-muted-foreground">
           Add or remove AES-256 password protection locally in your browser. Your password and PDF
           are never uploaded.
         </p>
-      </div>
+      </ToolPageHeader>
 
       {!model.file ? (
         <PdfDropzone

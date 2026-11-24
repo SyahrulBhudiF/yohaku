@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { PdfDropzone } from "@/features/pdf-tools/components/pdf-dropzone"
 import { PageThumbnail } from "@/features/pdf-tools/components/page-thumbnail"
+import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import { formatBytes } from "@/libs/utils/format"
 import { useSignPdf } from "../use-sign-pdf"
 import { PdfSignPreview } from "./pdf-sign-preview"
@@ -15,12 +16,12 @@ export function SignPdfPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
-      <div className="flex flex-col gap-1">
+      <ToolPageHeader id="pdf-sign" japanese="PDFに署名">
         <h1 className="text-3xl font-normal tracking-tight">Sign PDF</h1>
         <p className="text-muted-foreground">
           Draw or upload signatures and place them on your PDF, right in your browser.
         </p>
-      </div>
+      </ToolPageHeader>
       {!file && (
         <PdfDropzone
           disabled={model.open.isPending}

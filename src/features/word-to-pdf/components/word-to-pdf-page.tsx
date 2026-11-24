@@ -3,6 +3,7 @@ import { FileDownIcon, FileType2Icon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ConversionResult } from "@/features/document-tools/components/conversion-result"
 import { FileDropzone } from "@/features/document-tools/components/file-dropzone"
+import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import { MAX_DOCX_BYTES } from "@/libs/schemas/document"
 import { useWordToPdf } from "../use-word-to-pdf"
 
@@ -12,12 +13,12 @@ export function WordToPdfPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <header className="flex flex-col gap-1">
+      <ToolPageHeader id="word-to-pdf" japanese="WordをPDFに変換">
         <h1 className="text-3xl font-normal tracking-tight">Word to PDF</h1>
         <p className="text-muted-foreground">
           Render a Word document to PDF locally in your browser. Your file is never uploaded.
         </p>
-      </header>
+      </ToolPageHeader>
       <FileDropzone
         accept="application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
         file={model.file}

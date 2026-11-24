@@ -4,6 +4,7 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import {
   MAX_PDF_BYTES,
   MAX_PDF_FILES,
@@ -199,12 +200,12 @@ export function MergePage() {
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
+      <ToolPageHeader id="pdf-merge" japanese="PDFを結合">
         <h1 className="text-3xl font-normal tracking-tight">Merge PDF</h1>
         <p className="text-muted-foreground">
           Combine PDFs and drag pages into the order you want. Everything runs in your browser.
         </p>
-      </div>
+      </ToolPageHeader>
 
       {pages.length === 0 && pending.length === 0 ? (
         <PdfDropzone

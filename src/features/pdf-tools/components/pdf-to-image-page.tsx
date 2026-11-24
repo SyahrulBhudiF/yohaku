@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
+import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import { IMAGE_FORMATS } from "@/libs/schemas/image"
 import {
   MAX_PDF_BYTES,
@@ -231,13 +232,13 @@ export function PdfToImagePage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
+      <ToolPageHeader id="pdf-to-image" japanese="PDFを画像に変換">
         <h1 className="text-3xl font-normal tracking-tight">PDF to image</h1>
         <p className="text-muted-foreground">
           Render every page as an image. Multiple images download together as a ZIP. Everything runs
           in your browser.
         </p>
-      </div>
+      </ToolPageHeader>
 
       {!file && !pending && (
         <PdfDropzone

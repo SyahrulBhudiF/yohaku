@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress"
 import { ConversionResult } from "@/features/document-tools/components/conversion-result"
+import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import {
   MAX_SOCIAL_MEDIA_AUDIO_BYTES,
   SocialMediaUrlFormSchema,
@@ -155,13 +156,13 @@ export function SocialMediaDownloaderPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <header className="flex flex-col gap-1">
+      <ToolPageHeader id="social-media-downloader" japanese="動画をダウンロード">
         <h1 className="text-3xl font-normal tracking-tight">YouTube &amp; Instagram downloader</h1>
         <p className="text-muted-foreground">
           Paste a public video link and save the video or extract an MP3. Media is streamed through
           Yohaku and processed in your browser.
         </p>
-      </header>
+      </ToolPageHeader>
 
       <Card>
         <CardContent className="pt-4">

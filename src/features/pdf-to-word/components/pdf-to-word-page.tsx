@@ -3,6 +3,7 @@ import { DownloadIcon, FileTextIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ConversionResult } from "@/features/document-tools/components/conversion-result"
 import { FileDropzone } from "@/features/document-tools/components/file-dropzone"
+import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import { MAX_PDF_BYTES } from "@/libs/schemas/pdf"
 import { usePdfToWord } from "../use-pdf-to-word"
 
@@ -12,12 +13,12 @@ export function PdfToWordPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <header className="flex flex-col gap-1">
+      <ToolPageHeader id="pdf-to-word" japanese="PDFをWordに変換">
         <h1 className="text-3xl font-normal tracking-tight">PDF to Word</h1>
         <p className="text-muted-foreground">
           Extract selectable text into an editable Word document. Files stay in your browser.
         </p>
-      </header>
+      </ToolPageHeader>
       <FileDropzone
         accept="application/pdf,.pdf"
         file={model.file}

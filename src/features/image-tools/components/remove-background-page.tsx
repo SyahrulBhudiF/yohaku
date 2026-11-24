@@ -4,6 +4,7 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import { MAX_IMAGE_BYTES } from "@/libs/schemas/image"
 import { detectImageFormat } from "@/libs/utils/image-codec"
 import { removeImageBackground } from "../process"
@@ -58,13 +59,13 @@ export function RemoveBackgroundPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
+      <ToolPageHeader id="image-remove-background" japanese="背景除去">
         <h1 className="text-3xl font-normal tracking-tight">Remove background</h1>
         <p className="text-muted-foreground">
           Remove a uniform background and download a transparent PNG. Best for studio shots;
           everything runs in your browser.
         </p>
-      </div>
+      </ToolPageHeader>
 
       {file === null ? (
         <Dropzone

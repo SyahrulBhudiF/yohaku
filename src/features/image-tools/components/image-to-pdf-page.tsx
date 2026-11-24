@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
+import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import { MAX_IMAGE_BYTES, MAX_IMAGE_FILES, MAX_IMAGE_TOTAL_BYTES } from "@/libs/schemas/image"
 import {
   ImagePdfFormSchema,
@@ -143,13 +144,13 @@ export function ImageToPdfPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
+      <ToolPageHeader id="image-to-pdf" japanese="画像からPDFへ">
         <h1 className="text-3xl font-normal tracking-tight">Image to PDF</h1>
         <p className="text-muted-foreground">
           Combine images into one PDF, or make one PDF per image. Drag the cards to set the order.
           Everything runs in your browser.
         </p>
-      </div>
+      </ToolPageHeader>
 
       {files.length === 0 ? (
         <Dropzone

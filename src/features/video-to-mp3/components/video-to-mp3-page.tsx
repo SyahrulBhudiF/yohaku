@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress"
 import { ConversionResult } from "@/features/document-tools/components/conversion-result"
 import { FileDropzone } from "@/features/document-tools/components/file-dropzone"
+import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import { MAX_VIDEO_BYTES } from "@/libs/schemas/video"
 import { useVideoToMp3 } from "../use-video-to-mp3"
 
@@ -13,12 +14,12 @@ export function VideoToMp3Page() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <header className="flex flex-col gap-1">
+      <ToolPageHeader id="video-to-mp3" japanese="動画をMP3に変換">
         <h1 className="text-3xl font-normal tracking-tight">Video to MP3</h1>
         <p className="text-muted-foreground">
           Extract the audio track from a video and save it as MP3. Processing stays on your device.
         </p>
-      </header>
+      </ToolPageHeader>
       <FileDropzone
         accept="video/*,audio/*,.mkv,.webm,.mov,.mp4,.m4v,.mp3,.wav,.ogg,.aac,.flac"
         file={model.file}

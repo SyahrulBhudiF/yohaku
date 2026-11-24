@@ -12,6 +12,7 @@ import { PdfDropzone } from "@/features/pdf-tools/components/pdf-dropzone"
 import { preparePdfFile } from "@/features/pdf-tools/process"
 import { disposePdfFile } from "@/features/pdf-tools/thumbnails"
 import { isPdfFile } from "@/features/pdf-tools/validation"
+import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import { usePdfReorganize } from "../use-pdf-reorganize"
 
 interface PendingPassword {
@@ -147,13 +148,13 @@ export function PdfReorganizePage() {
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
+      <ToolPageHeader id="pdf-reorganize" japanese="PDFのページを整理">
         <h1 className="text-3xl font-normal tracking-tight">Reorganize PDF pages</h1>
         <p className="text-muted-foreground">
           Drag pages to reorder them, rotate individual pages, or remove pages. Everything runs in
           your browser.
         </p>
-      </div>
+      </ToolPageHeader>
 
       {!model.file && !pending && (
         <PdfDropzone

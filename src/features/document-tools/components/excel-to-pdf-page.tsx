@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import {
   ExcelPdfFormSchema,
   MAX_EXCEL_BYTES,
@@ -115,13 +116,13 @@ export function ExcelToPdfPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
+      <ToolPageHeader id="excel-to-pdf" japanese="ExcelからPDFへ">
         <h1 className="text-3xl font-normal tracking-tight">Excel to PDF</h1>
         <p className="text-muted-foreground">
           Turn every sheet into a clean, printable PDF table. The first row becomes the header and
           repeats on each page. Everything runs in your browser.
         </p>
-      </div>
+      </ToolPageHeader>
 
       {file === null ? (
         <ExcelDropzone

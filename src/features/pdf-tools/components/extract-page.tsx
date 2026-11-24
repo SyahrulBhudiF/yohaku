@@ -5,6 +5,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import { MAX_PDF_BYTES } from "@/libs/schemas/pdf"
 import { formatBytes } from "@/libs/utils/format"
 import { parsePageSelection } from "@/libs/utils/pdf/ranges"
@@ -135,12 +136,12 @@ export function ExtractPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
+      <ToolPageHeader id="pdf-extract" japanese="PDFのページを抽出">
         <h1 className="text-3xl font-normal tracking-tight">Extract PDF pages</h1>
         <p className="text-muted-foreground">
           Choose pages to keep and download them as a new PDF. Your file stays in this browser.
         </p>
-      </div>
+      </ToolPageHeader>
       {!file && !pending && (
         <PdfDropzone
           disabled={loading}
