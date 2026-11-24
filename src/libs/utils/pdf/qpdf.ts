@@ -2,13 +2,15 @@ import { Effect } from "effect"
 
 import {
   PdfCompressionError,
+  PdfDecryptionError,
+  PdfEncryptionError,
   PdfPasswordError,
   PdfProcessingError,
+  PdfReorganizationError,
 } from "@/infrastructure/errors/pdf"
-import type { PdfPageRange } from "@/libs/schemas/pdf"
+import { MAX_PDF_PAGES, type PdfPageRange } from "@/libs/schemas/pdf"
 import { groupConsecutivePages } from "./pages"
-
-type Qpdf = import("@mssio/qpdf-wasm").Qpdf
+import type { PdfQpdf, QpdfWorkerBlob } from "./qpdf-worker-protocol"
 
 export interface PdfMergePage {
   readonly fileId: string
@@ -20,6 +22,13 @@ export interface PdfMergePage {
 export interface PdfOutput {
   readonly name: string
   readonly data: Uint8Array<ArrayBuffer>
+}
+
+export type PdfDocumentOutput = Blob | QpdfWorkerBlob
+
+export interface PdfReorganizationPage {
+  readonly pageNumber: number
+  readonly rotation: 0 | 90 | 180 | 270
 }
 
 export type PdfSplitRequest =
@@ -36,11 +45,16 @@ export type PdfSplitRequest =
       readonly password: string | undefined
     }
 
-let engine: Promise<Qpdf> | null = null
+let engine: Promise<PdfQpdf> | null = null
 
 const loadEngine = () => {
   if (engine === null) {
-    engine = import("@mssio/qpdf-wasm").then(({ createQpdf }) => createQpdf())
+    engine =
+      typeof Worker === "undefined"
+        ? import("@mssio/qpdf-wasm").then(({ createQpdf }) => createQpdf())
+        : import("./qpdf-worker-client").then(({ createQpdfWorkerClient }) =>
+            createQpdfWorkerClient(),
+          )
     engine.catch(() => {
       engine = null
     })
@@ -94,6 +108,25 @@ const mapError = (cause: unknown) => {
     message: "This PDF could not be processed. It may be damaged or unsupported.",
   })
 }
+
+const mapReorganizationError = (cause: unknown) =>
+  errorCode(cause) === "INVALID_PASSWORD"
+    ? new PdfPasswordError({ message: "That password did not open the PDF." })
+    : new PdfReorganizationError({
+        message: "Could not reorganize this PDF. It may be damaged or unsupported.",
+      })
+
+const mapEncryptionError = () =>
+  new PdfEncryptionError({
+    message: "Could not protect this PDF. It may already be password-protected or unsupported.",
+  })
+
+const mapDecryptionError = (cause: unknown) =>
+  errorCode(cause) === "INVALID_PASSWORD"
+    ? new PdfPasswordError({ message: "That password did not open the PDF." })
+    : new PdfDecryptionError({
+        message: "Could not remove password protection from this PDF.",
+      })
 
 const runJob = (args: ReadonlyArray<string>, files: Record<string, File>) =>
   Effect.gen(function* () {
@@ -262,6 +295,135 @@ export const extractPages = (
     }
 
     return result.output
+  })
+
+export const reorganizePages = (
+  file: File,
+  pages: ReadonlyArray<PdfReorganizationPage>,
+  password?: string,
+): Effect.Effect<Uint8Array<ArrayBuffer>, PdfPasswordError | PdfReorganizationError> =>
+  Effect.gen(function* () {
+    if (pages.length === 0) {
+      return yield* new PdfReorganizationError({ message: "Keep at least one PDF page." })
+    }
+
+    const selectedPages = new Set<number>()
+
+    for (const page of pages) {
+      if (
+        !Number.isInteger(page.pageNumber) ||
+        page.pageNumber < 1 ||
+        page.pageNumber > MAX_PDF_PAGES ||
+        selectedPages.has(page.pageNumber)
+      ) {
+        return yield* new PdfReorganizationError({
+          message: "The page order contains an invalid or repeated page.",
+        })
+      }
+
+      if (![0, 90, 180, 270].includes(page.rotation)) {
+        return yield* new PdfReorganizationError({
+          message: "Page rotation must be 0, 90, 180, or 270 degrees.",
+        })
+      }
+
+      selectedPages.add(page.pageNumber)
+    }
+
+    const qpdf = yield* Effect.tryPromise({ try: loadEngine, catch: mapReorganizationError })
+    const rotations = new Map<90 | 180 | 270, Array<number>>()
+
+    for (const page of pages) {
+      if (page.rotation !== 0) {
+        const selected = rotations.get(page.rotation) ?? []
+
+        selected.push(page.pageNumber)
+        rotations.set(page.rotation, selected)
+      }
+    }
+
+    let input: File | Uint8Array<ArrayBuffer> = file
+
+    if (rotations.size > 0) {
+      const result = yield* Effect.tryPromise({
+        try: () =>
+          qpdf.rotate(
+            file,
+            [...rotations].map(([angle, selected]) => ({
+              angle,
+              pages: selected.join(","),
+            })),
+            password === undefined ? undefined : { password },
+          ),
+        catch: mapReorganizationError,
+      })
+
+      input = result.output
+    }
+
+    const result = yield* Effect.tryPromise({
+      try: () =>
+        qpdf.selectPages(
+          input,
+          pages.map(({ pageNumber }) => pageNumber).join(","),
+          password === undefined ? undefined : { password },
+        ),
+      catch: mapReorganizationError,
+    })
+
+    if (result.output.byteLength === 0) {
+      return yield* new PdfReorganizationError({ message: "qpdf did not produce a PDF." })
+    }
+
+    return result.output
+  })
+
+const createPdfOutput = (output: Uint8Array<ArrayBuffer> | Blob | QpdfWorkerBlob) => {
+  if (typeof Blob !== "undefined" && output instanceof Blob) return output
+
+  if (!(output instanceof Uint8Array)) return output
+
+  return new Blob([output], { type: "application/pdf" })
+}
+
+export const protectPdf = (
+  file: File,
+  password: string,
+): Effect.Effect<PdfDocumentOutput, PdfEncryptionError> =>
+  Effect.gen(function* () {
+    const qpdf = yield* Effect.tryPromise({ try: loadEngine, catch: mapEncryptionError })
+    const result = yield* Effect.tryPromise({
+      try: () => qpdf.encrypt(file, { userPassword: password, ownerPassword: password, bits: 256 }),
+      catch: mapEncryptionError,
+    })
+
+    const output = createPdfOutput(result.output)
+
+    if (output.size === 0) {
+      return yield* mapEncryptionError()
+    }
+
+    return output
+  })
+
+export const unlockPdf = (
+  file: File,
+  password: string,
+): Effect.Effect<PdfDocumentOutput, PdfPasswordError | PdfDecryptionError> =>
+  Effect.gen(function* () {
+    const qpdf = yield* Effect.tryPromise({ try: loadEngine, catch: mapDecryptionError })
+    const result = yield* Effect.tryPromise({
+      try: () => qpdf.decrypt(file.slice(), { password }),
+      catch: mapDecryptionError,
+    })
+
+    const output = createPdfOutput(result.output)
+
+    if (output.size === 0) {
+      return yield* new PdfDecryptionError({ message: "qpdf did not produce an unlocked PDF." })
+    }
+
+    return output
   })
 
 export const splitPdf = (

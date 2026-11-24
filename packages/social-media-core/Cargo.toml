@@ -1,0 +1,24 @@
+[package]
+name = "social-media-core"
+version = "0.1.0"
+edition = "2024"
+description = "Browser-side public video metadata extraction for Yohaku."
+repository = "https://github.com/SyahrulBhudiF/yohaku"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+async-trait = "0.1"
+js-sys = "0.3"
+serde-wasm-bindgen = "0.6"
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+ytdown = { version = "=0.8.1", default-features = false }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"

@@ -14,7 +14,7 @@ import { formatBytes } from "@/libs/utils/format"
 import { mergePdfPages, preparePdfFile } from "../process"
 import { newPdfId, useMergeStore, type PdfFileEntry, type PdfPageEntry } from "../store"
 import { disposePdfFile } from "../thumbnails"
-import { isPdfFile } from "../validation"
+import { isPdfBatchWithinSizeLimit, isPdfFile } from "../validation"
 import { PageGrid } from "./page-grid"
 import { PasswordPrompt } from "./password-prompt"
 import { PdfDropzone } from "./pdf-dropzone"
@@ -65,7 +65,7 @@ export function MergePage() {
           continue
         }
 
-        if (totalBytes + file.size > MAX_PDF_TOTAL_BYTES) {
+        if (!isPdfBatchWithinSizeLimit(totalBytes, file.size)) {
           setError(`The combined PDFs can be at most ${MAX_PDF_TOTAL_BYTES / 1024 / 1024} MB.`)
           continue
         }
@@ -137,7 +137,7 @@ export function MergePage() {
         return
       }
 
-      if (totalBytes + entry.file.size > MAX_PDF_TOTAL_BYTES) {
+      if (!isPdfBatchWithinSizeLimit(totalBytes, entry.file.size)) {
         disposePdfFile(entry.id)
         setError(`The combined PDFs can be at most ${MAX_PDF_TOTAL_BYTES / 1024 / 1024} MB.`)
         setPending((pending) => pending.filter((item) => item.id !== entry.id))

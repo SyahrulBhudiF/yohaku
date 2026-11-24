@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { compressPdfFile } from "@/features/pdf-compress/process"
+import { MAX_PDF_BYTES } from "@/libs/schemas/pdf"
 import { fixtureFile } from "../../support/pdf"
 
 describe("compressPdfFile", () => {
@@ -36,6 +37,18 @@ describe("compressPdfFile", () => {
     await expect(compressPdfFile({ file })).rejects.toMatchObject({
       _tag: "PdfInvalidFileError",
       message: "Choose a PDF file.",
+    })
+  })
+
+  it("rejects PDFs above the reduced browser size limit before starting qpdf", async () => {
+    const file = new File(["%PDF-"], "large.pdf", { type: "application/pdf" })
+
+    Object.defineProperty(file, "size", { value: MAX_PDF_BYTES + 1 })
+
+    expect(MAX_PDF_BYTES).toBe(30 * 1024 * 1024)
+    await expect(compressPdfFile({ file })).rejects.toMatchObject({
+      _tag: "PdfCompressionError",
+      message: "PDFs can be at most 30 MB.",
     })
   })
 })

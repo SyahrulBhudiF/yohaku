@@ -27,9 +27,18 @@ interface PageGridProps {
   readonly files: ReadonlyArray<PdfFileEntry>
   readonly onReorder: (pages: ReadonlyArray<PdfPageEntry>) => void
   readonly onRemove: (pageId: string) => void
+  readonly onRotate?: (pageId: string) => void
+  readonly minPagesToKeep?: number
 }
 
-export function PageGrid({ pages, files, onReorder, onRemove }: PageGridProps) {
+export function PageGrid({
+  pages,
+  files,
+  onReorder,
+  onRemove,
+  onRotate,
+  minPagesToKeep = 0,
+}: PageGridProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -128,7 +137,15 @@ export function PageGrid({ pages, files, onReorder, onRemove }: PageGridProps) {
             }
 
             return (
-              <PageCard key={page.id} page={page} file={file} index={index} onRemove={onRemove} />
+              <PageCard
+                key={page.id}
+                page={page}
+                file={file}
+                index={index}
+                onRemove={onRemove}
+                {...(onRotate ? { onRotate } : {})}
+                canRemove={pages.length > minPagesToKeep}
+              />
             )
           })}
         </div>

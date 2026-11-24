@@ -1,0 +1,20 @@
+{
+  "name": "social-media-core",
+  "type": "module",
+  "description": "Browser-side public video metadata extraction for Yohaku.",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SyahrulBhudiF/yohaku"
+  },
+  "files": [
+    "social_media_core_bg.wasm",
+    "social_media_core.js",
+    "social_media_core.d.ts"
+  ],
+  "main": "social_media_core.js",
+  "types": "social_media_core.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

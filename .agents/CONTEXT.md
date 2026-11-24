@@ -4,10 +4,11 @@ Read this with the root `AGENTS.md` before making architectural changes.
 
 ## What
 
-Yohaku is a single TanStack Start app that hosts small file utilities. Image
-convert and compress, background removal, image to SVG, PDF merge and split,
-PDF compression, PDF to image, image to PDF, and Excel to PDF ship today. Word
-conversion and PDF to Excel are not built yet.
+Yohaku is a single TanStack Start app that hosts small file utilities. It
+converts and compresses images, removes uniform backgrounds, traces images to
+SVG, handles PDF pages and signatures, converts between PDF, images, Word, and
+Excel, extracts audio from local media files to MP3, and downloads public
+YouTube or Instagram videos.
 
 ## Architecture decisions
 
@@ -15,8 +16,8 @@ conversion and PDF to Excel are not built yet.
    `src/features/`. Page behavior belongs in the feature.
 2. **One tool, one slice.** A tool has a page route in `src/routes/<tool>/`,
    schemas in `src/libs/schemas/`, a feature folder, and a registry entry tagged
-   `category: "image" | "pdf" | "document"`. The home page renders one section
-   per category.
+   `category: "image" | "pdf" | "document" | "media"`. The home page renders
+   one section per category.
    A tool that needs a server adds a `createServerFn` in `src/apis/<tool>.ts`
    with its Effect handler in `<tool>.server.ts`.
 3. **Use Effect where it earns its keep.** Processing sits behind
@@ -24,9 +25,11 @@ conversion and PDF to Excel are not built yet.
    are `Schema.TaggedError`s mapped once at the boundary that presents them.
 4. **Schemas define the contract.** Request options, error bodies, limits, and
    format maps live in `src/libs/schemas/` and are used by both client and server.
-5. **Nothing is stored.** Uploads are read into memory, processed, and turned
-   into a download URL. Enforce `MAX_IMAGE_BYTES` and the PDF limits in
-   `src/libs/schemas/pdf.ts`.
+5. **Nothing is stored.** Uploaded files are read into memory, processed, and
+   turned into a download URL. Public media URLs are streamed through the
+   same-origin Worker proxy and are not stored. Enforce `MAX_IMAGE_BYTES` and
+   the PDF limits in `src/libs/schemas/pdf.ts`; the local media-to-MP3 tool
+   caps its input in `src/libs/schemas/video.ts`.
 6. **Process in the browser.** Cloudflare Workers Free allows 10 ms of CPU per
    request, so no native or WASM encoder can run on the server. Image work uses
    `@jsquash` codecs in the browser behind `ImageProcessor`; PDF merge/split and
@@ -39,8 +42,13 @@ conversion and PDF to Excel are not built yet.
    backed by the `background-removal-core` Rust/WASM package, with no model or JS
    fallback. Image to SVG is an output option in the image converter and uses
    `imagetracerjs`; the Rust VTracer experiment was reverted for photographic
-   quality. The Worker only serves the app.
-   This keeps the app free, fast, and private.
+   quality. Local and public-media audio conversion use Mediabunny for demuxing
+   and browser-native decoding, with the LAME WASM encoder in a worker. Public
+   YouTube and Instagram metadata is resolved by the `social-media-core`
+   Rust/WASM package. A same-origin Worker proxy forwards only allowlisted
+   platform and CDN hosts, strips credentials, validates redirects, rate-limits
+   requests, and streams downloads without storing media. Private or
+   login-protected content is not supported.
 7. **Shared UI boundary.** Primitives under `src/components/ui/` wrap Base UI and
    follow Material Design 3. Feature UI lives under `src/features/`.
 8. **Query, Form, Zustand.** TanStack Query runs mutations, TanStack Form owns
@@ -78,7 +86,8 @@ conversion and PDF to Excel are not built yet.
 16. **Rust/WASM cores are narrow and committed.** Excel to PDF keeps parsing and
     PDF writing in `packages/xlsx-pdf-core`; background removal keeps its matte
     in `packages/background-removal-core`; image-to-PDF assembly lives in
-    `packages/image-pdf-core`. Generated packages under `src/libs/wasm/` are
+    `packages/image-pdf-core`; public media metadata resolution lives in
+    `packages/social-media-core`. Generated packages under `src/libs/wasm/` are
     committed so the app build does not need Rust. CI runs the crate tests. Run
     `pnpm wasm:build` after changing any Rust source and `pnpm wasm:test` for
     the native crate tests.

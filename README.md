@@ -1,16 +1,17 @@
 # Yohaku
 
-Yohaku is a browser-based toolkit for working with images and documents. Convert and compress images, remove uniform backgrounds, trace images to SVG, organize PDFs, and convert between images and PDF—all without uploading your files.
+Yohaku is a browser-based toolkit for working with images, PDFs, documents, and media. Local files are processed in your browser and are never stored. Public video links use an allowlisted, same-origin streaming proxy; media is not stored by Yohaku.
 
 **Try it:** [yohaku.ryuko.my.id](https://yohaku.ryuko.my.id)
 
 ## Tools
 
 - **Images:** convert and compress PNG, JPEG, WebP, AVIF, GIF, and TIFF; preserve animation when converting animated GIF/WebP to GIF or WebP; remove solid studio backgrounds; trace images to SVG.
-- **PDF:** merge and split PDFs, render selected pages to images, place multiple drawn or image signatures, and create PDFs from one or more images.
-- **Spreadsheets:** export Excel worksheets to PDF.
+- **PDF:** merge, split, reorganize, protect, and sign PDFs; render pages to images; convert PDF text to Word or Excel; and create PDFs from images.
+- **Documents:** convert Word documents and Excel worksheets to PDF.
+- **Media:** download public YouTube videos and Instagram Reels, extract their audio as MP3, or convert a local video/audio file to MP3.
 
-Files are processed locally in your browser and are not uploaded or stored by Yohaku. The app uses Cloudflare Workers to serve the site; CPU-intensive processing stays client-side to fit the Workers runtime limits. Background removal targets uniform backgrounds and is not an AI subject-segmentation tool. Excel export focuses on table data; it does not preserve formulas, charts, or merged cells.
+Local files are processed in your browser and are not uploaded or stored. Public video downloads are streamed through a same-origin Cloudflare Worker proxy restricted to YouTube, Instagram, and their media CDNs; the Worker does not save media. Private or login-protected posts are not supported. CPU-intensive processing stays client-side to fit Workers runtime limits. Background removal targets uniform backgrounds and is not an AI subject-segmentation tool. Excel export focuses on table data; it does not preserve formulas, charts, or merged cells.
 
 ## Development
 
@@ -32,7 +33,7 @@ Run one test file with `pnpm test:run tests/path/to/test.test.ts`. Read [AGENTS.
 
 ## Architecture
 
-Yohaku is a TanStack Start application deployed to Cloudflare Workers with Alchemy. Feature pages and UI live in `src/features/`; routes stay thin. Client-side processing is organized behind Effect services. Image codecs use WebAssembly where appropriate, PDF rendering uses pdf.js, PDF assembly and spreadsheet export use focused Rust/WASM cores, and UI components use Base UI with Material Design 3 styling.
+Yohaku is a TanStack Start application deployed to Cloudflare Workers with Alchemy. Feature pages and UI live in `src/features/`; routes stay thin. Client-side processing is organized behind Effect services. Image codecs use WebAssembly where appropriate, PDF rendering uses pdf.js, PDF assembly and spreadsheet export use focused Rust/WASM cores, and media conversion uses Mediabunny with browser-native decoding and a LAME WASM MP3 encoder in a worker. Public YouTube and Instagram link resolution uses a Rust/WASM adapter; the Worker only validates and streams allowlisted upstream requests. UI components use Base UI with Material Design 3 styling.
 
 ## Deployment
 

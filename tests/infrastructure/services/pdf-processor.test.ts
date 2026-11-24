@@ -125,6 +125,108 @@ describe("PdfProcessor", () => {
     ),
   )
 
+  it.effect("reorders and removes pages", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* PdfProcessor
+        const file = yield* Effect.promise(() => fixtureFile("a.pdf"))
+        const output = yield* processor.reorganizePages(file, [
+          { pageNumber: 3, rotation: 0 },
+          { pageNumber: 1, rotation: 0 },
+        ])
+
+        assert.deepEqual(yield* Effect.promise(() => extractPdfText(output)), [
+          "a page 3",
+          "a page 1",
+        ])
+      }),
+    ),
+  )
+
+  it.effect("rotates pages while preserving the selected page order", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* PdfProcessor
+        const file = yield* Effect.promise(() => fixtureFile("a.pdf"))
+        const output = yield* processor.reorganizePages(file, [
+          { pageNumber: 2, rotation: 90 },
+          { pageNumber: 1, rotation: 0 },
+        ])
+        const { PDFDocument } = yield* Effect.promise(() => import("pdf-lib"))
+        const document = yield* Effect.promise(() => PDFDocument.load(output))
+
+        assert.strictEqual(document.getPageCount(), 2)
+        assert.strictEqual(document.getPage(0).getRotation().angle, 90)
+        assert.strictEqual(document.getPage(1).getRotation().angle, 0)
+        assert.deepEqual(yield* Effect.promise(() => extractPdfText(output)), [
+          "a page 2",
+          "a page 1",
+        ])
+      }),
+    ),
+  )
+
+  it.effect("rejects an empty or repeated page order", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* PdfProcessor
+        const file = yield* Effect.promise(() => fixtureFile("a.pdf"))
+        const empty = yield* Effect.flip(processor.reorganizePages(file, []))
+        const repeated = yield* Effect.flip(
+          processor.reorganizePages(file, [
+            { pageNumber: 1, rotation: 0 },
+            { pageNumber: 1, rotation: 0 },
+          ]),
+        )
+
+        assert.strictEqual(empty._tag, "PdfReorganizationError")
+        assert.strictEqual(repeated._tag, "PdfReorganizationError")
+      }),
+    ),
+  )
+
+  it.effect("protects and unlocks a PDF with AES-256", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* PdfProcessor
+        const file = yield* Effect.promise(() => fixtureFile("a.pdf"))
+        const protectedPdf = yield* processor.protect(file, "safe-password")
+
+        assert.ok(protectedPdf instanceof Blob)
+
+        assert.deepEqual(
+          yield* Effect.promise(() => extractPdfText(protectedPdf, "safe-password")),
+          ["a page 1", "a page 2", "a page 3"],
+        )
+
+        const unlockedPdf = yield* processor.unlock(
+          new File([protectedPdf], "protected.pdf", { type: "application/pdf" }),
+          "safe-password",
+        )
+
+        assert.ok(unlockedPdf instanceof Blob)
+
+        assert.deepEqual(yield* Effect.promise(() => extractPdfText(unlockedPdf)), [
+          "a page 1",
+          "a page 2",
+          "a page 3",
+        ])
+      }),
+    ),
+  )
+
+  it.effect("rejects an incorrect unlock password with a typed error", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* PdfProcessor
+        const file = yield* Effect.promise(() => fixtureFile("enc.pdf"))
+        const error = yield* Effect.flip(processor.unlock(file, "wrong"))
+
+        assert.strictEqual(error._tag, "PdfPasswordError")
+      }),
+    ),
+  )
+
   it.effect("splits into chunks", () =>
     run(
       Effect.gen(function* () {

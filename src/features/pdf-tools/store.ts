@@ -15,6 +15,7 @@ export interface PdfPageEntry {
   readonly id: string
   readonly fileId: string
   readonly pageNumber: number
+  readonly rotation?: 0 | 90 | 180 | 270
 }
 
 export interface PdfResult {

@@ -20,12 +20,17 @@ const SECTIONS: ReadonlyArray<{
   {
     id: "pdf",
     title: "PDF tools",
-    description: "Compress, merge, split, sign, convert, and render PDFs as images.",
+    description: "Compress, merge, reorganize, protect, sign, convert, and render PDFs as images.",
   },
   {
     id: "document",
     title: "Document tools",
     description: "Convert Word documents and spreadsheets to PDF.",
+  },
+  {
+    id: "media",
+    title: "Media tools",
+    description: "Download public videos, extract MP3 audio, or convert local media.",
   },
 ]
 

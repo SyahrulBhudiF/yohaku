@@ -1,6 +1,7 @@
 import { FileTextIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
+import { cn } from "@/libs/utils/cn"
 import { getPdfThumbnail } from "../thumbnails"
 
 interface PageThumbnailProps {
@@ -8,11 +9,18 @@ interface PageThumbnailProps {
   readonly file: File
   readonly pageNumber: number
   readonly password: string | undefined
+  readonly rotation?: 0 | 90 | 180 | 270
 }
 
 type ThumbnailState = "idle" | "loading" | "ready" | "error"
 
-export function PageThumbnail({ fileId, file, pageNumber, password }: PageThumbnailProps) {
+export function PageThumbnail({
+  fileId,
+  file,
+  pageNumber,
+  password,
+  rotation = 0,
+}: PageThumbnailProps) {
   const container = useRef<HTMLDivElement>(null)
   const [url, setUrl] = useState<string | null>(null)
   const [state, setState] = useState<ThumbnailState>("idle")
@@ -76,7 +84,11 @@ export function PageThumbnail({ fileId, file, pageNumber, password }: PageThumbn
           alt={`Page ${pageNumber}`}
           draggable={false}
           decoding="async"
-          className="size-full object-contain"
+          className={cn(
+            "size-full object-contain",
+            rotation === 90 || rotation === 270 ? "scale-[0.7]" : "",
+          )}
+          style={{ transform: `rotate(${rotation}deg)` }}
         />
       ) : state === "error" ? (
         <FileTextIcon className="size-8 text-outline" />

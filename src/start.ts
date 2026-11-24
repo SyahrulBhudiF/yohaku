@@ -1,6 +1,7 @@
 import { createMiddleware, createStart } from "@tanstack/react-start"
 
 import { getEnv } from "@/env"
+import { handleMediaDownloadProxy, handleMediaResolveProxy } from "@/apis/social-media-proxy.server"
 
 const WINDOW_SECONDS = 60
 
@@ -14,6 +15,7 @@ const clientKey = (request: Request) =>
  * assets never reach the Worker, so they are not counted.
  */
 const rateLimit = createMiddleware().server(async ({ next, request }) => {
+  const pathname = new URL(request.url).pathname
   const env = await getEnv()
 
   if (env !== undefined) {
@@ -29,6 +31,14 @@ const rateLimit = createMiddleware().server(async ({ next, request }) => {
         },
       })
     }
+  }
+
+  if (pathname === "/api/media/resolve-proxy") {
+    return handleMediaResolveProxy(request)
+  }
+
+  if (pathname === "/api/media/download") {
+    return handleMediaDownloadProxy(request)
   }
 
   return next()

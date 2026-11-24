@@ -27,3 +27,24 @@ export class PdfInvalidFileError extends Schema.TaggedError<
 >()("PdfInvalidFileError", {
   message: Schema.String,
 }) {}
+
+export class PdfReorganizationError extends Schema.TaggedError<
+  PdfReorganizationError,
+  { readonly brand: unique symbol }
+>()("PdfReorganizationError", {
+  message: Schema.String,
+}) {}
+
+export class PdfEncryptionError extends Schema.TaggedError<
+  PdfEncryptionError,
+  { readonly brand: unique symbol }
+>()("PdfEncryptionError", {
+  message: Schema.String,
+}) {}
+
+export class PdfDecryptionError extends Schema.TaggedError<
+  PdfDecryptionError,
+  { readonly brand: unique symbol }
+>()("PdfDecryptionError", {
+  message: Schema.String,
+}) {}

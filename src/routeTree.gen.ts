@@ -15,9 +15,13 @@ import { Route as ImageCompressRouteImport } from './routes/image/compress'
 import { Route as ImageConvertRouteImport } from './routes/image/convert'
 import { Route as ImageRemoveBackgroundRouteImport } from './routes/image/remove-background'
 import { Route as ImageToPdfRouteImport } from './routes/image/to-pdf'
+import { Route as MediaSocialDownloaderRouteImport } from './routes/media/social-downloader'
+import { Route as MediaVideoToMp3RouteImport } from './routes/media/video-to-mp3'
 import { Route as PdfCompressRouteImport } from './routes/pdf/compress'
 import { Route as PdfExtractRouteImport } from './routes/pdf/extract'
 import { Route as PdfMergeRouteImport } from './routes/pdf/merge'
+import { Route as PdfProtectRouteImport } from './routes/pdf/protect'
+import { Route as PdfReorganizeRouteImport } from './routes/pdf/reorganize'
 import { Route as PdfSignRouteImport } from './routes/pdf/sign'
 import { Route as PdfSplitRouteImport } from './routes/pdf/split'
 import { Route as PdfToExcelRouteImport } from './routes/pdf/to-excel'
@@ -55,6 +59,16 @@ const ImageToPdfRoute = ImageToPdfRouteImport.update({
   path: '/image/to-pdf',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MediaSocialDownloaderRoute = MediaSocialDownloaderRouteImport.update({
+  id: '/media/social-downloader',
+  path: '/media/social-downloader',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MediaVideoToMp3Route = MediaVideoToMp3RouteImport.update({
+  id: '/media/video-to-mp3',
+  path: '/media/video-to-mp3',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PdfCompressRoute = PdfCompressRouteImport.update({
   id: '/pdf/compress',
   path: '/pdf/compress',
@@ -68,6 +82,16 @@ const PdfExtractRoute = PdfExtractRouteImport.update({
 const PdfMergeRoute = PdfMergeRouteImport.update({
   id: '/pdf/merge',
   path: '/pdf/merge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PdfProtectRoute = PdfProtectRouteImport.update({
+  id: '/pdf/protect',
+  path: '/pdf/protect',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PdfReorganizeRoute = PdfReorganizeRouteImport.update({
+  id: '/pdf/reorganize',
+  path: '/pdf/reorganize',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PdfSignRoute = PdfSignRouteImport.update({
@@ -108,9 +132,13 @@ export interface FileRoutesByFullPath {
   '/image/convert': typeof ImageConvertRoute
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
   '/image/to-pdf': typeof ImageToPdfRoute
+  '/media/social-downloader': typeof MediaSocialDownloaderRoute
+  '/media/video-to-mp3': typeof MediaVideoToMp3Route
   '/pdf/compress': typeof PdfCompressRoute
   '/pdf/extract': typeof PdfExtractRoute
   '/pdf/merge': typeof PdfMergeRoute
+  '/pdf/protect': typeof PdfProtectRoute
+  '/pdf/reorganize': typeof PdfReorganizeRoute
   '/pdf/sign': typeof PdfSignRoute
   '/pdf/split': typeof PdfSplitRoute
   '/pdf/to-excel': typeof PdfToExcelRoute
@@ -125,9 +153,13 @@ export interface FileRoutesByTo {
   '/image/convert': typeof ImageConvertRoute
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
   '/image/to-pdf': typeof ImageToPdfRoute
+  '/media/social-downloader': typeof MediaSocialDownloaderRoute
+  '/media/video-to-mp3': typeof MediaVideoToMp3Route
   '/pdf/compress': typeof PdfCompressRoute
   '/pdf/extract': typeof PdfExtractRoute
   '/pdf/merge': typeof PdfMergeRoute
+  '/pdf/protect': typeof PdfProtectRoute
+  '/pdf/reorganize': typeof PdfReorganizeRoute
   '/pdf/sign': typeof PdfSignRoute
   '/pdf/split': typeof PdfSplitRoute
   '/pdf/to-excel': typeof PdfToExcelRoute
@@ -143,9 +175,13 @@ export interface FileRoutesById {
   '/image/convert': typeof ImageConvertRoute
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
   '/image/to-pdf': typeof ImageToPdfRoute
+  '/media/social-downloader': typeof MediaSocialDownloaderRoute
+  '/media/video-to-mp3': typeof MediaVideoToMp3Route
   '/pdf/compress': typeof PdfCompressRoute
   '/pdf/extract': typeof PdfExtractRoute
   '/pdf/merge': typeof PdfMergeRoute
+  '/pdf/protect': typeof PdfProtectRoute
+  '/pdf/reorganize': typeof PdfReorganizeRoute
   '/pdf/sign': typeof PdfSignRoute
   '/pdf/split': typeof PdfSplitRoute
   '/pdf/to-excel': typeof PdfToExcelRoute
@@ -162,9 +198,13 @@ export interface FileRouteTypes {
     | '/image/convert'
     | '/image/remove-background'
     | '/image/to-pdf'
+    | '/media/social-downloader'
+    | '/media/video-to-mp3'
     | '/pdf/compress'
     | '/pdf/extract'
     | '/pdf/merge'
+    | '/pdf/protect'
+    | '/pdf/reorganize'
     | '/pdf/sign'
     | '/pdf/split'
     | '/pdf/to-excel'
@@ -179,9 +219,13 @@ export interface FileRouteTypes {
     | '/image/convert'
     | '/image/remove-background'
     | '/image/to-pdf'
+    | '/media/social-downloader'
+    | '/media/video-to-mp3'
     | '/pdf/compress'
     | '/pdf/extract'
     | '/pdf/merge'
+    | '/pdf/protect'
+    | '/pdf/reorganize'
     | '/pdf/sign'
     | '/pdf/split'
     | '/pdf/to-excel'
@@ -196,9 +240,13 @@ export interface FileRouteTypes {
     | '/image/convert'
     | '/image/remove-background'
     | '/image/to-pdf'
+    | '/media/social-downloader'
+    | '/media/video-to-mp3'
     | '/pdf/compress'
     | '/pdf/extract'
     | '/pdf/merge'
+    | '/pdf/protect'
+    | '/pdf/reorganize'
     | '/pdf/sign'
     | '/pdf/split'
     | '/pdf/to-excel'
@@ -214,9 +262,13 @@ export interface RootRouteChildren {
   ImageConvertRoute: typeof ImageConvertRoute
   ImageRemoveBackgroundRoute: typeof ImageRemoveBackgroundRoute
   ImageToPdfRoute: typeof ImageToPdfRoute
+  MediaSocialDownloaderRoute: typeof MediaSocialDownloaderRoute
+  MediaVideoToMp3Route: typeof MediaVideoToMp3Route
   PdfCompressRoute: typeof PdfCompressRoute
   PdfExtractRoute: typeof PdfExtractRoute
   PdfMergeRoute: typeof PdfMergeRoute
+  PdfProtectRoute: typeof PdfProtectRoute
+  PdfReorganizeRoute: typeof PdfReorganizeRoute
   PdfSignRoute: typeof PdfSignRoute
   PdfSplitRoute: typeof PdfSplitRoute
   PdfToExcelRoute: typeof PdfToExcelRoute
@@ -269,6 +321,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ImageToPdfRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/media/social-downloader': {
+      id: '/media/social-downloader'
+      path: '/media/social-downloader'
+      fullPath: '/media/social-downloader'
+      preLoaderRoute: typeof MediaSocialDownloaderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/media/video-to-mp3': {
+      id: '/media/video-to-mp3'
+      path: '/media/video-to-mp3'
+      fullPath: '/media/video-to-mp3'
+      preLoaderRoute: typeof MediaVideoToMp3RouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pdf/compress': {
       id: '/pdf/compress'
       path: '/pdf/compress'
@@ -288,6 +354,20 @@ declare module '@tanstack/react-router' {
       path: '/pdf/merge'
       fullPath: '/pdf/merge'
       preLoaderRoute: typeof PdfMergeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pdf/protect': {
+      id: '/pdf/protect'
+      path: '/pdf/protect'
+      fullPath: '/pdf/protect'
+      preLoaderRoute: typeof PdfProtectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pdf/reorganize': {
+      id: '/pdf/reorganize'
+      path: '/pdf/reorganize'
+      fullPath: '/pdf/reorganize'
+      preLoaderRoute: typeof PdfReorganizeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pdf/sign': {
@@ -342,9 +422,13 @@ const rootRouteChildren: RootRouteChildren = {
   ImageConvertRoute: ImageConvertRoute,
   ImageRemoveBackgroundRoute: ImageRemoveBackgroundRoute,
   ImageToPdfRoute: ImageToPdfRoute,
+  MediaSocialDownloaderRoute: MediaSocialDownloaderRoute,
+  MediaVideoToMp3Route: MediaVideoToMp3Route,
   PdfCompressRoute: PdfCompressRoute,
   PdfExtractRoute: PdfExtractRoute,
   PdfMergeRoute: PdfMergeRoute,
+  PdfProtectRoute: PdfProtectRoute,
+  PdfReorganizeRoute: PdfReorganizeRoute,
   PdfSignRoute: PdfSignRoute,
   PdfSplitRoute: PdfSplitRoute,
   PdfToExcelRoute: PdfToExcelRoute,

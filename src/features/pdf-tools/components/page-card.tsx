@@ -1,6 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { FileTextIcon, GripVerticalIcon, XIcon } from "lucide-react"
+import { FileTextIcon, GripVerticalIcon, RotateCwIcon, XIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/libs/utils/cn"
@@ -12,9 +12,18 @@ interface PageCardProps {
   readonly file: PdfFileEntry
   readonly index: number
   readonly onRemove: (pageId: string) => void
+  readonly onRotate?: (pageId: string) => void
+  readonly canRemove?: boolean
 }
 
-export function PageCard({ page, file, index, onRemove }: PageCardProps) {
+export function PageCard({
+  page,
+  file,
+  index,
+  onRemove,
+  onRotate,
+  canRemove = true,
+}: PageCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: page.id,
     data: { type: "page" },
@@ -37,6 +46,18 @@ export function PageCard({ page, file, index, onRemove }: PageCardProps) {
         <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground" title={file.name}>
           {file.name}
         </span>
+        {onRotate && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => onRotate(page.id)}
+            aria-label={`Rotate page ${page.pageNumber} 90 degrees clockwise`}
+            className="size-7 shrink-0 text-on-surface-variant"
+          >
+            <RotateCwIcon />
+          </Button>
+        )}
         <Button
           type="button"
           variant="ghost"
@@ -55,6 +76,7 @@ export function PageCard({ page, file, index, onRemove }: PageCardProps) {
           file={file.file}
           pageNumber={page.pageNumber}
           password={file.password}
+          rotation={page.rotation ?? 0}
         />
       </div>
       <div className="flex items-center gap-1.5 border-t border-outline-variant px-2 py-1 text-xs text-muted-foreground">
@@ -62,10 +84,12 @@ export function PageCard({ page, file, index, onRemove }: PageCardProps) {
         <span className="min-w-0 truncate tabular-nums">
           Page {page.pageNumber} of {file.pageCount}
         </span>
+        {page.rotation ? <span className="shrink-0">{page.rotation}°</span> : null}
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
+          disabled={!canRemove}
           onClick={() => onRemove(page.id)}
           aria-label={`Remove page ${page.pageNumber} from ${file.name}`}
           className="ml-auto size-7 shrink-0 text-on-surface-variant hover:bg-error-container hover:text-on-error-container"
@@ -101,6 +125,7 @@ export function PageCardPreview({ page, file, index }: PageCardPreviewProps) {
           file={file.file}
           pageNumber={page.pageNumber}
           password={file.password}
+          rotation={page.rotation ?? 0}
         />
       </div>
       <div className="flex items-center gap-1.5 border-t border-outline-variant px-2 py-1.5 text-xs text-muted-foreground">

@@ -7,14 +7,17 @@ import {
   FileType2Icon,
   FilesIcon,
   ImageUpIcon,
+  LinkIcon,
   PenLineIcon,
   RepeatIcon,
+  RotateCwIcon,
   ScissorsIcon,
+  ShieldCheckIcon,
   WandSparklesIcon,
   type LucideIcon,
 } from "lucide-react"
 
-export type ToolCategory = "image" | "pdf" | "document"
+export type ToolCategory = "image" | "pdf" | "document" | "media"
 
 export interface ToolDefinition {
   readonly id: string
@@ -31,12 +34,16 @@ export interface ToolDefinition {
     | "/pdf/compress"
     | "/pdf/extract"
     | "/pdf/split"
+    | "/pdf/reorganize"
+    | "/pdf/protect"
     | "/pdf/to-image"
     | "/pdf/to-word"
     | "/pdf/to-excel"
     | "/pdf/sign"
     | "/excel/to-pdf"
     | "/word/to-pdf"
+    | "/media/video-to-mp3"
+    | "/media/social-downloader"
     | null
 }
 
@@ -107,6 +114,22 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     to: "/pdf/split",
   },
   {
+    id: "pdf-reorganize",
+    title: "Reorganize PDF pages",
+    description: "Drag pages to reorder, rotate, or remove them.",
+    icon: RotateCwIcon,
+    category: "pdf",
+    to: "/pdf/reorganize",
+  },
+  {
+    id: "pdf-protect",
+    title: "Protect or unlock PDF",
+    description: "Add or remove AES-256 password protection in your browser.",
+    icon: ShieldCheckIcon,
+    category: "pdf",
+    to: "/pdf/protect",
+  },
+  {
     id: "pdf-to-image",
     title: "PDF to image",
     description: "Render every PDF page as a PNG, JPEG, WebP, AVIF, GIF or TIFF.",
@@ -153,5 +176,21 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     icon: FileType2Icon,
     category: "document",
     to: "/word/to-pdf",
+  },
+  {
+    id: "video-to-mp3",
+    title: "Video to MP3",
+    description: "Extract audio from a video and save it as an MP3 file.",
+    icon: FileDownIcon,
+    category: "media",
+    to: "/media/video-to-mp3",
+  },
+  {
+    id: "social-media-downloader",
+    title: "YouTube & Instagram downloader",
+    description: "Download public videos or extract their audio as MP3.",
+    icon: LinkIcon,
+    category: "media",
+    to: "/media/social-downloader",
   },
 ]
