@@ -4,7 +4,7 @@ use std::io::Cursor;
 use calamine::{Data, Reader, Xlsx};
 
 use crate::error::{ConvertError, Result};
-use crate::limits::MAX_ROWS;
+use crate::limits::{MAX_COLUMNS, MAX_ROWS};
 use crate::model::{SheetData, Span, TextArena};
 
 fn cell_text(data: &Data) -> Cow<'_, str> {
@@ -49,9 +49,21 @@ pub(crate) fn parse_workbook(bytes: &[u8]) -> Result<Vec<SheetData>> {
             Err(_) => continue,
         };
         let cols = range.width();
+        let rows = range.height();
 
-        if cols == 0 {
+        if cols == 0 || rows == 0 {
             continue;
+        }
+
+        // Reject oversized sheets before calamine's range is copied into the
+        // arena and span vector. One extra row is allowed because the header
+        // row is removed from the count below.
+        if rows > MAX_ROWS.saturating_sub(total_rows).saturating_add(1) {
+            return Err(ConvertError::TooManyRows);
+        }
+
+        if cols > MAX_COLUMNS {
+            return Err(ConvertError::TooManyColumns);
         }
 
         let mut arena = TextArena::new();

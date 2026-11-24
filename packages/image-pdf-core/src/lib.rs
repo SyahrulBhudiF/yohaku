@@ -1,5 +1,6 @@
 mod decode;
 mod layout;
+mod limits;
 mod render;
 
 #[cfg(target_arch = "wasm32")]

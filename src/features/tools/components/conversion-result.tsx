@@ -1,4 +1,5 @@
 import { DownloadIcon } from "lucide-react"
+import type { ReactNode } from "react"
 
 import { Button } from "@/components/ui/button"
 import { formatBytes } from "@/libs/utils/format"
@@ -9,6 +10,7 @@ interface ConversionResultProps {
   readonly inputBytes: number
   readonly outputBytes: number
   readonly detail?: string
+  readonly children?: ReactNode
 }
 
 export function ConversionResult({
@@ -17,6 +19,7 @@ export function ConversionResult({
   inputBytes,
   outputBytes,
   detail,
+  children,
 }: ConversionResultProps) {
   return (
     <section
@@ -28,6 +31,7 @@ export function ConversionResult({
         {formatBytes(inputBytes)} → {formatBytes(outputBytes)}
         {detail ? ` · ${detail}` : ""}
       </p>
+      {children}
       <Button
         className="mt-3"
         render={<a href={url} download={fileName} aria-label={`Download ${fileName}`} />}

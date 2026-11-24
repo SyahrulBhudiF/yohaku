@@ -1,12 +1,13 @@
 import { useForm } from "@tanstack/react-form"
 import { useMutation } from "@tanstack/react-query"
 import { Schema } from "effect"
-import { DownloadIcon, Loader2Icon, PlusIcon, ScissorsIcon, XIcon } from "lucide-react"
+import { Loader2Icon, PlusIcon, ScissorsIcon, XIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { ConversionResult } from "@/features/tools/components/conversion-result"
+import { InlineError } from "@/features/tools/components/inline-error"
 import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import {
   Select,
@@ -22,28 +23,15 @@ import {
   type PdfPageRange,
   type PdfSplitFormValues,
   type PdfSplitMode,
+  type PdfSplitRange,
 } from "@/libs/schemas/pdf"
-import { formatBytes } from "@/libs/utils/format"
 import { validatePageRanges, type PageRangesResult } from "@/libs/utils/pdf/ranges"
-import { preparePdfFile, splitPdf } from "../process"
+import { splitPdf } from "../process"
 import { newPdfId, useSplitStore } from "../store"
-import { disposePdfFile } from "../thumbnails"
-import { isPdfFile } from "../validation"
-import { PageThumbnail } from "./page-thumbnail"
+import { usePdfFile } from "../use-pdf-file"
 import { PasswordPrompt } from "./password-prompt"
 import { PdfDropzone } from "./pdf-dropzone"
-
-interface RangeRow {
-  readonly id: string
-  readonly start: string
-  readonly end: string
-}
-
-interface PendingPassword {
-  readonly id: string
-  readonly file: File
-  readonly message: string
-}
+import { PdfFileCard } from "./pdf-file-card"
 
 const SPLIT_MODE_LABEL: Record<PdfSplitMode, string> = {
   every: "Every page",
@@ -51,7 +39,7 @@ const SPLIT_MODE_LABEL: Record<PdfSplitMode, string> = {
   ranges: "Custom ranges",
 }
 
-const buildRanges = (rows: ReadonlyArray<RangeRow>, pageCount: number): PageRangesResult => {
+const buildRanges = (rows: ReadonlyArray<PdfSplitRange>, pageCount: number): PageRangesResult => {
   const ranges: Array<PdfPageRange> = rows.map((row) => ({
     start: Number(row.start),
     end: Number(row.end),
@@ -62,16 +50,16 @@ const buildRanges = (rows: ReadonlyArray<RangeRow>, pageCount: number): PageRang
 
 export function SplitPage() {
   const { file, result, setFile, setResult, clearResult, reset } = useSplitStore()
-  const split = useMutation({ mutationFn: splitPdf, onSuccess: setResult })
+  const split = useMutation({
+    mutationFn: splitPdf,
+    onSuccess: setResult,
+  })
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [unlocking, setUnlocking] = useState(false)
-  const [pending, setPending] = useState<PendingPassword | null>(null)
-  const [ranges, setRanges] = useState<Array<RangeRow>>([])
   const form = useForm({
     defaultValues: {
       mode: "every",
       pagesPerFile: 1,
+      ranges: [],
     } as PdfSplitFormValues,
     validators: { onChange: Schema.toStandardSchemaV1(PdfSplitFormSchema) },
     listeners: {
@@ -93,7 +81,7 @@ export function SplitPage() {
           : Math.ceil(file.pageCount / Math.max(1, value.pagesPerFile))
 
       if (value.mode === "ranges") {
-        const checked = buildRanges(ranges, file.pageCount)
+        const checked = buildRanges(value.ranges, file.pageCount)
 
         if (!checked.ok) {
           setError(checked.message)
@@ -137,6 +125,18 @@ export function SplitPage() {
         .catch(() => null)
     },
   })
+  const pdf = usePdfFile({
+    setFile,
+    reset,
+    invalidMessage: "Only PDF files can be split.",
+    onReset: () => {
+      form.reset()
+      setError(null)
+    },
+    onSelected: (entry) => {
+      form.setFieldValue("ranges", [{ id: newPdfId(), start: "1", end: String(entry.pageCount) }])
+    },
+  })
   const values = form.state.values
   const pagesPerFile =
     Number.isFinite(values.pagesPerFile) && values.pagesPerFile >= 1
@@ -147,152 +147,9 @@ export function SplitPage() {
       ? file.pageCount
       : values.mode === "chunks"
         ? Math.ceil(file.pageCount / pagesPerFile)
-        : ranges.length
+        : values.ranges.length
     : 0
-  const errorMessage = error ?? split.error?.message ?? null
-
-  const handleFile = async (incoming: Array<File>) => {
-    const nextFile = incoming[0]
-
-    if (!nextFile) {
-      return
-    }
-
-    setError(null)
-    setPending(null)
-    setRanges([])
-    split.reset()
-    reset()
-    form.reset()
-
-    if (pending) {
-      disposePdfFile(pending.id)
-    }
-
-    if (!isPdfFile(nextFile)) {
-      setError("Only PDF files can be split.")
-
-      return
-    }
-
-    if (nextFile.size > MAX_PDF_BYTES) {
-      setError(`PDFs can be at most ${MAX_PDF_BYTES / 1024 / 1024} MB.`)
-
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const id = newPdfId()
-      const prepared = await preparePdfFile(id, nextFile)
-
-      if (!prepared.ok) {
-        if (prepared.reason === "password") {
-          setPending({ id, file: nextFile, message: prepared.message })
-        } else {
-          disposePdfFile(id)
-          setError(prepared.message)
-        }
-
-        return
-      }
-
-      setFile({
-        id,
-        file: nextFile,
-        name: nextFile.name,
-        size: nextFile.size,
-        pageCount: prepared.pageCount,
-      })
-      setRanges([{ id: newPdfId(), start: "1", end: String(prepared.pageCount) }])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleUnlock = async (password: string) => {
-    if (!pending) {
-      return
-    }
-
-    setUnlocking(true)
-    setError(null)
-
-    try {
-      const prepared = await preparePdfFile(pending.id, pending.file, password)
-
-      if (!prepared.ok) {
-        setPending({ ...pending, message: prepared.message })
-
-        return
-      }
-
-      setFile({
-        id: pending.id,
-        file: pending.file,
-        name: pending.file.name,
-        size: pending.file.size,
-        pageCount: prepared.pageCount,
-        password,
-      })
-      setRanges([{ id: newPdfId(), start: "1", end: String(prepared.pageCount) }])
-      setPending(null)
-    } finally {
-      setUnlocking(false)
-    }
-  }
-
-  const handleRemovePending = () => {
-    if (pending) {
-      disposePdfFile(pending.id)
-    }
-
-    setPending(null)
-  }
-
-  const handleReset = () => {
-    split.reset()
-    setError(null)
-
-    if (pending) {
-      disposePdfFile(pending.id)
-    }
-
-    setPending(null)
-    setRanges([])
-    form.reset()
-    reset()
-  }
-
-  const updateRange = (id: string, field: "start" | "end", value: string) => {
-    clearResult()
-    split.reset()
-    setError(null)
-    setRanges((current) => current.map((row) => (row.id === id ? { ...row, [field]: value } : row)))
-  }
-
-  const addRange = () => {
-    const last = ranges.at(-1)
-    const lastEnd = last ? Number(last.end) : 0
-    const pageCount = file?.pageCount ?? 1
-    const start = Number.isInteger(lastEnd) && lastEnd >= 1 ? Math.min(pageCount, lastEnd + 1) : 1
-
-    clearResult()
-    split.reset()
-    setError(null)
-    setRanges((current) => [
-      ...current,
-      { id: newPdfId(), start: String(start), end: String(pageCount) },
-    ])
-  }
-
-  const removeRange = (id: string) => {
-    clearResult()
-    split.reset()
-    setError(null)
-    setRanges((current) => current.filter((row) => row.id !== id))
-  }
+  const errorMessage = error ?? pdf.error ?? split.error?.message ?? null
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -303,58 +160,29 @@ export function SplitPage() {
         </p>
       </ToolPageHeader>
 
-      {!file && !pending && (
+      {!file && !pdf.pending && (
         <PdfDropzone
-          disabled={loading}
-          onFiles={(incoming) => void handleFile(incoming)}
+          disabled={pdf.isReading}
+          onFiles={(incoming) => void pdf.select(incoming)}
           hint={`PDF only · up to ${MAX_PDF_BYTES / 1024 / 1024} MB`}
-          label={loading ? "Reading PDF…" : undefined}
+          label={pdf.isReading ? "Reading PDF…" : undefined}
         />
       )}
 
-      {pending && (
+      {pdf.pending && (
         <PasswordPrompt
-          name={pending.file.name}
-          size={pending.file.size}
-          message={pending.message}
-          busy={unlocking}
-          onUnlock={(password) => void handleUnlock(password)}
-          onRemove={handleRemovePending}
+          name={pdf.pending.file.name}
+          size={pdf.pending.file.size}
+          message={pdf.pending.message}
+          busy={pdf.isUnlocking}
+          onUnlock={(password) => void pdf.unlock(password)}
+          onRemove={pdf.remove}
         />
       )}
 
       {file && (
         <>
-          <Card size="sm">
-            <CardContent className="flex items-center gap-4 pt-4">
-              <div className="h-28 w-20 shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-outline-variant">
-                <PageThumbnail
-                  fileId={file.id}
-                  file={file.file}
-                  pageNumber={1}
-                  password={file.password}
-                />
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate font-medium">{file.name}</span>
-                <span className="text-sm text-muted-foreground">
-                  {file.pageCount} {file.pageCount === 1 ? "page" : "pages"} ·{" "}
-                  {formatBytes(file.size)}
-                </span>
-                {file.password && (
-                  <span className="text-xs text-muted-foreground">Password protected</span>
-                )}
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleReset}
-                aria-label={`Remove ${file.name}`}
-              >
-                <XIcon />
-              </Button>
-            </CardContent>
-          </Card>
+          <PdfFileCard file={file} onRemove={pdf.remove} disabled={split.isPending} />
 
           <form
             id="split-form"
@@ -370,14 +198,9 @@ export function SplitPage() {
                   <span className="text-sm font-medium">Split mode</span>
                   <Select
                     value={field.state.value}
-                    onValueChange={(value) => {
-                      field.handleChange(value as PdfSplitMode)
-                      clearResult()
-                      split.reset()
-                      setError(null)
-                    }}
+                    onValueChange={(value) => field.handleChange(value as PdfSplitMode)}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full" aria-label="Split mode">
                       <SelectValue>{SPLIT_MODE_LABEL[field.state.value]}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -421,47 +244,93 @@ export function SplitPage() {
             )}
 
             {values.mode === "ranges" && (
-              <div className="flex flex-col gap-3">
-                <span className="text-sm font-medium">Page ranges</span>
-                {ranges.map((row, index) => (
-                  <div key={row.id} className="flex items-end gap-2">
-                    <span className="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
-                      From
-                      <Input
-                        type="number"
-                        min={1}
-                        max={file.pageCount}
-                        value={row.start}
-                        aria-label={`Range ${index + 1} start page`}
-                        onChange={(event) => updateRange(row.id, "start", event.target.value)}
-                      />
-                    </span>
-                    <span className="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
-                      To
-                      <Input
-                        type="number"
-                        min={1}
-                        max={file.pageCount}
-                        value={row.end}
-                        aria-label={`Range ${index + 1} end page`}
-                        onChange={(event) => updateRange(row.id, "end", event.target.value)}
-                      />
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeRange(row.id)}
-                      aria-label={`Remove range ${index + 1}`}
-                    >
-                      <XIcon />
-                    </Button>
-                  </div>
-                ))}
-                <Button type="button" variant="outline" size="sm" onClick={addRange}>
-                  <PlusIcon /> Add range
-                </Button>
-              </div>
+              <form.Field name="ranges">
+                {(field) => {
+                  const rows = field.state.value
+                  const last = rows.at(-1)
+                  const lastEnd = last ? Number(last.end) : 0
+                  const nextStart =
+                    Number.isInteger(lastEnd) && lastEnd >= 1
+                      ? Math.min(file.pageCount, lastEnd + 1)
+                      : 1
+
+                  return (
+                    <div className="flex flex-col gap-3">
+                      <span className="text-sm font-medium">Page ranges</span>
+                      {rows.map((row, index) => (
+                        <div key={row.id} className="flex items-end gap-2">
+                          <span className="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
+                            From
+                            <Input
+                              type="number"
+                              min={1}
+                              max={file.pageCount}
+                              value={row.start}
+                              aria-label={`Range ${index + 1} start page`}
+                              onChange={(event) =>
+                                field.handleChange(
+                                  rows.map((entry) =>
+                                    entry.id === row.id
+                                      ? { ...entry, start: event.target.value }
+                                      : entry,
+                                  ),
+                                )
+                              }
+                            />
+                          </span>
+                          <span className="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
+                            To
+                            <Input
+                              type="number"
+                              min={1}
+                              max={file.pageCount}
+                              value={row.end}
+                              aria-label={`Range ${index + 1} end page`}
+                              onChange={(event) =>
+                                field.handleChange(
+                                  rows.map((entry) =>
+                                    entry.id === row.id
+                                      ? { ...entry, end: event.target.value }
+                                      : entry,
+                                  ),
+                                )
+                              }
+                            />
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              field.handleChange(rows.filter((entry) => entry.id !== row.id))
+                            }
+                            aria-label={`Remove range ${index + 1}`}
+                          >
+                            <XIcon />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          field.handleChange([
+                            ...rows,
+                            {
+                              id: newPdfId(),
+                              start: String(nextStart),
+                              end: String(file.pageCount),
+                            },
+                          ])
+                        }
+                      >
+                        <PlusIcon /> Add range
+                      </Button>
+                    </div>
+                  )
+                }}
+              </form.Field>
             )}
           </form>
 
@@ -481,45 +350,20 @@ export function SplitPage() {
             </p>
           )}
 
-          {errorMessage && (
-            <p
-              role="alert"
-              className="rounded-md bg-error-container px-4 py-3 text-sm text-on-error-container"
-            >
-              {errorMessage}
-            </p>
-          )}
+          <InlineError>{errorMessage}</InlineError>
 
           {result && (
-            <Card size="sm" className="bg-tertiary-container text-on-tertiary-container">
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {result.outputs ?? 1} {(result.outputs ?? 1) === 1 ? "PDF" : "PDFs"} ready
-                </CardTitle>
-                <CardDescription className="text-on-tertiary-container/80">
-                  {formatBytes(result.inputBytes)} → {formatBytes(result.bytes)}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  render={
-                    <a
-                      href={result.url}
-                      download={result.fileName}
-                      aria-label={`Download ${result.fileName}`}
-                    />
-                  }
-                  nativeButton={false}
-                  className="self-start"
-                >
-                  <DownloadIcon /> Download {result.fileName}
-                </Button>
-              </CardContent>
-            </Card>
+            <ConversionResult
+              url={result.url}
+              fileName={result.fileName}
+              inputBytes={result.inputBytes}
+              outputBytes={result.bytes}
+              detail={`${result.outputs ?? 1} ${(result.outputs ?? 1) === 1 ? "PDF" : "PDFs"}`}
+            />
           )}
 
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={handleReset} disabled={split.isPending}>
+            <Button variant="ghost" onClick={pdf.remove} disabled={split.isPending}>
               <XIcon /> Remove PDF
             </Button>
             <Button type="submit" form="split-form" disabled={split.isPending}>

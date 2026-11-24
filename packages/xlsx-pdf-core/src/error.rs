@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::limits::{MAX_PAGES, MAX_ROWS};
+use crate::limits::{MAX_COLUMNS, MAX_PAGES, MAX_ROWS};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConvertError {
@@ -9,6 +9,7 @@ pub enum ConvertError {
     InvalidWorkbook,
     NoSheets,
     TooManyRows,
+    TooManyColumns,
     TooManyPages,
 }
 
@@ -21,6 +22,11 @@ impl ConvertError {
             Self::NoSheets => "This workbook has no readable sheets.".into(),
             Self::TooManyRows => {
                 format!("This workbook has more than {MAX_ROWS} rows. Split it before converting.")
+            }
+            Self::TooManyColumns => {
+                format!(
+                    "This workbook has more than {MAX_COLUMNS} columns. Split it before converting."
+                )
             }
             Self::TooManyPages => {
                 format!("This workbook would create more than {MAX_PAGES} PDF pages.")

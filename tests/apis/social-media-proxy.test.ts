@@ -84,6 +84,26 @@ describe("social media proxy", () => {
     expect(upstreamHeaders?.get("origin")).toBe("https://www.facebook.com")
   })
 
+  it("serves control responses as inert text instead of upstream HTML", async () => {
+    const fetcher = async () =>
+      new Response("<html><script>alert(1)</script></html>", {
+        headers: { "content-type": "text/html" },
+      })
+    const target = "https://www.facebook.com/login"
+    const request = new Request(
+      `${origin}/api/media/resolve-proxy?url=${encodeURIComponent(target)}`,
+      { headers: { origin } },
+    )
+
+    const response = await handleMediaResolveProxy(request, fetcher)
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get("content-type")).toBe("text/plain; charset=utf-8")
+    expect(response.headers.get("content-disposition")).toBe("attachment")
+    expect(response.headers.get("content-security-policy")).toBe("sandbox")
+    expect(await response.text()).toContain("<html>")
+  })
+
   it("streams Facebook CDN media with the Facebook origin", async () => {
     let upstreamHeaders: Headers | undefined
     const fetcher = async (_url: string, init: RequestInit) => {

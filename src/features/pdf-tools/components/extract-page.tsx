@@ -1,138 +1,76 @@
+import { useForm } from "@tanstack/react-form"
 import { useMutation } from "@tanstack/react-query"
-import { DownloadIcon, Loader2Icon, ScissorsIcon, XIcon } from "lucide-react"
+import { Schema } from "effect"
+import { Loader2Icon, ScissorsIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { ConversionResult } from "@/features/tools/components/conversion-result"
+import { InlineError } from "@/features/tools/components/inline-error"
 import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
-import { MAX_PDF_BYTES } from "@/libs/schemas/pdf"
-import { formatBytes } from "@/libs/utils/format"
+import { MAX_PDF_BYTES, PdfExtractFormSchema, type PdfExtractFormValues } from "@/libs/schemas/pdf"
 import { parsePageSelection } from "@/libs/utils/pdf/ranges"
-import { extractPdfPages, preparePdfFile } from "../process"
-import { newPdfId, usePdfExtractStore } from "../store"
-import { disposePdfFile } from "../thumbnails"
-import { isPdfFile } from "../validation"
+import { extractPdfPages } from "../process"
+import { usePdfExtractStore } from "../store"
+import { usePdfFile } from "../use-pdf-file"
 import { PasswordPrompt } from "./password-prompt"
 import { PdfDropzone } from "./pdf-dropzone"
-import { PageThumbnail } from "./page-thumbnail"
-
-interface PendingPassword {
-  readonly id: string
-  readonly file: File
-  readonly message: string
-}
+import { PdfFileCard } from "./pdf-file-card"
 
 export function ExtractPage() {
   const { file, result, setFile, setResult, reset } = usePdfExtractStore()
-  const extract = useMutation({ mutationFn: extractPdfPages, onSuccess: setResult })
-  const [selection, setSelection] = useState("")
+  const extract = useMutation({
+    mutationFn: extractPdfPages,
+    onSuccess: setResult,
+  })
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [unlocking, setUnlocking] = useState(false)
-  const [pending, setPending] = useState<PendingPassword | null>(null)
+  const form = useForm({
+    defaultValues: { selection: "" } as PdfExtractFormValues,
+    validators: { onChange: Schema.toStandardSchemaV1(PdfExtractFormSchema) },
+    listeners: {
+      onChange: () => {
+        extract.reset()
+        setError(null)
+      },
+    },
+    onSubmit: async ({ value }) => {
+      if (!file) return
 
-  const handleFile = async (incoming: ReadonlyArray<File>) => {
-    const next = incoming[0]
+      const parsed = parsePageSelection(value.selection, file.pageCount)
 
-    if (!next) {
-      return
-    }
-
-    reset()
-    extract.reset()
-    setSelection("")
-    setError(null)
-    setPending(null)
-
-    if (pending) {
-      disposePdfFile(pending.id)
-    }
-
-    if (!isPdfFile(next)) {
-      setError("Only PDF files can be extracted.")
-
-      return
-    }
-
-    if (next.size > MAX_PDF_BYTES) {
-      setError(`PDFs can be at most ${MAX_PDF_BYTES / 1024 / 1024} MB.`)
-
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const id = newPdfId()
-      const prepared = await preparePdfFile(id, next)
-
-      if (!prepared.ok) {
-        if (prepared.reason === "password") {
-          setPending({ id, file: next, message: prepared.message })
-        } else {
-          disposePdfFile(id)
-          setError(prepared.message)
-        }
+      if (!parsed.ok) {
+        setError(parsed.message)
 
         return
       }
 
-      setFile({ id, file: next, name: next.name, size: next.size, pageCount: prepared.pageCount })
-      setSelection(prepared.pageCount === 1 ? "1" : `1-${prepared.pageCount}`)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleUnlock = async (password: string) => {
-    if (!pending) {
-      return
-    }
-
-    setUnlocking(true)
-    setError(null)
-
-    try {
-      const prepared = await preparePdfFile(pending.id, pending.file, password)
-
-      if (!prepared.ok) {
-        setPending({ ...pending, message: prepared.message })
+      if (parsed.pages.length === 0) {
+        setError("Choose at least one page.")
 
         return
       }
 
-      setFile({
-        id: pending.id,
-        file: pending.file,
-        name: pending.file.name,
-        size: pending.file.size,
-        pageCount: prepared.pageCount,
-        password,
-      })
-      setPending(null)
-      setSelection(prepared.pageCount === 1 ? "1" : `1-${prepared.pageCount}`)
-    } finally {
-      setUnlocking(false)
-    }
-  }
-
-  const handleReset = () => {
-    extract.reset()
-    reset()
-
-    if (pending) {
-      disposePdfFile(pending.id)
-    }
-
-    setPending(null)
-    setSelection("")
-    setError(null)
-  }
-
+      setError(null)
+      await extract.mutateAsync({ file, pages: parsed.pages }).catch(() => null)
+    },
+  })
+  const pdf = usePdfFile({
+    setFile,
+    reset,
+    invalidMessage: "Only PDF files can be extracted.",
+    onReset: () => {
+      form.reset()
+      setError(null)
+    },
+    onSelected: (entry) => {
+      form.setFieldValue("selection", entry.pageCount === 1 ? "1" : `1-${entry.pageCount}`)
+    },
+  })
+  const selection = form.state.values.selection
   const parsed = file ? parsePageSelection(selection, file.pageCount) : null
   const errorMessage =
-    error ?? extract.error?.message ?? (parsed && !parsed.ok ? parsed.message : null)
+    error ?? pdf.error ?? extract.error?.message ?? (parsed && !parsed.ok ? parsed.message : null)
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -142,138 +80,85 @@ export function ExtractPage() {
           Choose pages to keep and download them as a new PDF. Your file stays in this browser.
         </p>
       </ToolPageHeader>
-      {!file && !pending && (
+
+      {!file && !pdf.pending && (
         <PdfDropzone
-          disabled={loading}
-          onFiles={(files) => void handleFile(files)}
+          disabled={pdf.isReading}
+          onFiles={(files) => void pdf.select(files)}
           hint={`PDF only · up to ${MAX_PDF_BYTES / 1024 / 1024} MB`}
-          label={loading ? "Reading PDF…" : undefined}
+          label={pdf.isReading ? "Reading PDF…" : undefined}
         />
       )}
-      {pending && (
+
+      {pdf.pending && (
         <PasswordPrompt
-          name={pending.file.name}
-          size={pending.file.size}
-          message={pending.message}
-          busy={unlocking}
-          onUnlock={(password) => void handleUnlock(password)}
-          onRemove={() => {
-            disposePdfFile(pending.id)
-            setPending(null)
-          }}
+          name={pdf.pending.file.name}
+          size={pdf.pending.file.size}
+          message={pdf.pending.message}
+          busy={pdf.isUnlocking}
+          onUnlock={(password) => void pdf.unlock(password)}
+          onRemove={pdf.remove}
         />
       )}
+
       {file && (
         <>
-          <Card size="sm">
-            <CardContent className="flex items-center gap-4 pt-4">
-              <div className="h-28 w-20 shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-outline-variant">
-                <PageThumbnail
-                  fileId={file.id}
-                  file={file.file}
-                  pageNumber={1}
-                  password={file.password}
-                />
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate font-medium">{file.name}</span>
-                <span className="text-sm text-muted-foreground">
-                  {file.pageCount} {file.pageCount === 1 ? "page" : "pages"} ·{" "}
-                  {formatBytes(file.size)}
-                </span>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleReset}
-                aria-label={`Remove ${file.name}`}
-              >
-                <XIcon />
-              </Button>
-            </CardContent>
-          </Card>
-          <div className="flex flex-col gap-2">
-            <label htmlFor="extract-pages" className="text-sm font-medium">
-              Pages to keep
-            </label>
-            <Input
-              id="extract-pages"
-              value={selection}
-              onChange={(event) => {
-                setSelection(event.target.value)
-                extract.reset()
-                setError(null)
-              }}
-              placeholder={`e.g. 1-3, 5, 8-${file.pageCount}`}
-              aria-describedby="extract-help"
-            />
-            <p id="extract-help" className="text-xs text-muted-foreground">
-              Enter page numbers and ranges separated by commas. Pages are kept in ascending order;
-              overlapping ranges are ignored.
-            </p>
-          </div>
-          {errorMessage && (
-            <p
-              role="alert"
-              className="rounded-md bg-error-container px-4 py-3 text-sm text-on-error-container"
-            >
-              {errorMessage}
-            </p>
-          )}
-          {result && (
-            <Card size="sm" className="bg-tertiary-container text-on-tertiary-container">
-              <CardHeader>
-                <CardTitle className="text-base">Extracted PDF ready</CardTitle>
-                <CardDescription className="text-on-tertiary-container/80">
-                  {formatBytes(result.inputBytes)} → {formatBytes(result.bytes)} · {result.pages}{" "}
-                  {result.pages === 1 ? "page" : "pages"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  render={
-                    <a
-                      href={result.url}
-                      download={result.fileName}
-                      aria-label={`Download ${result.fileName}`}
-                    />
-                  }
-                  nativeButton={false}
-                >
-                  <DownloadIcon /> Download {result.fileName}
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-          <div className="flex justify-end">
-            <Button
-              onClick={() => {
-                if (!parsed?.ok || parsed.pages.length === 0) {
-                  setError(
-                    parsed?.ok
-                      ? "Choose at least one page."
-                      : (parsed?.message ?? "Enter pages to extract."),
-                  )
+          <PdfFileCard file={file} onRemove={pdf.remove} disabled={extract.isPending} />
 
-                  return
-                }
-
-                setError(null)
-                void extract.mutateAsync({ file, pages: parsed.pages }).catch(() => null)
-              }}
-              disabled={extract.isPending || !selection.trim()}
-            >
-              {extract.isPending ? (
-                <>
-                  <Loader2Icon className="animate-spin" /> Extracting…
-                </>
-              ) : (
-                <>
-                  <ScissorsIcon /> Extract pages
-                </>
+          <form
+            className="flex flex-col gap-6"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void form.handleSubmit()
+            }}
+          >
+            <form.Field name="selection">
+              {(field) => (
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="extract-pages" className="text-sm font-medium">
+                    Pages to keep
+                  </label>
+                  <Input
+                    id="extract-pages"
+                    value={field.state.value}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                    placeholder={`e.g. 1-3, 5, 8-${file.pageCount}`}
+                    aria-describedby="extract-help"
+                  />
+                  <p id="extract-help" className="text-xs text-muted-foreground">
+                    Enter page numbers and ranges separated by commas. Pages are kept in ascending
+                    order; overlapping ranges are ignored.
+                  </p>
+                </div>
               )}
-            </Button>
-          </div>
+            </form.Field>
+
+            <InlineError>{errorMessage}</InlineError>
+
+            {result && (
+              <ConversionResult
+                url={result.url}
+                fileName={result.fileName}
+                inputBytes={result.inputBytes}
+                outputBytes={result.bytes}
+                detail={`${result.pages} ${result.pages === 1 ? "page" : "pages"}`}
+              />
+            )}
+
+            <div className="flex justify-end">
+              <Button type="submit" disabled={extract.isPending || !selection.trim()}>
+                {extract.isPending ? (
+                  <>
+                    <Loader2Icon className="animate-spin" /> Extracting…
+                  </>
+                ) : (
+                  <>
+                    <ScissorsIcon /> Extract pages
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
         </>
       )}
     </div>

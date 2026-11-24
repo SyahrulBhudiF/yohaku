@@ -1,9 +1,10 @@
 import { useMutation } from "@tanstack/react-query"
-import { DownloadIcon, FilesIcon, Loader2Icon, Trash2Icon } from "lucide-react"
+import { FilesIcon, Loader2Icon, Trash2Icon } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ConversionResult } from "@/features/tools/components/conversion-result"
+import { InlineError } from "@/features/tools/components/inline-error"
 import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import {
   MAX_PDF_BYTES,
@@ -12,10 +13,10 @@ import {
   MAX_PDF_TOTAL_BYTES,
 } from "@/libs/schemas/pdf"
 import { formatBytes } from "@/libs/utils/format"
-import { mergePdfPages, preparePdfFile } from "../process"
-import { newPdfId, useMergeStore, type PdfFileEntry, type PdfPageEntry } from "../store"
+import { mergePdfPages, preparePdfBatch, preparePdfFile } from "../process"
+import { useMergeStore, type PdfPageEntry } from "../store"
 import { disposePdfFile } from "../thumbnails"
-import { isPdfBatchWithinSizeLimit, isPdfFile } from "../validation"
+import { isPdfBatchWithinSizeLimit } from "../validation"
 import { PageGrid } from "./page-grid"
 import { PasswordPrompt } from "./password-prompt"
 import { PdfDropzone } from "./pdf-dropzone"
@@ -28,146 +29,130 @@ interface PendingPassword {
 
 export function MergePage() {
   const { files, pages, result, addFiles, removePage, setPages, setResult, reset } = useMergeStore()
-  const merge = useMutation({ mutationFn: mergePdfPages, onSuccess: setResult })
+  const merge = useMutation({
+    mutationFn: mergePdfPages,
+    onSuccess: (output, input) => {
+      if (useMergeStore.getState().pages === input.pages) {
+        setResult(output)
+      }
+    },
+  })
+  const addFilesMutation = useMutation({ mutationFn: preparePdfBatch })
+  const unlockMutation = useMutation({
+    mutationFn: ({
+      id,
+      file,
+      password,
+    }: {
+      readonly id: string
+      readonly file: File
+      readonly password: string
+    }) => preparePdfFile(id, file, password),
+  })
   const [error, setError] = useState<string | null>(null)
-  const [adding, setAdding] = useState(false)
   const [unlocking, setUnlocking] = useState<string | null>(null)
   const [pending, setPending] = useState<Array<PendingPassword>>([])
   const inputBytes = files.reduce((total, file) => total + file.size, 0)
-  const errorMessage = error ?? merge.error?.message ?? null
+  const errorMessage =
+    error ??
+    addFilesMutation.error?.message ??
+    unlockMutation.error?.message ??
+    merge.error?.message ??
+    null
 
   const resetMutation = () => {
     merge.reset()
     setError(null)
   }
 
-  const handleFiles = async (incoming: Array<File>) => {
+  const handleFiles = (incoming: Array<File>) => {
     resetMutation()
-    setAdding(true)
-
-    const accepted: Array<PdfFileEntry> = []
-    let totalBytes = inputBytes
-    let totalPages = pages.length
-
-    try {
-      for (const file of incoming) {
-        if (files.length + accepted.length >= MAX_PDF_FILES) {
-          setError(`You can merge at most ${MAX_PDF_FILES} PDFs at once.`)
-          break
-        }
-
-        if (!isPdfFile(file)) {
-          setError("Only PDF files can be merged.")
-          continue
-        }
-
-        if (file.size > MAX_PDF_BYTES) {
-          setError(`Each PDF can be at most ${MAX_PDF_BYTES / 1024 / 1024} MB.`)
-          continue
-        }
-
-        if (!isPdfBatchWithinSizeLimit(totalBytes, file.size)) {
-          setError(`The combined PDFs can be at most ${MAX_PDF_TOTAL_BYTES / 1024 / 1024} MB.`)
-          continue
-        }
-
-        const id = newPdfId()
-        const prepared = await preparePdfFile(id, file)
-
-        if (!prepared.ok) {
-          if (prepared.reason === "password") {
-            setPending((current) => [...current, { id, file, message: prepared.message }])
-          } else {
-            disposePdfFile(id)
-            setError(prepared.message)
+    addFilesMutation.mutate(
+      {
+        files: incoming,
+        existingFileCount: files.length,
+        existingTotalBytes: inputBytes,
+        existingPageCount: pages.length,
+      },
+      {
+        onSuccess: (batch) => {
+          if (batch.accepted.length > 0) {
+            addFiles(batch.accepted)
           }
 
-          continue
-        }
+          if (batch.pending.length > 0) {
+            setPending((current) => [...current, ...batch.pending])
+          }
 
-        if (totalPages + prepared.pageCount > MAX_PDF_PAGES) {
-          disposePdfFile(id)
-          setError(`A merge can contain at most ${MAX_PDF_PAGES.toLocaleString()} pages.`)
-          continue
-        }
+          if (batch.errors.length > 0) {
+            const message = batch.errors[0] ?? null
 
-        accepted.push({
-          id,
-          file,
-          name: file.name,
-          size: file.size,
-          pageCount: prepared.pageCount,
-        })
-        totalBytes += file.size
-        totalPages += prepared.pageCount
-      }
-
-      if (accepted.length > 0) {
-        addFiles(accepted)
-      }
-    } finally {
-      setAdding(false)
-    }
+            setError(message)
+          }
+        },
+      },
+    )
   }
 
-  const handleUnlock = async (entry: PendingPassword, password: string) => {
+  const handleUnlock = (entry: PendingPassword, password: string) => {
     resetMutation()
     setUnlocking(entry.id)
+    unlockMutation.mutate(
+      { id: entry.id, file: entry.file, password },
+      {
+        onSuccess: (prepared) => {
+          if (!prepared.ok) {
+            setPending((current) =>
+              current.map((item) =>
+                item.id === entry.id ? { ...item, message: prepared.message } : item,
+              ),
+            )
 
-    try {
-      const prepared = await preparePdfFile(entry.id, entry.file, password)
+            return
+          }
 
-      if (!prepared.ok) {
-        setPending((current) =>
-          current.map((item) =>
-            item.id === entry.id ? { ...item, message: prepared.message } : item,
-          ),
-        )
+          const current = useMergeStore.getState()
+          const totalBytes = current.files.reduce((total, file) => total + file.size, 0)
 
-        return
-      }
+          if (current.files.length >= MAX_PDF_FILES) {
+            disposePdfFile(entry.id)
+            setError(`You can merge at most ${MAX_PDF_FILES} PDFs at once.`)
+            setPending((items) => items.filter((item) => item.id !== entry.id))
 
-      const current = useMergeStore.getState()
-      const totalBytes = current.files.reduce((total, file) => total + file.size, 0)
+            return
+          }
 
-      if (current.files.length >= MAX_PDF_FILES) {
-        disposePdfFile(entry.id)
-        setError(`You can merge at most ${MAX_PDF_FILES} PDFs at once.`)
-        setPending((pending) => pending.filter((item) => item.id !== entry.id))
+          if (!isPdfBatchWithinSizeLimit(totalBytes, entry.file.size)) {
+            disposePdfFile(entry.id)
+            setError(`The combined PDFs can be at most ${MAX_PDF_TOTAL_BYTES / 1024 / 1024} MB.`)
+            setPending((items) => items.filter((item) => item.id !== entry.id))
 
-        return
-      }
+            return
+          }
 
-      if (!isPdfBatchWithinSizeLimit(totalBytes, entry.file.size)) {
-        disposePdfFile(entry.id)
-        setError(`The combined PDFs can be at most ${MAX_PDF_TOTAL_BYTES / 1024 / 1024} MB.`)
-        setPending((pending) => pending.filter((item) => item.id !== entry.id))
+          if (current.pages.length + prepared.pageCount > MAX_PDF_PAGES) {
+            disposePdfFile(entry.id)
+            setError(`A merge can contain at most ${MAX_PDF_PAGES.toLocaleString()} pages.`)
+            setPending((items) => items.filter((item) => item.id !== entry.id))
 
-        return
-      }
+            return
+          }
 
-      if (current.pages.length + prepared.pageCount > MAX_PDF_PAGES) {
-        disposePdfFile(entry.id)
-        setError(`A merge can contain at most ${MAX_PDF_PAGES.toLocaleString()} pages.`)
-        setPending((pending) => pending.filter((item) => item.id !== entry.id))
-
-        return
-      }
-
-      addFiles([
-        {
-          id: entry.id,
-          file: entry.file,
-          name: entry.file.name,
-          size: entry.file.size,
-          pageCount: prepared.pageCount,
-          password,
+          addFiles([
+            {
+              id: entry.id,
+              file: entry.file,
+              name: entry.file.name,
+              size: entry.file.size,
+              pageCount: prepared.pageCount,
+              password,
+            },
+          ])
+          setPending((items) => items.filter((item) => item.id !== entry.id))
         },
-      ])
-      setPending((current) => current.filter((item) => item.id !== entry.id))
-    } finally {
-      setUnlocking(null)
-    }
+        onSettled: () => setUnlocking(null),
+      },
+    )
   }
 
   const handleReorder = (nextPages: ReadonlyArray<PdfPageEntry>) => {
@@ -187,6 +172,8 @@ export function MergePage() {
 
   const handleReset = () => {
     merge.reset()
+    addFilesMutation.reset()
+    unlockMutation.reset()
     setError(null)
 
     for (const entry of pending) {
@@ -210,18 +197,18 @@ export function MergePage() {
       {pages.length === 0 && pending.length === 0 ? (
         <PdfDropzone
           multiple
-          disabled={adding}
-          onFiles={(incoming) => void handleFiles(incoming)}
+          disabled={addFilesMutation.isPending}
+          onFiles={handleFiles}
           hint={`PDF only · up to ${MAX_PDF_BYTES / 1024 / 1024} MB each · ${MAX_PDF_TOTAL_BYTES / 1024 / 1024} MB total`}
-          label={adding ? "Reading PDFs…" : undefined}
+          label={addFilesMutation.isPending ? "Reading PDFs…" : undefined}
         />
       ) : (
         <PdfDropzone
           multiple
           compact
-          disabled={adding}
-          onFiles={(incoming) => void handleFiles(incoming)}
-          label={adding ? "Reading PDFs…" : "Add more PDFs"}
+          disabled={addFilesMutation.isPending}
+          onFiles={handleFiles}
+          label={addFilesMutation.isPending ? "Reading PDFs…" : "Add more PDFs"}
           hint="Drag pages from any file into the order you want."
         />
       )}
@@ -235,7 +222,7 @@ export function MergePage() {
               size={entry.file.size}
               message={entry.message}
               busy={unlocking === entry.id}
-              onUnlock={(password) => void handleUnlock(entry, password)}
+              onUnlock={(password) => handleUnlock(entry, password)}
               onRemove={() => handleRemovePending(entry.id)}
             />
           ))}
@@ -273,41 +260,16 @@ export function MergePage() {
         </p>
       )}
 
-      {errorMessage && (
-        <p
-          role="alert"
-          className="rounded-md bg-error-container px-4 py-3 text-sm text-on-error-container"
-        >
-          {errorMessage}
-        </p>
-      )}
+      <InlineError>{errorMessage}</InlineError>
 
       {result && (
-        <Card size="sm" className="bg-tertiary-container text-on-tertiary-container">
-          <CardHeader>
-            <CardTitle className="text-base">
-              {result.pages} {result.pages === 1 ? "page" : "pages"} merged
-            </CardTitle>
-            <CardDescription className="text-on-tertiary-container/80">
-              {formatBytes(result.inputBytes)} → {formatBytes(result.bytes)}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button
-              render={
-                <a
-                  href={result.url}
-                  download={result.fileName}
-                  aria-label={`Download ${result.fileName}`}
-                />
-              }
-              nativeButton={false}
-              className="self-start"
-            >
-              <DownloadIcon /> Download {result.fileName}
-            </Button>
-          </CardContent>
-        </Card>
+        <ConversionResult
+          url={result.url}
+          fileName={result.fileName}
+          inputBytes={result.inputBytes}
+          outputBytes={result.bytes}
+          detail={`${result.pages} ${result.pages === 1 ? "page" : "pages"} merged`}
+        />
       )}
 
       {pages.length > 0 && (

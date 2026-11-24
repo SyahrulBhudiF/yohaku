@@ -4,7 +4,7 @@ use flate2::write::ZlibEncoder;
 use flate2::Compression;
 use pdf_writer::{Content, Filter, Finish, Name, Pdf, Rect, Ref};
 
-use crate::decode::{decode, DecodedImage};
+use crate::decode::{decode, dimensions, DecodedImage};
 use crate::layout::layout_pages;
 
 fn compress(data: &[u8]) -> Vec<u8> {
@@ -14,27 +14,28 @@ fn compress(data: &[u8]) -> Vec<u8> {
     encoder.finish().expect("finish compression")
 }
 
-fn decode_images(
-    data: &[u8],
+fn image_slices<'a>(
+    data: &'a [u8],
     lengths: &[u32],
     formats: &[u8],
-) -> Result<Vec<DecodedImage>, String> {
+) -> Result<Vec<&'a [u8]>, String> {
     if lengths.len() != formats.len() || lengths.is_empty() {
         return Err("image metadata is incomplete".into());
     }
 
-    let mut images = Vec::with_capacity(lengths.len());
+    let mut slices = Vec::with_capacity(lengths.len());
     let mut offset = 0usize;
 
-    for (index, length) in lengths.iter().enumerate() {
-        let length = *length as usize;
-        let end = offset.checked_add(length).ok_or("image offset overflow")?;
+    for length in lengths {
+        let end = offset
+            .checked_add(*length as usize)
+            .ok_or("image offset overflow")?;
 
         if end > data.len() {
             return Err("image data is truncated".into());
         }
 
-        images.push(decode(&data[offset..end], formats[index])?);
+        slices.push(&data[offset..end]);
         offset = end;
     }
 
@@ -42,39 +43,48 @@ fn decode_images(
         return Err("image data has trailing bytes".into());
     }
 
-    Ok(images)
+    Ok(slices)
 }
 
 /// Builds an image-only PDF from a concatenated PNG/JPEG buffer.
 ///
 /// `lengths` and `formats` are parallel arrays; format 0 is PNG, 1 is JPEG.
-/// `page_size` is either `fit` or `a4`.
+/// `page_size` is either `fit` or `a4`. Images are decoded one at a time so
+/// peak memory stays proportional to the largest page instead of every page.
 pub fn build_pdf(
     data: &[u8],
     lengths: &[u32],
     formats: &[u8],
     page_size: &str,
 ) -> Result<Vec<u8>, String> {
-    let images = decode_images(data, lengths, formats)?;
-    let dimensions: Vec<(u32, u32)> = images
+    let slices = image_slices(data, lengths, formats)?;
+    let page_dimensions: Vec<(u32, u32)> = slices
         .iter()
-        .map(|image| (image.width, image.height))
-        .collect();
-    let layouts = layout_pages(&dimensions, page_size);
+        .zip(formats)
+        .map(|(bytes, format)| dimensions(bytes, *format))
+        .collect::<Result<_, _>>()?;
+    let layouts = layout_pages(&page_dimensions, page_size);
     let mut pdf = Pdf::new();
     let catalog_id = Ref::new(1);
     let pages_id = Ref::new(2);
     let mut next_id = 3i32;
-    let mut page_ids = Vec::with_capacity(images.len());
+    let mut page_ids = Vec::with_capacity(slices.len());
     let image_name = Name(b"Im1");
 
-    for (index, image) in images.iter().enumerate() {
+    for (index, bytes) in slices.iter().enumerate() {
+        let DecodedImage {
+            width,
+            height,
+            rgb,
+            alpha,
+            jpeg,
+        } = decode(bytes, formats[index])?;
         let page_id = Ref::new(next_id);
         let content_id = Ref::new(next_id + 1);
         let image_id = Ref::new(next_id + 2);
         next_id += 3;
 
-        let smask_id = if image.alpha.is_some() {
+        let smask_id = if alpha.is_some() {
             let id = Ref::new(next_id);
             next_id += 1;
 
@@ -106,15 +116,15 @@ pub fn build_pdf(
         content.restore_state();
         pdf.stream(content_id, &content.finish());
 
-        let (filter, encoded) = match &image.jpeg {
-            Some(jpeg) => (Filter::DctDecode, jpeg.clone()),
-            None => (Filter::FlateDecode, compress(&image.rgb)),
+        let (filter, encoded) = match jpeg {
+            Some(jpeg) => (Filter::DctDecode, jpeg),
+            None => (Filter::FlateDecode, compress(&rgb)),
         };
         let mut xobject = pdf.image_xobject(image_id, &encoded);
 
         xobject.filter(filter);
-        xobject.width(image.width as i32);
-        xobject.height(image.height as i32);
+        xobject.width(width as i32);
+        xobject.height(height as i32);
         xobject.color_space().device_rgb();
         xobject.bits_per_component(8);
 
@@ -124,13 +134,13 @@ pub fn build_pdf(
 
         xobject.finish();
 
-        if let (Some(smask_id), Some(alpha)) = (smask_id, &image.alpha) {
+        if let (Some(smask_id), Some(alpha)) = (smask_id, &alpha) {
             let encoded = compress(alpha);
             let mut mask = pdf.image_xobject(smask_id, &encoded);
 
             mask.filter(Filter::FlateDecode);
-            mask.width(image.width as i32);
-            mask.height(image.height as i32);
+            mask.width(width as i32);
+            mask.height(height as i32);
             mask.color_space().device_gray();
             mask.bits_per_component(8);
             mask.finish();
@@ -205,5 +215,12 @@ mod tests {
     #[test]
     fn rejects_incomplete_metadata() {
         assert!(build_pdf(&[], &[], &[], "fit").is_err());
+    }
+
+    #[test]
+    fn rejects_images_above_the_pixel_limit() {
+        let oversized = png(5_000, 5_000, false);
+
+        assert!(build_pdf(&oversized, &[oversized.len() as u32], &[0], "fit").is_err());
     }
 }

@@ -8,11 +8,6 @@ export class FileTooLargeError extends Schema.TaggedError<
   maxBytes: Schema.Int,
 }) {}
 
-export class UnsupportedFormatError extends Schema.TaggedError<
-  UnsupportedFormatError,
-  { readonly brand: unique symbol }
->()("UnsupportedFormatError", { message: Schema.String }) {}
-
 export class ImageProcessingError extends Schema.TaggedError<
   ImageProcessingError,
   { readonly brand: unique symbol }

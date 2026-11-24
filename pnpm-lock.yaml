@@ -124,9 +124,6 @@ importers:
       '@dnd-kit/utilities':
         specifier: 3.2.2
         version: 3.2.2(react@19.3.1)
-      '@effect/platform-node':
-        specifier: ^4.1.5
-        version: 4.1.5(effect@4.1.5)(redis@6.3.1)
       '@fontsource-variable/roboto-flex':
         specifier: ^5.3.0
         version: 5.3.0
@@ -178,9 +175,6 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      cn:
-        specifier: ^0.5.2
-        version: 0.5.2
       docx:
         specifier: ^9.16.0
         version: 9.16.0
@@ -2547,11 +2541,6 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  cn@0.5.2:
-    resolution: {integrity: sha512-wm10E6iuJ37rALOw3D+3cfaXXZSLNMh2uxpQn3dNICqfJM59yXqgbA9/9Iiz155j5kYNLdK6WreNdW3NQtx3OQ==}
-    engines: {node: '>=22'}
-    hasBin: true
-
   code-block-writer@13.0.3:
     resolution: {integrity: sha512-Oofo0pq3IKnsFtuHqSF7TqBfr71aeyZDVJ0HpmqB7FBM2qEigL0iPONSCZSO9pE9dZTAxANe5XHG9Uy0YMv8cg==}
 
@@ -4388,6 +4377,7 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+    optional: true
 
   '@effect/platform-node@4.1.5(effect@4.1.5)(redis@6.3.1)':
     dependencies:
@@ -4398,6 +4388,7 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+    optional: true
 
   '@effect/sql-d1@4.1.5(effect@4.1.5)':
     dependencies:
@@ -4995,20 +4986,25 @@ snapshots:
   '@redis/bloom@6.3.1(@redis/client@6.3.1)':
     dependencies:
       '@redis/client': 6.3.1
+    optional: true
 
-  '@redis/client@6.3.1': {}
+  '@redis/client@6.3.1':
+    optional: true
 
   '@redis/json@6.3.1(@redis/client@6.3.1)':
     dependencies:
       '@redis/client': 6.3.1
+    optional: true
 
   '@redis/search@6.3.1(@redis/client@6.3.1)':
     dependencies:
       '@redis/client': 6.3.1
+    optional: true
 
   '@redis/time-series@6.3.1(@redis/client@6.3.1)':
     dependencies:
       '@redis/client': 6.3.1
+    optional: true
 
   '@rolldown/binding-android-arm-eabi@1.2.16':
     optional: true
@@ -5611,6 +5607,7 @@ snapshots:
   '@types/ws@8.18.2':
     dependencies:
       '@types/node': 26.6.6
+    optional: true
 
   '@typescript-eslint/types@8.73.0': {}
 
@@ -5842,8 +5839,6 @@ snapshots:
   clsx@2.1.1: {}
 
   cn@0.2.6: {}
-
-  cn@0.5.2: {}
 
   code-block-writer@13.0.3: {}
 
@@ -6657,6 +6652,7 @@ snapshots:
     transitivePeerDependencies:
       - '@node-rs/xxhash'
       - '@opentelemetry/api'
+    optional: true
 
   require-from-string@2.0.2: {}
 
@@ -6946,7 +6942,8 @@ snapshots:
 
   undici@7.30.2: {}
 
-  undici@8.13.1: {}
+  undici@8.13.1:
+    optional: true
 
   unenv@2.0.0-rc.25:
     dependencies:

@@ -29,11 +29,10 @@ case "${1:-build}" in
     rm -f src/libs/wasm/social-media-core/.gitignore src/libs/wasm/social-media-core/README.md
     ;;
   test)
-    cargo test --manifest-path packages/xlsx-pdf-core/Cargo.toml
-    cargo test --manifest-path packages/background-removal-core/Cargo.toml
-    cargo test --manifest-path packages/image-pdf-core/Cargo.toml
-    cargo test --manifest-path packages/word-pdf-core/Cargo.toml
-    cargo test --manifest-path packages/social-media-core/Cargo.toml
+    for manifest in packages/*/Cargo.toml; do
+      cargo fmt --manifest-path "$manifest" --check
+      cargo test --locked --manifest-path "$manifest"
+    done
     ;;
   *)
     echo "usage: $0 [build|test]" >&2

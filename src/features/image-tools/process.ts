@@ -43,6 +43,78 @@ export interface ProcessImageOutput {
 }
 
 const fileBaseName = (name: string) => name.replace(/\.[^./\\]+$/, "") || "image"
+const REMOVE_BACKGROUND_FORMATS = new Set(["png", "jpeg", "webp"])
+
+export const validateRemoveBackgroundFile = async (
+  file: File,
+): Promise<
+  { readonly ok: true; readonly file: File } | { readonly ok: false; readonly message: string }
+> => {
+  if (file.size > MAX_IMAGE_BYTES) {
+    return {
+      ok: false,
+      message: `Images can be at most ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`,
+    }
+  }
+
+  const header = new Uint8Array(await file.slice(0, 16).arrayBuffer())
+  const format = detectImageFormat(header)
+
+  if (!format || !REMOVE_BACKGROUND_FORMATS.has(format)) {
+    return { ok: false, message: "Use a PNG, JPEG, or WebP image." }
+  }
+
+  return { ok: true, file }
+}
+
+export interface PrepareImageFilesInput {
+  readonly files: ReadonlyArray<File>
+  readonly existingFileCount: number
+  readonly existingTotalBytes: number
+}
+
+export interface PreparedImageFiles {
+  readonly accepted: ReadonlyArray<File>
+  readonly errors: ReadonlyArray<string>
+}
+
+/** Validates a batch of images for the image-to-PDF tool. */
+export const prepareImageFiles = async (
+  input: PrepareImageFilesInput,
+): Promise<PreparedImageFiles> => {
+  const accepted: Array<File> = []
+  const errors: Array<string> = []
+  let total = input.existingTotalBytes
+
+  for (const file of input.files) {
+    if (input.existingFileCount + accepted.length >= MAX_IMAGE_FILES) {
+      errors.push(`You can combine at most ${MAX_IMAGE_FILES} images at once.`)
+      break
+    }
+
+    if (file.size > MAX_IMAGE_BYTES) {
+      errors.push(`${file.name} is larger than ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`)
+      continue
+    }
+
+    if (total + file.size > MAX_IMAGE_TOTAL_BYTES) {
+      errors.push(`The combined images can be at most ${MAX_IMAGE_TOTAL_BYTES / 1024 / 1024} MB.`)
+      continue
+    }
+
+    const header = new Uint8Array(await file.slice(0, 64).arrayBuffer())
+
+    if (detectImageFormat(header) === null) {
+      errors.push(`${file.name} is not a readable image.`)
+      continue
+    }
+
+    accepted.push(file)
+    total += file.size
+  }
+
+  return { accepted, errors }
+}
 
 const program = (input: ProcessImageInput) =>
   Effect.gen(function* () {
@@ -54,7 +126,12 @@ const program = (input: ProcessImageInput) =>
     }
 
     const processor = yield* ImageProcessor
-    const bytes = new Uint8Array(yield* Effect.promise(() => input.file.arrayBuffer()))
+    const bytes = new Uint8Array(
+      yield* Effect.tryPromise({
+        try: () => input.file.arrayBuffer(),
+        catch: () => new ImageProcessingError({ message: "Could not read this image." }),
+      }),
+    )
     const source = detectImageFormat(bytes)
     const format = input.format ?? source ?? (yield* processor.detectFormat(bytes))
 

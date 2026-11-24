@@ -45,13 +45,11 @@ export const removeSolidBackground = async (file: File): Promise<Blob> => {
   }
 
   const { data, width, height } = image
-  const wasmPixels = await removeBackgroundWasm(data, width, height)
+  const pixels = await removeBackgroundWasm(data, width, height)
 
-  if (!wasmPixels) {
+  if (!pixels) {
     throw new ImageProcessingError({ message: "Could not run the background matte." })
   }
-
-  data.set(wasmPixels)
 
   const canvas = makeCanvas(width, height)
   const context = canvas.getContext("2d")
@@ -60,11 +58,8 @@ export const removeSolidBackground = async (file: File): Promise<Blob> => {
     throw new ImageProcessingError({ message: "Could not create the transparent PNG." })
   }
 
-  // Canvas ImageData requires an ArrayBuffer-backed view; normalize the
-  // decoded buffer once at this boundary.
-  const pixels = new Uint8ClampedArray(data)
-
-  context.putImageData(new ImageData(pixels, width, height), 0, 0)
+  // The wasm glue returns a fresh ArrayBuffer-backed view from `.slice()`.
+  context.putImageData(new ImageData(pixels as Uint8ClampedArray<ArrayBuffer>, width, height), 0, 0)
 
   return canvasToPng(canvas)
 }

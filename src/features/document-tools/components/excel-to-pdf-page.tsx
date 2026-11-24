@@ -40,7 +40,10 @@ const ORIENTATION_LABEL: Record<ExcelOrientation, string> = {
 
 export function ExcelToPdfPage() {
   const { file, result, setFile, setResult, clearResult, reset } = useExcelToPdfStore()
-  const convert = useMutation({ mutationFn: processExcelToPdf, onSuccess: setResult })
+  const convert = useMutation({
+    mutationFn: processExcelToPdf,
+    onSuccess: setResult,
+  })
   const [error, setError] = useState<string | null>(null)
   const form = useForm({
     defaultValues: {
@@ -191,7 +194,7 @@ export function ExcelToPdfPage() {
                         value={field.state.value}
                         onValueChange={(value) => field.handleChange(value as ExcelPageSize)}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full" aria-label="Page size">
                           <SelectValue>{PAGE_SIZE_LABEL[field.state.value]}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
@@ -211,7 +214,7 @@ export function ExcelToPdfPage() {
                         value={field.state.value}
                         onValueChange={(value) => field.handleChange(value as ExcelOrientation)}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full" aria-label="Orientation">
                           <SelectValue>{ORIENTATION_LABEL[field.state.value]}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>

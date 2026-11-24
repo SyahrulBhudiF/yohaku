@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import { beforeAll } from "vitest"
 
-import { processImage } from "@/features/image-tools/process"
+import { processImage, prepareImageFiles } from "@/features/image-tools/process"
 import { initImageCodecs, makePng } from "../../support/image-codecs"
 
 beforeAll(initImageCodecs, 60_000)
@@ -23,5 +23,21 @@ describe("processImage", () => {
 
     assert.strictEqual(result.fileName, "photo-compressed.png")
     assert.strictEqual(result.mimeType, "image/png")
+  })
+
+  it("accepts readable images and reports unreadable files", async () => {
+    const image = new File([await makePng()], "photo.png", { type: "image/png" })
+    const text = new File(["not an image"], "notes.txt", { type: "text/plain" })
+    const result = await prepareImageFiles({
+      files: [image, text],
+      existingFileCount: 0,
+      existingTotalBytes: 0,
+    })
+
+    assert.deepEqual(
+      result.accepted.map((file) => file.name),
+      ["photo.png"],
+    )
+    assert.deepEqual(result.errors, ["notes.txt is not a readable image."])
   })
 })

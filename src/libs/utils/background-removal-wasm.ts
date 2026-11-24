@@ -14,7 +14,10 @@ export const removeBackgroundWasm = async (
   height: number,
 ): Promise<Uint8ClampedArray | null> => {
   try {
-    ready ??= init()
+    ready ??= init().catch((cause: unknown) => {
+      ready = null
+      throw cause
+    })
     await ready
 
     const input = new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
@@ -24,7 +27,7 @@ export const removeBackgroundWasm = async (
       return null
     }
 
-    return new Uint8ClampedArray(output)
+    return output
   } catch {
     return null
   }

@@ -112,7 +112,11 @@ export function ImageTool({
         quality: input.quality,
       })
     },
-    onSuccess: setResult,
+    onSuccess: (output, input) => {
+      if (useStore.getState().file === input.file) {
+        setResult(output)
+      }
+    },
   })
   const form = useForm({
     defaultValues: {
@@ -207,7 +211,7 @@ export function ImageTool({
                         preload(choice)
                       }}
                     >
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger className="w-full" aria-label="Image format">
                         <SelectValue>{formatLabel(field.state.value)}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>

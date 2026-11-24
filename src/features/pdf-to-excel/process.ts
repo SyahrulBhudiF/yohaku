@@ -6,7 +6,6 @@ import { runEffect } from "@/infrastructure/runtime"
 import { MAX_PDF_BYTES } from "@/libs/schemas/pdf"
 import { extractPdfTextRows } from "@/libs/utils/pdf/extract-text-rows"
 import { isPdfFile } from "@/features/pdf-tools/validation"
-import { createExcelBlob } from "./workbook"
 
 export interface PdfToExcelOutput {
   readonly blob: Blob
@@ -34,8 +33,12 @@ export const convertPdfToExcel = (file: File): Promise<PdfToExcelOutput> =>
 
       const extracted = yield* extractPdfTextRows(file)
 
-      const blob = yield* Effect.try({
-        try: () => createExcelBlob(extracted),
+      const blob = yield* Effect.tryPromise({
+        try: async () => {
+          const { createExcelBlob } = await import("./workbook")
+
+          return createExcelBlob(extracted)
+        },
         catch: () =>
           new PdfToExcelError({
             message: "Could not package the extracted rows as an Excel workbook.",

@@ -3,10 +3,11 @@ import { Effect } from "effect"
 import { ExcelProcessingError } from "@/infrastructure/errors/excel"
 import init, { convert_xlsx_to_pdf } from "@/libs/wasm/xlsx-pdf-core/xlsx_pdf_core.js"
 import type { ExcelOrientation, ExcelPageSize } from "@/libs/schemas/excel"
+import { convertXlsxInWorker, getXlsxPdfWorker } from "./xlsx-pdf-worker-client"
 
 let ready: Promise<void> | null = null
 
-export const preloadXlsxPdf = (): Promise<void> => {
+const preloadDirect = (): Promise<void> => {
   ready ??= init()
     .then(() => undefined)
     .catch((cause: unknown) => {
@@ -15,6 +16,20 @@ export const preloadXlsxPdf = (): Promise<void> => {
     })
 
   return ready
+}
+
+export const preloadXlsxPdf = (): Promise<void> => {
+  if (typeof Worker === "undefined") {
+    return preloadDirect()
+  }
+
+  try {
+    getXlsxPdfWorker().postMessage({ type: "warm" })
+
+    return Promise.resolve()
+  } catch {
+    return preloadDirect()
+  }
 }
 
 const ensureLoaded = () =>
@@ -30,8 +45,14 @@ export const convertXlsxToPdf = (
 ): Effect.Effect<Uint8Array<ArrayBuffer>, ExcelProcessingError> =>
   Effect.gen(function* () {
     yield* ensureLoaded()
-    const output = yield* Effect.try({
-      try: () => convert_xlsx_to_pdf(bytes, pageSize, orientation),
+    const output = yield* Effect.tryPromise({
+      try: async () => {
+        if (typeof Worker === "undefined") {
+          return convert_xlsx_to_pdf(bytes, pageSize, orientation)
+        }
+
+        return new Uint8Array(await convertXlsxInWorker(bytes, pageSize, orientation))
+      },
       catch: (cause) =>
         new ExcelProcessingError({
           message:
@@ -43,7 +64,5 @@ export const convertXlsxToPdf = (
         }),
     })
 
-    // Copy once so the result is backed by a plain ArrayBuffer, which Blob
-    // accepts without a type assertion.
-    return new Uint8Array(output)
+    return output as Uint8Array<ArrayBuffer>
   })

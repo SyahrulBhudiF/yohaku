@@ -4,7 +4,7 @@
  * @param {Uint8Array | number[]} data
  * @param {number} width
  * @param {number} height
- * @returns {Uint8Array}
+ * @returns {Uint8ClampedArray}
  */
 export function remove_background(data, width, height) {
     const val2 = +width;
@@ -12,7 +12,7 @@ export function remove_background(data, width, height) {
     const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.remove_background(ptr0, len0, val2, val3);
-    var v4 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    var v4 = getClampedArrayU8FromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     return v4;
 }
@@ -34,9 +34,9 @@ function __wbg_get_imports() {
     };
 }
 
-function getArrayU8FromWasm0(ptr, len) {
+function getClampedArrayU8FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
-    return getUint8ArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
+    return getUint8ClampedArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
 }
 
 let cachedUint8ArrayMemory0 = null;
@@ -45,6 +45,14 @@ function getUint8ArrayMemory0() {
         cachedUint8ArrayMemory0 = new Uint8Array(wasm.memory.buffer);
     }
     return cachedUint8ArrayMemory0;
+}
+
+let cachedUint8ClampedArrayMemory0 = null;
+function getUint8ClampedArrayMemory0() {
+    if (cachedUint8ClampedArrayMemory0 === null || cachedUint8ClampedArrayMemory0.byteLength === 0) {
+        cachedUint8ClampedArrayMemory0 = new Uint8ClampedArray(wasm.memory.buffer);
+    }
+    return cachedUint8ClampedArrayMemory0;
 }
 
 function passArray8ToWasm0(arg, malloc) {
@@ -62,6 +70,7 @@ function __wbg_finalize_init(instance, module) {
     wasm = instance.exports;
     wasmModule = module;
     cachedUint8ArrayMemory0 = null;
+    cachedUint8ClampedArrayMemory0 = null;
     wasm.__wbindgen_start();
     return wasm;
 }

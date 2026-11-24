@@ -1,5 +1,5 @@
 import { Effect, Fiber } from "effect"
-import { zipSync } from "fflate"
+import { Zip, ZipPassThrough } from "fflate"
 
 import { PdfProcessingError } from "@/infrastructure/errors/pdf"
 import { runEffect } from "@/infrastructure/runtime"
@@ -8,8 +8,10 @@ import { PdfProcessor } from "@/infrastructure/services/pdf-processor"
 import { IMAGE_EXTENSION, IMAGE_MIME, type ImageFormat } from "@/libs/schemas/image"
 import {
   MAX_PDF_BYTES,
+  MAX_PDF_FILES,
   MAX_PDF_IMAGE_PAGES,
   MAX_PDF_PAGES,
+  MAX_PDF_TOTAL_BYTES,
   MAX_SPLIT_OUTPUTS,
   type PdfImageDpi,
   type PdfPageRange,
@@ -19,7 +21,8 @@ import { imageWorkerLimit } from "@/libs/utils/image-codec"
 import { isPreviewableImageMime } from "@/libs/utils/image-preview"
 import type { PdfMergePage } from "@/libs/utils/pdf/qpdf"
 import { disposePdfFile, getPdfDocument } from "./thumbnails"
-import type { PdfFileEntry, PdfPageEntry } from "./store"
+import { newPdfId, type PdfFileEntry, type PdfPageEntry } from "./store"
+import { isPdfBatchWithinSizeLimit, isPdfFile } from "./validation"
 
 export type PreparePdfResult =
   | { readonly ok: true; readonly pageCount: number }
@@ -82,6 +85,88 @@ export interface MergePdfInput {
   readonly pages: ReadonlyArray<PdfPageEntry>
 }
 
+export interface PreparePdfBatchInput {
+  readonly files: ReadonlyArray<File>
+  readonly existingFileCount: number
+  readonly existingTotalBytes: number
+  readonly existingPageCount: number
+}
+
+export interface PendingPdfBatchFile {
+  readonly id: string
+  readonly file: File
+  readonly message: string
+}
+
+export interface PreparedPdfBatch {
+  readonly accepted: ReadonlyArray<PdfFileEntry>
+  readonly pending: ReadonlyArray<PendingPdfBatchFile>
+  readonly errors: ReadonlyArray<string>
+}
+
+/** Validates and opens a batch of PDFs for the merge tool. */
+export const preparePdfBatch = async (input: PreparePdfBatchInput): Promise<PreparedPdfBatch> => {
+  const accepted: Array<PdfFileEntry> = []
+  const pending: Array<PendingPdfBatchFile> = []
+  const errors: Array<string> = []
+  let totalBytes = input.existingTotalBytes
+  let totalPages = input.existingPageCount
+
+  for (const file of input.files) {
+    if (input.existingFileCount + accepted.length >= MAX_PDF_FILES) {
+      errors.push(`You can merge at most ${MAX_PDF_FILES} PDFs at once.`)
+      break
+    }
+
+    if (!isPdfFile(file)) {
+      errors.push("Only PDF files can be merged.")
+      continue
+    }
+
+    if (file.size > MAX_PDF_BYTES) {
+      errors.push(`Each PDF can be at most ${MAX_PDF_BYTES / 1024 / 1024} MB.`)
+      continue
+    }
+
+    if (!isPdfBatchWithinSizeLimit(totalBytes, file.size)) {
+      errors.push(`The combined PDFs can be at most ${MAX_PDF_TOTAL_BYTES / 1024 / 1024} MB.`)
+      continue
+    }
+
+    const id = newPdfId()
+    const prepared = await preparePdfFile(id, file)
+
+    if (!prepared.ok) {
+      if (prepared.reason === "password") {
+        pending.push({ id, file, message: prepared.message })
+      } else {
+        disposePdfFile(id)
+        errors.push(prepared.message)
+      }
+
+      continue
+    }
+
+    if (totalPages + prepared.pageCount > MAX_PDF_PAGES) {
+      disposePdfFile(id)
+      errors.push(`A merge can contain at most ${MAX_PDF_PAGES.toLocaleString()} pages.`)
+      continue
+    }
+
+    accepted.push({
+      id,
+      file,
+      name: file.name,
+      size: file.size,
+      pageCount: prepared.pageCount,
+    })
+    totalBytes += file.size
+    totalPages += prepared.pageCount
+  }
+
+  return { accepted, pending, errors }
+}
+
 export interface MergePdfOutput {
   readonly blob: Blob
   readonly fileName: string
@@ -142,6 +227,44 @@ export interface SplitPdfOutput {
 
 const fileBaseName = (name: string) => name.replace(/\.pdf$/i, "") || "pdf"
 
+interface ZipWriter {
+  readonly add: (name: string, data: Uint8Array) => void
+  readonly finish: () => Blob
+  readonly error: () => Error | null
+}
+
+/** Streams entries into Blob parts instead of copying the whole archive. */
+const createZipWriter = (): ZipWriter => {
+  const parts: Array<BlobPart> = []
+  let failure: Error | null = null
+  const zip = new Zip((error, chunk) => {
+    if (error) {
+      failure = error
+
+      return
+    }
+
+    if (chunk) {
+      parts.push(new Blob([chunk]))
+    }
+  })
+
+  return {
+    add: (name, data) => {
+      const entry = new ZipPassThrough(name)
+
+      zip.add(entry)
+      entry.push(data, true)
+    },
+    finish: () => {
+      zip.end()
+
+      return new Blob(parts, { type: "application/zip" })
+    },
+    error: () => failure,
+  }
+}
+
 export const splitPdf = (input: SplitPdfInput): Promise<SplitPdfOutput> =>
   runEffect(
     Effect.gen(function* () {
@@ -189,18 +312,22 @@ export const splitPdf = (input: SplitPdfInput): Promise<SplitPdfOutput> =>
         }
       }
 
-      const entries: Record<string, Uint8Array> = {}
+      const writer = createZipWriter()
 
       for (const output of outputs) {
-        entries[output.name] = output.data
+        writer.add(output.name, output.data)
       }
 
-      const zip = zipSync(entries, { level: 0 })
+      const archive = writer.finish()
+
+      if (writer.error()) {
+        return yield* new PdfProcessingError({ message: "Could not package the split PDFs." })
+      }
 
       return {
-        blob: new Blob([zip], { type: "application/zip" }),
+        blob: archive,
         fileName: `${fileBaseName(input.file.name)}-split.zip`,
-        bytes: zip.byteLength,
+        bytes: archive.size,
         inputBytes: input.file.size,
         pages: input.file.pageCount,
         outputs: outputs.length,
@@ -296,7 +423,17 @@ export const renderPdfImages = (input: RenderPdfImagesInput): Promise<RenderPdfI
         return yield* new PdfProcessingError({ message: "PDF rendering needs a browser." })
       }
 
-      const outputs: Array<EncodedPage> = []
+      const writer = createZipWriter()
+      const firstPage: Array<EncodedPage> = []
+      let count = 0
+      const addPage = (output: EncodedPage) => {
+        if (firstPage.length === 0) {
+          firstPage.push(output)
+        }
+
+        count += 1
+        writer.add(output.name, output.data)
+      }
       const mimeType = IMAGE_MIME[input.format]
       const native = input.format === "png" || input.format === "jpeg"
 
@@ -336,7 +473,7 @@ export const renderPdfImages = (input: RenderPdfImagesInput): Promise<RenderPdfI
             }),
           )
 
-          outputs.push({
+          addPage({
             name: `${base}-page-${String(pageNumber).padStart(padding, "0")}.${IMAGE_EXTENSION[input.format]}`,
             data,
           })
@@ -350,7 +487,7 @@ export const renderPdfImages = (input: RenderPdfImagesInput): Promise<RenderPdfI
             const oldest = fibers.shift()
 
             if (oldest) {
-              outputs.push(yield* Fiber.join(oldest))
+              addPage(yield* Fiber.join(oldest))
             }
           }
 
@@ -381,14 +518,14 @@ export const renderPdfImages = (input: RenderPdfImagesInput): Promise<RenderPdfI
         }
 
         for (const fiber of fibers) {
-          outputs.push(yield* Fiber.join(fiber))
+          addPage(yield* Fiber.join(fiber))
         }
       }
 
       canvas.width = 0
       canvas.height = 0
 
-      const first = outputs[0]
+      const first = firstPage[0]
 
       if (!first) {
         return yield* new PdfProcessingError({ message: "This PDF has no pages." })
@@ -398,7 +535,7 @@ export const renderPdfImages = (input: RenderPdfImagesInput): Promise<RenderPdfI
         ? { blob: new Blob([first.data], { type: mimeType }), mimeType }
         : null
 
-      if (outputs.length === 1) {
+      if (count === 1) {
         return {
           blob: new Blob([first.data], { type: mimeType }),
           fileName: `${base}.${IMAGE_EXTENSION[input.format]}`,
@@ -410,20 +547,18 @@ export const renderPdfImages = (input: RenderPdfImagesInput): Promise<RenderPdfI
         }
       }
 
-      const entries: Record<string, Uint8Array> = {}
+      const archive = writer.finish()
 
-      for (const output of outputs) {
-        entries[output.name] = output.data
+      if (writer.error()) {
+        return yield* new PdfProcessingError({ message: "Could not package the images." })
       }
 
-      const zip = zipSync(entries, { level: 0 })
-
       return {
-        blob: new Blob([zip], { type: "application/zip" }),
+        blob: archive,
         fileName: `${base}-images.zip`,
-        bytes: zip.byteLength,
+        bytes: archive.size,
         inputBytes: input.file.size,
-        images: outputs.length,
+        images: count,
         mimeType: "application/zip",
         preview,
       }

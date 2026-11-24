@@ -1,11 +1,10 @@
 import { useForm } from "@tanstack/react-form"
 import { useMutation } from "@tanstack/react-query"
 import { Schema } from "effect"
-import { DownloadIcon, FileImageIcon, Loader2Icon, XIcon } from "lucide-react"
+import { FileImageIcon, Loader2Icon, XIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -15,6 +14,8 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
+import { ConversionResult } from "@/features/tools/components/conversion-result"
+import { InlineError } from "@/features/tools/components/inline-error"
 import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import { IMAGE_FORMATS } from "@/libs/schemas/image"
 import {
@@ -24,23 +25,15 @@ import {
   type PdfImageDpi,
   type PdfImageFormValues,
 } from "@/libs/schemas/pdf"
-import { formatBytes } from "@/libs/utils/format"
 import { preloadImageCodec } from "@/libs/utils/image-codec"
 import { isPreviewableImageMime } from "@/libs/utils/image-preview"
 import { parsePageSelection } from "@/libs/utils/pdf/ranges"
-import { preparePdfFile, renderPdfImages } from "../process"
-import { newPdfId, usePdfToImageStore } from "../store"
-import { disposePdfFile } from "../thumbnails"
-import { isPdfFile } from "../validation"
-import { PageThumbnail } from "./page-thumbnail"
+import { renderPdfImages } from "../process"
+import { usePdfToImageStore } from "../store"
+import { usePdfFile } from "../use-pdf-file"
 import { PasswordPrompt } from "./password-prompt"
 import { PdfDropzone } from "./pdf-dropzone"
-
-interface PendingPassword {
-  readonly id: string
-  readonly file: File
-  readonly message: string
-}
+import { PdfFileCard } from "./pdf-file-card"
 
 const DPI_LABEL: Record<PdfImageDpi, string> = {
   72: "72 DPI · screen",
@@ -50,17 +43,17 @@ const DPI_LABEL: Record<PdfImageDpi, string> = {
 
 export function PdfToImagePage() {
   const { file, result, setFile, setResult, clearResult, reset } = usePdfToImageStore()
-  const render = useMutation({ mutationFn: renderPdfImages, onSuccess: setResult })
+  const render = useMutation({
+    mutationFn: renderPdfImages,
+    onSuccess: setResult,
+  })
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [unlocking, setUnlocking] = useState(false)
-  const [pending, setPending] = useState<PendingPassword | null>(null)
-  const [pageSelection, setPageSelection] = useState("")
   const form = useForm({
     defaultValues: {
       format: "png",
       quality: 90,
       dpi: 150,
+      pageSelection: "",
     } as PdfImageFormValues,
     validators: { onChange: Schema.toStandardSchemaV1(PdfImageFormSchema) },
     listeners: {
@@ -75,7 +68,7 @@ export function PdfToImagePage() {
         return
       }
 
-      const parsed = parsePageSelection(pageSelection, file.pageCount)
+      const parsed = parsePageSelection(value.pageSelection, file.pageCount)
 
       if (!parsed.ok) {
         setError(parsed.message)
@@ -107,8 +100,21 @@ export function PdfToImagePage() {
         .catch(() => null)
     },
   })
-  const errorMessage = error ?? render.error?.message ?? null
-  const selection = file ? parsePageSelection(pageSelection, file.pageCount) : null
+  const pdf = usePdfFile({
+    setFile,
+    reset,
+    invalidMessage: "Only PDF files can be converted.",
+    onReset: () => {
+      form.reset()
+      setError(null)
+    },
+    onSelected: (entry) => {
+      form.setFieldValue("pageSelection", entry.pageCount === 1 ? "1" : `1-${entry.pageCount}`)
+    },
+  })
+  const values = form.state.values
+  const errorMessage = error ?? pdf.error ?? render.error?.message ?? null
+  const selection = file ? parsePageSelection(values.pageSelection, file.pageCount) : null
   const selectedCount = selection?.ok ? selection.pages.length : 0
   const selectionError =
     selection && !selection.ok
@@ -116,119 +122,6 @@ export function PdfToImagePage() {
       : selection && selection.pages.length > MAX_PDF_IMAGE_PAGES
         ? `Choose at most ${MAX_PDF_IMAGE_PAGES} pages per run.`
         : null
-
-  const handleFile = async (incoming: ReadonlyArray<File>) => {
-    const next = incoming[0]
-
-    if (!next) {
-      return
-    }
-
-    setError(null)
-    setPending(null)
-    render.reset()
-    reset()
-    form.reset()
-    setPageSelection("")
-
-    if (pending) {
-      disposePdfFile(pending.id)
-    }
-
-    if (!isPdfFile(next)) {
-      setError("Only PDF files can be converted.")
-
-      return
-    }
-
-    if (next.size > MAX_PDF_BYTES) {
-      setError(`PDFs can be at most ${MAX_PDF_BYTES / 1024 / 1024} MB.`)
-
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const id = newPdfId()
-      const prepared = await preparePdfFile(id, next)
-
-      if (!prepared.ok) {
-        if (prepared.reason === "password") {
-          setPending({ id, file: next, message: prepared.message })
-        } else {
-          disposePdfFile(id)
-          setError(prepared.message)
-        }
-
-        return
-      }
-
-      setFile({
-        id,
-        file: next,
-        name: next.name,
-        size: next.size,
-        pageCount: prepared.pageCount,
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleUnlock = async (password: string) => {
-    if (!pending) {
-      return
-    }
-
-    setUnlocking(true)
-    setError(null)
-
-    try {
-      const prepared = await preparePdfFile(pending.id, pending.file, password)
-
-      if (!prepared.ok) {
-        setPending({ ...pending, message: prepared.message })
-
-        return
-      }
-
-      setFile({
-        id: pending.id,
-        file: pending.file,
-        name: pending.file.name,
-        size: pending.file.size,
-        pageCount: prepared.pageCount,
-        password,
-      })
-      setPending(null)
-      setPageSelection("")
-    } finally {
-      setUnlocking(false)
-    }
-  }
-
-  const handleRemovePending = () => {
-    if (pending) {
-      disposePdfFile(pending.id)
-    }
-
-    setPending(null)
-  }
-
-  const handleReset = () => {
-    render.reset()
-    setError(null)
-
-    if (pending) {
-      disposePdfFile(pending.id)
-    }
-
-    setPending(null)
-    form.reset()
-    setPageSelection("")
-    reset()
-  }
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -240,60 +133,29 @@ export function PdfToImagePage() {
         </p>
       </ToolPageHeader>
 
-      {!file && !pending && (
+      {!file && !pdf.pending && (
         <PdfDropzone
-          disabled={loading}
-          onFiles={(incoming) => void handleFile(incoming)}
+          disabled={pdf.isReading}
+          onFiles={(incoming) => void pdf.select(incoming)}
           hint={`PDF only · up to ${MAX_PDF_BYTES / 1024 / 1024} MB`}
-          label={loading ? "Reading PDF…" : undefined}
+          label={pdf.isReading ? "Reading PDF…" : undefined}
         />
       )}
 
-      {pending && (
+      {pdf.pending && (
         <PasswordPrompt
-          name={pending.file.name}
-          size={pending.file.size}
-          message={pending.message}
-          busy={unlocking}
-          onUnlock={(password) => void handleUnlock(password)}
-          onRemove={handleRemovePending}
+          name={pdf.pending.file.name}
+          size={pdf.pending.file.size}
+          message={pdf.pending.message}
+          busy={pdf.isUnlocking}
+          onUnlock={(password) => void pdf.unlock(password)}
+          onRemove={pdf.remove}
         />
       )}
 
       {file && (
         <>
-          <Card size="sm">
-            <CardContent className="flex items-center gap-4 pt-4">
-              <div className="h-28 w-20 shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-outline-variant">
-                <PageThumbnail
-                  fileId={file.id}
-                  file={file.file}
-                  pageNumber={1}
-                  password={file.password}
-                />
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate font-medium">{file.name}</span>
-                <span className="text-sm text-muted-foreground">
-                  {file.pageCount} {file.pageCount === 1 ? "page" : "pages"} ·{" "}
-                  {formatBytes(file.size)}
-                </span>
-                {file.password && (
-                  <span className="text-xs text-muted-foreground">Password protected</span>
-                )}
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleReset}
-                disabled={render.isPending}
-                aria-label={`Remove ${file.name}`}
-              >
-                <XIcon />
-              </Button>
-            </CardContent>
-          </Card>
-
+          <PdfFileCard file={file} onRemove={pdf.remove} disabled={render.isPending} />
           <form
             id="pdf-to-image-form"
             className="flex flex-col gap-6"
@@ -319,7 +181,7 @@ export function PdfToImagePage() {
                         }
                       }}
                     >
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger className="w-full" aria-label="Image format">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -342,7 +204,7 @@ export function PdfToImagePage() {
                       value={String(field.state.value)}
                       onValueChange={(value) => field.handleChange(Number(value) as PdfImageDpi)}
                     >
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger className="w-full" aria-label="Resolution">
                         <SelectValue>{DPI_LABEL[field.state.value]}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
@@ -356,32 +218,31 @@ export function PdfToImagePage() {
               </form.Field>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="pdf-pages" className="text-sm font-medium">
-                Pages
-              </label>
-              <Input
-                id="pdf-pages"
-                value={pageSelection}
-                placeholder="All pages"
-                aria-describedby="pdf-pages-hint"
-                onChange={(event) => {
-                  setPageSelection(event.target.value)
-                  clearResult()
-                  render.reset()
-                  setError(null)
-                }}
-              />
-              <p id="pdf-pages-hint" className="text-xs text-muted-foreground">
-                Leave empty for all pages. Use ranges like 1-3, 5, 7-9; up to {MAX_PDF_IMAGE_PAGES}{" "}
-                pages per run.
-              </p>
-              {selectionError && (
-                <p role="alert" className="text-sm text-error">
-                  {selectionError}
-                </p>
+            <form.Field name="pageSelection">
+              {(field) => (
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="pdf-pages" className="text-sm font-medium">
+                    Pages
+                  </label>
+                  <Input
+                    id="pdf-pages"
+                    value={field.state.value}
+                    placeholder="All pages"
+                    aria-describedby="pdf-pages-hint"
+                    onChange={(event) => field.handleChange(event.target.value)}
+                  />
+                  <p id="pdf-pages-hint" className="text-xs text-muted-foreground">
+                    Leave empty for all pages. Use ranges like 1-3, 5, 7-9; up to{" "}
+                    {MAX_PDF_IMAGE_PAGES} pages per run.
+                  </p>
+                  {selectionError && (
+                    <p role="alert" className="text-sm text-error">
+                      {selectionError}
+                    </p>
+                  )}
+                </div>
               )}
-            </div>
+            </form.Field>
 
             <form.Field name="quality">
               {(field) => (
@@ -428,57 +289,33 @@ export function PdfToImagePage() {
             </span>
           </div>
 
-          {errorMessage && (
-            <p
-              role="alert"
-              className="rounded-md bg-error-container px-4 py-3 text-sm text-on-error-container"
-            >
-              {errorMessage}
-            </p>
-          )}
+          <InlineError>{errorMessage}</InlineError>
 
           {result && (
-            <Card size="sm" className="bg-tertiary-container text-on-tertiary-container">
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {result.images} {result.images === 1 ? "image" : "images"} ready
-                </CardTitle>
-                <CardDescription className="text-on-tertiary-container/80">
-                  {formatBytes(result.inputBytes)} → {formatBytes(result.bytes)}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                {result.previewUrl &&
-                  result.previewMimeType &&
-                  isPreviewableImageMime(result.previewMimeType) && (
-                    <div className="flex flex-col gap-1.5">
-                      <span className="text-xs font-medium">First selected page</span>
-                      <img
-                        src={result.previewUrl}
-                        alt="First page preview"
-                        className="max-h-64 w-full rounded-md bg-surface-container object-contain"
-                      />
-                    </div>
-                  )}
-                <Button
-                  render={
-                    <a
-                      href={result.url}
-                      download={result.fileName}
-                      aria-label={`Download ${result.fileName}`}
+            <ConversionResult
+              url={result.url}
+              fileName={result.fileName}
+              inputBytes={result.inputBytes}
+              outputBytes={result.bytes}
+              detail={`${result.images} ${result.images === 1 ? "image" : "images"}`}
+            >
+              {result.previewUrl &&
+                result.previewMimeType &&
+                isPreviewableImageMime(result.previewMimeType) && (
+                  <div className="mt-3 flex flex-col gap-1.5">
+                    <span className="text-xs font-medium">First selected page</span>
+                    <img
+                      src={result.previewUrl}
+                      alt="First page preview"
+                      className="max-h-64 w-full rounded-md bg-surface-container object-contain"
                     />
-                  }
-                  nativeButton={false}
-                  className="self-start"
-                >
-                  <DownloadIcon /> Download {result.fileName}
-                </Button>
-              </CardContent>
-            </Card>
+                  </div>
+                )}
+            </ConversionResult>
           )}
 
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={handleReset} disabled={render.isPending}>
+            <Button variant="ghost" onClick={pdf.remove} disabled={render.isPending}>
               <XIcon /> Remove PDF
             </Button>
             <Button

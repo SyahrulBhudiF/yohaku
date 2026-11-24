@@ -15,16 +15,16 @@ import {
 } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
-import { MAX_IMAGE_BYTES, MAX_IMAGE_FILES, MAX_IMAGE_TOTAL_BYTES } from "@/libs/schemas/image"
+import { MAX_IMAGE_BYTES } from "@/libs/schemas/image"
 import {
   ImagePdfFormSchema,
   type ImagePdfFormValues,
   type ImagePdfMode,
   type ImagePdfPageSize,
 } from "@/libs/schemas/pdf"
-import { detectImageFormat, preloadImageCodec } from "@/libs/utils/image-codec"
+import { preloadImageCodec } from "@/libs/utils/image-codec"
 import { formatBytes } from "@/libs/utils/format"
-import { processImagesToPdf } from "../process"
+import { prepareImageFiles, processImagesToPdf } from "../process"
 import { useImageToPdfStore, type ImagePdfFileEntry } from "../store"
 import { Dropzone } from "./dropzone"
 import { ImageGrid } from "./image-grid"
@@ -42,7 +42,11 @@ const PAGE_SIZE_LABEL: Record<ImagePdfPageSize, string> = {
 export function ImageToPdfPage() {
   const { files, result, addFiles, removeFile, setFiles, setResult, clearResult, reset } =
     useImageToPdfStore()
-  const createPdf = useMutation({ mutationFn: processImagesToPdf, onSuccess: setResult })
+  const createPdf = useMutation({
+    mutationFn: processImagesToPdf,
+    onSuccess: setResult,
+  })
+  const addFilesMutation = useMutation({ mutationFn: prepareImageFiles })
   const [error, setError] = useState<string | null>(null)
   const form = useForm({
     defaultValues: {
@@ -85,45 +89,26 @@ export function ImageToPdfPage() {
 
   const resetMutation = () => {
     createPdf.reset()
+    addFilesMutation.reset()
     setError(null)
   }
 
-  const handleFiles = async (incoming: ReadonlyArray<File>) => {
+  const handleFiles = (incoming: ReadonlyArray<File>) => {
     resetMutation()
+    addFilesMutation.mutate(
+      { files: incoming, existingFileCount: files.length, existingTotalBytes: totalBytes },
+      {
+        onSuccess: (batch) => {
+          if (batch.accepted.length > 0) {
+            addFiles(batch.accepted)
+          }
 
-    const accepted: Array<File> = []
-    let total = totalBytes
-
-    for (const file of incoming) {
-      if (files.length + accepted.length >= MAX_IMAGE_FILES) {
-        setError(`You can combine at most ${MAX_IMAGE_FILES} images at once.`)
-        break
-      }
-
-      if (file.size > MAX_IMAGE_BYTES) {
-        setError(`${file.name} is larger than ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`)
-        continue
-      }
-
-      if (total + file.size > MAX_IMAGE_TOTAL_BYTES) {
-        setError(`The combined images can be at most ${MAX_IMAGE_TOTAL_BYTES / 1024 / 1024} MB.`)
-        continue
-      }
-
-      const header = new Uint8Array(await file.slice(0, 64).arrayBuffer())
-
-      if (detectImageFormat(header) === null) {
-        setError(`${file.name} is not a readable image.`)
-        continue
-      }
-
-      accepted.push(file)
-      total += file.size
-    }
-
-    if (accepted.length > 0) {
-      addFiles(accepted)
-    }
+          if (batch.errors.length > 0) {
+            setError(batch.errors[0] ?? null)
+          }
+        },
+      },
+    )
   }
 
   const handleReorder = (next: ReadonlyArray<ImagePdfFileEntry>) => {
@@ -155,16 +140,16 @@ export function ImageToPdfPage() {
       {files.length === 0 ? (
         <Dropzone
           multiple
-          disabled={createPdf.isPending}
-          onFiles={(incoming) => void handleFiles(incoming)}
+          disabled={createPdf.isPending || addFilesMutation.isPending}
+          onFiles={handleFiles}
         />
       ) : (
         <Dropzone
           multiple
           compact
-          disabled={createPdf.isPending}
-          onFiles={(incoming) => void handleFiles(incoming)}
-          label="Add more images"
+          disabled={createPdf.isPending || addFilesMutation.isPending}
+          onFiles={handleFiles}
+          label={addFilesMutation.isPending ? "Reading images…" : "Add more images"}
           hint={`PNG, JPEG, WebP, AVIF, GIF or TIFF · up to ${MAX_IMAGE_BYTES / 1024 / 1024} MB each`}
         />
       )}
@@ -195,7 +180,7 @@ export function ImageToPdfPage() {
                       value={field.state.value}
                       onValueChange={(value) => field.handleChange(value as ImagePdfMode)}
                     >
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger className="w-full" aria-label="Output">
                         <SelectValue>{MODE_LABEL[field.state.value]}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
@@ -215,7 +200,7 @@ export function ImageToPdfPage() {
                       value={field.state.value}
                       onValueChange={(value) => field.handleChange(value as ImagePdfPageSize)}
                     >
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger className="w-full" aria-label="Page size">
                         <SelectValue>{PAGE_SIZE_LABEL[field.state.value]}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>

@@ -1,7 +1,7 @@
 import { FileDownIcon, FileType2Icon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { ConversionResult } from "@/features/document-tools/components/conversion-result"
+import { ConversionResult } from "@/features/tools/components/conversion-result"
 import { FileDropzone } from "@/features/document-tools/components/file-dropzone"
 import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import { MAX_DOCX_BYTES } from "@/libs/schemas/document"

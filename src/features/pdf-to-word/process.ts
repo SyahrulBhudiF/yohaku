@@ -6,7 +6,6 @@ import { runEffect } from "@/infrastructure/runtime"
 import { extractPdfTextRows } from "@/libs/utils/pdf/extract-text-rows"
 import { MAX_PDF_BYTES } from "@/libs/schemas/pdf"
 import { isPdfFile } from "@/features/pdf-tools/validation"
-import { createWordBlob } from "./document"
 
 export interface PdfToWordOutput {
   readonly blob: Blob
@@ -35,7 +34,11 @@ export const convertPdfToWord = (file: File): Promise<PdfToWordOutput> =>
       const extracted = yield* extractPdfTextRows(file)
 
       const blob = yield* Effect.tryPromise({
-        try: () => createWordBlob(extracted),
+        try: async () => {
+          const { createWordBlob } = await import("./document")
+
+          return createWordBlob(extracted)
+        },
         catch: () =>
           new PdfToWordError({
             message: "Could not package the extracted text as a Word document.",

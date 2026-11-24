@@ -6,13 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import { MAX_IMAGE_BYTES } from "@/libs/schemas/image"
-import { detectImageFormat } from "@/libs/utils/image-codec"
-import { removeImageBackground } from "../process"
+import { removeImageBackground, validateRemoveBackgroundFile } from "../process"
 import { useRemoveBackgroundStore } from "../store"
 import { Dropzone } from "./dropzone"
 import { Checkerboard, ImageFileCard, ImageResultCard } from "./image-result-parts"
-
-const ACCEPTED_FORMATS = new Set(["png", "jpeg", "webp"])
 
 export function RemoveBackgroundPage() {
   const { file, previewUrl, result, setFile, setResult, reset } = useRemoveBackgroundStore()
@@ -21,9 +18,10 @@ export function RemoveBackgroundPage() {
     mutationFn: (next: File) => removeImageBackground({ file: next }),
     onSuccess: setResult,
   })
+  const selectFile = useMutation({ mutationFn: validateRemoveBackgroundFile })
   const errorMessage = error ?? mutation.error?.message ?? null
 
-  const handleFile = async (incoming: ReadonlyArray<File>) => {
+  const handleFile = (incoming: ReadonlyArray<File>) => {
     const next = incoming[0]
 
     if (!next) {
@@ -32,27 +30,22 @@ export function RemoveBackgroundPage() {
 
     mutation.reset()
     setError(null)
+    selectFile.mutate(next, {
+      onSuccess: (result) => {
+        if (result.ok) {
+          setFile(result.file)
 
-    if (next.size > MAX_IMAGE_BYTES) {
-      setError(`Images can be at most ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`)
+          return
+        }
 
-      return
-    }
-
-    const header = new Uint8Array(await next.slice(0, 16).arrayBuffer())
-    const format = detectImageFormat(header)
-
-    if (!format || !ACCEPTED_FORMATS.has(format)) {
-      setError("Use a PNG, JPEG, or WebP image.")
-
-      return
-    }
-
-    setFile(next)
+        setError(result.message)
+      },
+    })
   }
 
   const handleRemove = () => {
     mutation.reset()
+    selectFile.reset()
     setError(null)
     reset()
   }
@@ -70,16 +63,16 @@ export function RemoveBackgroundPage() {
       {file === null ? (
         <Dropzone
           accept="image/png,image/jpeg,image/webp"
-          disabled={mutation.isPending}
-          onFiles={(incoming) => void handleFile(incoming)}
+          disabled={mutation.isPending || selectFile.isPending}
+          onFiles={handleFile}
           hint={`PNG, JPEG, or WebP · up to ${MAX_IMAGE_BYTES / 1024 / 1024} MB`}
         />
       ) : (
         <Dropzone
           accept="image/png,image/jpeg,image/webp"
           compact
-          disabled={mutation.isPending}
-          onFiles={(incoming) => void handleFile(incoming)}
+          disabled={mutation.isPending || selectFile.isPending}
+          onFiles={handleFile}
           label="Replace image"
           hint="PNG, JPEG, or WebP"
         />

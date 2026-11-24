@@ -41,12 +41,27 @@ export const PdfSplitModeSchema = Schema.Literals(["every", "chunks", "ranges"])
 
 export type PdfSplitMode = typeof PdfSplitModeSchema.Type
 
+export const PdfSplitRangeSchema = Schema.Struct({
+  id: Schema.String,
+  start: Schema.String,
+  end: Schema.String,
+})
+
+export type PdfSplitRange = typeof PdfSplitRangeSchema.Type
+
 export const PdfSplitFormSchema = Schema.Struct({
   mode: PdfSplitModeSchema,
   pagesPerFile: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: MAX_PDF_PAGES })),
+  ranges: Schema.Array(PdfSplitRangeSchema),
 })
 
 export type PdfSplitFormValues = typeof PdfSplitFormSchema.Type
+
+export const PdfExtractFormSchema = Schema.Struct({
+  selection: Schema.String.check(Schema.isMaxLength(10_000)),
+})
+
+export type PdfExtractFormValues = typeof PdfExtractFormSchema.Type
 
 export const PdfImageDpiSchema = Schema.Literals([72, 150, 300])
 
@@ -56,6 +71,7 @@ export const PdfImageFormSchema = Schema.Struct({
   format: ImageFormatSchema,
   quality: QualitySchema,
   dpi: PdfImageDpiSchema,
+  pageSelection: Schema.String.check(Schema.isMaxLength(10_000)),
 })
 
 export type PdfImageFormValues = typeof PdfImageFormSchema.Type

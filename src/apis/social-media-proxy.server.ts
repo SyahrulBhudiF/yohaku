@@ -2,6 +2,7 @@ import { Option, Schema } from "effect"
 
 import {
   MAX_SOCIAL_MEDIA_CONTROL_BYTES,
+  MAX_SOCIAL_MEDIA_CONTROL_REQUEST_BYTES,
   MAX_SOCIAL_MEDIA_DOWNLOAD_BYTES,
   SocialMediaDownloadRequestSchema,
   type SocialMediaDownloadRequest,
@@ -44,12 +45,12 @@ const SAFE_UPSTREAM_HEADERS = new Set([
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
 const MAX_REDIRECTS = 4
-const MAX_CONTROL_REQUEST_BYTES = 1024 * 1024
+const UPSTREAM_TIMEOUT_MS = 30_000
 
 type Fetcher = (url: string, init: RequestInit) => Promise<Response>
 type ProxyKind = "control" | "download"
 
-const response = (message: string, status: number) =>
+export const mediaProxyResponse = (message: string, status: number) =>
   new Response(message, {
     status,
     headers: {
@@ -58,6 +59,8 @@ const response = (message: string, status: number) =>
       "X-Content-Type-Options": "nosniff",
     },
   })
+
+const response = mediaProxyResponse
 
 const isAllowedHost = (host: string) =>
   MEDIA_HOST_SUFFIXES.some((suffix) => host === suffix || host.endsWith(`.${suffix}`))
@@ -84,7 +87,7 @@ const parseUpstreamUrl = (value: string | null) => {
   }
 }
 
-const isSameOrigin = (request: Request) => {
+export const isSameOriginRequest = (request: Request) => {
   const requestUrl = new URL(request.url)
   const origin = request.headers.get("origin")
   const fetchSite = request.headers.get("sec-fetch-site")
@@ -278,10 +281,10 @@ const readDownloadRequest = async (
 ): Promise<SocialMediaDownloadRequest | null> => {
   const contentLength = Number(request.headers.get("content-length") ?? 0)
 
-  if (contentLength > MAX_CONTROL_REQUEST_BYTES) return null
+  if (contentLength > MAX_SOCIAL_MEDIA_CONTROL_REQUEST_BYTES) return null
 
   try {
-    const bytes = await readRequestBody(request, MAX_CONTROL_REQUEST_BYTES)
+    const bytes = await readRequestBody(request, MAX_SOCIAL_MEDIA_CONTROL_REQUEST_BYTES)
 
     if (!bytes) return null
 
@@ -328,7 +331,7 @@ const proxy = async (
 ) => {
   const requestContentLength = Number(request.headers.get("content-length") ?? 0)
 
-  if (kind === "control" && requestContentLength > MAX_CONTROL_REQUEST_BYTES) {
+  if (kind === "control" && requestContentLength > MAX_SOCIAL_MEDIA_CONTROL_REQUEST_BYTES) {
     return response("The platform request was too large.", 413)
   }
 
@@ -339,7 +342,7 @@ const proxy = async (
   const upstreamMethod = kind === "control" ? request.method : "GET"
   const body =
     kind === "control" && upstreamMethod === "POST"
-      ? await readRequestBody(request, MAX_CONTROL_REQUEST_BYTES)
+      ? await readRequestBody(request, MAX_SOCIAL_MEDIA_CONTROL_REQUEST_BYTES)
       : undefined
 
   if (body === null) return response("The platform request was too large.", 413)
@@ -348,6 +351,8 @@ const proxy = async (
     platform ?? (kind === "control" ? inferPlatform(target) : undefined),
   )
   let upstream: Response | null
+  const headerTimeout = new AbortController()
+  const timeoutId = setTimeout(() => headerTimeout.abort(), UPSTREAM_TIMEOUT_MS)
 
   try {
     upstream = await fetchAllowedTarget(
@@ -356,12 +361,22 @@ const proxy = async (
         method: upstreamMethod,
         headers,
         ...(body === undefined ? {} : { body }),
-        signal: request.signal,
+        signal: AbortSignal.any([request.signal, headerTimeout.signal]),
       },
       fetcher,
     )
-  } catch {
+  } catch (cause) {
+    if (headerTimeout.signal.aborted) {
+      return response("The platform request timed out. Try again.", 504)
+    }
+
+    // eslint-disable-next-line no-console -- Workers Logs capture upstream failures.
+    console.error("media proxy upstream request failed", cause)
+
     return response("The platform request could not be completed.", 502)
+  } finally {
+    // Only the response headers are bounded; the body may stream for longer.
+    clearTimeout(timeoutId)
   }
 
   if (!upstream) return response("The platform redirect was blocked or exceeded the limit.", 502)
@@ -376,7 +391,12 @@ const proxy = async (
   if (totalBytes > limit) {
     await upstream.body?.cancel()
 
-    return response("This video is larger than the supported download limit.", 413)
+    return response(
+      kind === "control"
+        ? "The platform response was larger than the supported limit."
+        : "This video is larger than the supported download limit.",
+      413,
+    )
   }
 
   const responseHeaders = new Headers({
@@ -385,13 +405,15 @@ const proxy = async (
     "X-Yohaku-Final-Url": upstream.url || target.toString(),
   })
 
-  for (const name of ["content-type", "etag"] as const) {
-    const value = upstream.headers.get(name)
+  const etag = upstream.headers.get("etag")
 
-    if (value) responseHeaders.set(name, value)
-  }
+  if (etag) responseHeaders.set("etag", etag)
 
   if (kind === "download") {
+    const contentType = upstream.headers.get("content-type")
+
+    if (contentType) responseHeaders.set("content-type", contentType)
+
     for (const name of ["accept-ranges", "content-length", "content-range"] as const) {
       const value = upstream.headers.get(name)
 
@@ -402,6 +424,12 @@ const proxy = async (
       "Content-Disposition",
       contentDisposition(safeFileName(fileName ?? "video.mp4")),
     )
+  } else {
+    // The resolver reads bytes and never inspects the type. Serving upstream
+    // HTML under this origin would render third-party scripts here.
+    responseHeaders.set("Content-Type", "text/plain; charset=utf-8")
+    responseHeaders.set("Content-Disposition", "attachment")
+    responseHeaders.set("Content-Security-Policy", "sandbox")
   }
 
   return new Response(bodyWithLimit(upstream.body, limit), {
@@ -411,7 +439,8 @@ const proxy = async (
 }
 
 export const handleMediaResolveProxy = async (request: Request, fetcher: Fetcher = fetch) => {
-  if (!isSameOrigin(request)) return response("This proxy only accepts same-origin requests.", 403)
+  if (!isSameOriginRequest(request))
+    return response("This proxy only accepts same-origin requests.", 403)
 
   if (request.method !== "GET" && request.method !== "POST") {
     return response("This request method is not supported.", 405)
@@ -427,7 +456,8 @@ export const handleMediaResolveProxy = async (request: Request, fetcher: Fetcher
 }
 
 export const handleMediaDownloadProxy = async (request: Request, fetcher: Fetcher = fetch) => {
-  if (!isSameOrigin(request)) return response("This proxy only accepts same-origin requests.", 403)
+  if (!isSameOriginRequest(request))
+    return response("This proxy only accepts same-origin requests.", 403)
   if (request.method !== "POST") return response("This request method is not supported.", 405)
 
   const download = await readDownloadRequest(request)

@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export function remove_background(data: Uint8Array | number[], width: number, height: number): Uint8Array;
+export function remove_background(data: Uint8Array | number[], width: number, height: number): Uint8ClampedArray;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 

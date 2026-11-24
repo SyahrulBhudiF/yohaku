@@ -9,6 +9,7 @@ import type {
 } from "./protocol"
 
 type Resolve = (response: WorkerResponse) => void
+type Reject = (error: Error) => void
 type JobRequest = TranscodeRequest | EncodeRequest
 
 interface WorkerSlot {
@@ -16,8 +17,14 @@ interface WorkerSlot {
   active: number
 }
 
+interface PendingRequest {
+  readonly resolve: Resolve
+  readonly reject: Reject
+  readonly slot: WorkerSlot
+}
+
 let nextId = 1
-const pending = new Map<number, Resolve>()
+const pending = new Map<number, PendingRequest>()
 const slots: Array<WorkerSlot> = []
 const preloaded = new Set<ImageFormat>()
 
@@ -32,17 +39,50 @@ const maxWorkers = () => {
 /** Number of codec workers used for batch encoding. */
 export const imageWorkerLimit = (): number => maxWorkers()
 
+const failSlot = (slot: WorkerSlot, message: string) => {
+  const index = slots.indexOf(slot)
+
+  if (index >= 0) {
+    slots.splice(index, 1)
+  }
+
+  slot.worker.terminate()
+
+  for (const [id, request] of pending) {
+    if (request.slot !== slot) {
+      continue
+    }
+
+    pending.delete(id)
+    slot.active = Math.max(0, slot.active - 1)
+    request.reject(new Error(message))
+  }
+}
+
 const createSlot = (): WorkerSlot => {
   const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" })
+  const slot: WorkerSlot = { worker, active: 0 }
 
   worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
     const response = event.data
+    const request = pending.get(response.id)
 
-    pending.get(response.id)?.(response)
+    if (!request) {
+      return
+    }
+
     pending.delete(response.id)
+    request.slot.active = Math.max(0, request.slot.active - 1)
+    request.resolve(response)
   }
 
-  const slot: WorkerSlot = { worker, active: 0 }
+  worker.onerror = ({ message }) => {
+    failSlot(slot, message || "The image codec worker could not start.")
+  }
+
+  worker.onmessageerror = () => {
+    failSlot(slot, "The image codec worker returned an unreadable message.")
+  }
 
   slots.push(slot)
 
@@ -67,15 +107,19 @@ const acquireSlot = (): WorkerSlot => {
   return slots.reduce((least, slot) => (slot.active < least.active ? slot : least), slots[0]!)
 }
 
-const post = (request: JobRequest, transfer: Transferable[], resolve: Resolve) => {
+const post = (request: JobRequest, transfer: Transferable[], resolve: Resolve, reject: Reject) => {
   const slot = acquireSlot()
 
   slot.active++
-  pending.set(request.id, (response) => {
-    slot.active--
-    resolve(response)
-  })
-  slot.worker.postMessage(request, transfer)
+  pending.set(request.id, { resolve, reject, slot })
+
+  try {
+    slot.worker.postMessage(request, transfer)
+  } catch (cause) {
+    pending.delete(request.id)
+    slot.active = Math.max(0, slot.active - 1)
+    reject(cause instanceof Error ? cause : new Error("Could not reach the image codec worker."))
+  }
 }
 
 export const transcodeInWorker = (
@@ -83,15 +127,22 @@ export const transcodeInWorker = (
   format: ImageFormat,
   quality: number,
 ): Promise<TranscodeResponse> =>
-  new Promise((resolve) => {
-    const id = nextId++
+  new Promise((resolve, reject) => {
+    const id = nextId
     const request: JobRequest = { type: "transcode", id, bytes, format, quality }
 
-    post(request, [bytes.buffer], (response) => {
-      if (response.type === "transcode") {
-        resolve(response)
-      }
-    })
+    post(
+      request,
+      [bytes.buffer],
+      (response) => {
+        if (response.type === "transcode") {
+          resolve(response)
+        } else {
+          reject(new Error("The image codec worker returned an unexpected response."))
+        }
+      },
+      reject,
+    )
   })
 
 export const encodeInWorker = (
@@ -99,8 +150,8 @@ export const encodeInWorker = (
   format: ImageFormat,
   quality: number,
 ): Promise<EncodeResponse> =>
-  new Promise((resolve) => {
-    const id = nextId++
+  new Promise((resolve, reject) => {
+    const id = nextId
     // Transfer the caller's buffer when possible. The worker owns the pixels
     // after this call, so callers must not reuse the ImageData.
     const source = image.data
@@ -118,11 +169,18 @@ export const encodeInWorker = (
       quality,
     }
 
-    post(request, [data.buffer], (response) => {
-      if (response.type === "encode") {
-        resolve(response)
-      }
-    })
+    post(
+      request,
+      [data.buffer],
+      (response) => {
+        if (response.type === "encode") {
+          resolve(response)
+        } else {
+          reject(new Error("The image codec worker returned an unexpected response."))
+        }
+      },
+      reject,
+    )
   })
 
 /** Warm the worker's encoder for a format the user is about to convert to. */

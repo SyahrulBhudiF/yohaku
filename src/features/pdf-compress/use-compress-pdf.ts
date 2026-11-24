@@ -21,7 +21,12 @@ export function useCompressPdf() {
     Parameters<typeof compressPdfFile>[0]
   >({
     mutationFn: compressPdfFile,
-    onSuccess: setResult,
+    onSuccess: (output, input) => {
+      if (useCompressPdfStore.getState().file === input.file) {
+        setError(null)
+        setResult(output)
+      }
+    },
     onError: (cause) => {
       setError(cause.message)
     },

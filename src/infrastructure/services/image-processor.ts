@@ -1,6 +1,6 @@
 import { Context, Effect, Layer } from "effect"
 
-import { ImageProcessingError, UnsupportedFormatError } from "@/infrastructure/errors/image"
+import { ImageProcessingError } from "@/infrastructure/errors/image"
 import type { ImageFormat } from "@/libs/schemas/image"
 import type { AnimatedFormat } from "@/libs/utils/image-codec/animation"
 import { animationErrorMessage } from "@/libs/utils/image-codec/animation"
@@ -127,14 +127,12 @@ const encodeInWorkerEffect = Effect.fn("ImageProcessor.encode")(function* (
 export class ImageProcessor extends Context.Service<
   ImageProcessor,
   {
-    readonly detectFormat: (
-      input: Uint8Array,
-    ) => Effect.Effect<ImageFormat, UnsupportedFormatError | ImageProcessingError>
+    readonly detectFormat: (input: Uint8Array) => Effect.Effect<ImageFormat, ImageProcessingError>
     readonly transcode: (
       input: Uint8Array,
       format: ImageFormat,
       quality: number,
-    ) => Effect.Effect<ProcessedImage, ImageProcessingError | UnsupportedFormatError>
+    ) => Effect.Effect<ProcessedImage, ImageProcessingError>
     /** Encodes RGBA pixels; the worker layer may take ownership of the buffer. */
     readonly encode: (
       image: ImageData,

@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress"
-import { ConversionResult } from "@/features/document-tools/components/conversion-result"
+import { ConversionResult } from "@/features/tools/components/conversion-result"
 import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import {
   MAX_SOCIAL_MEDIA_AUDIO_BYTES,

@@ -1,6 +1,11 @@
 import init, { build_pdf, initSync } from "@/libs/wasm/image-pdf-core/image_pdf_core.js"
 
+import type { ImagePdfPageSize } from "@/libs/schemas/pdf"
 import type { PdfImageInput } from "./pdf/images-to-pdf"
+
+export type ImagePdfWasmResult =
+  | { readonly ok: true; readonly bytes: Uint8Array<ArrayBuffer> }
+  | { readonly ok: false; readonly message: string }
 
 let ready: Promise<unknown> | null = null
 
@@ -13,12 +18,8 @@ export const initImagePdfForTests = (module: WebAssembly.Module) => {
 /** Builds an image-only PDF with the Rust core. */
 export const imagesToPdfWasm = async (
   images: ReadonlyArray<PdfImageInput>,
-  pageSize: "fit" | "a4",
-): Promise<Uint8Array<ArrayBuffer> | null> => {
-  if (typeof window === "undefined" && ready === null) {
-    return null
-  }
-
+  pageSize: ImagePdfPageSize,
+): Promise<ImagePdfWasmResult> => {
   try {
     const total = images.reduce((sum, image) => sum + image.data.byteLength, 0)
     const data = new Uint8Array(total)
@@ -33,13 +34,28 @@ export const imagesToPdfWasm = async (
       offset += image.data.byteLength
     }
 
-    ready ??= init()
+    ready ??= init().catch((cause: unknown) => {
+      ready = null
+      throw cause
+    })
     await ready
 
     const output = build_pdf(data, lengths, formats, pageSize)
 
-    return output.length > 0 ? new Uint8Array(output) : null
-  } catch {
-    return null
+    if (output.length === 0) {
+      return { ok: false, message: "Could not create the PDF." }
+    }
+
+    return { ok: true, bytes: output as Uint8Array<ArrayBuffer> }
+  } catch (cause) {
+    return {
+      ok: false,
+      message:
+        cause instanceof Error
+          ? cause.message
+          : typeof cause === "string" && cause.length > 0
+            ? cause
+            : "Could not create the PDF.",
+    }
   }
 }
