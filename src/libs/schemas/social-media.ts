@@ -4,6 +4,7 @@ export const MAX_SOCIAL_MEDIA_URL_LENGTH = 2_048
 export const MAX_SOCIAL_MEDIA_CONTROL_BYTES = 8 * 1024 * 1024
 export const MAX_SOCIAL_MEDIA_DOWNLOAD_BYTES = 300 * 1024 * 1024
 export const MAX_SOCIAL_MEDIA_AUDIO_BYTES = 100 * 1024 * 1024
+export const MAX_SOCIAL_MEDIA_MERGE_BYTES = 200 * 1024 * 1024
 
 export const SocialMediaPlatformSchema = Schema.Literals(["youtube", "instagram", "facebook"])
 

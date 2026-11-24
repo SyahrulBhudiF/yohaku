@@ -7,6 +7,7 @@ import {
   mediaFileStem,
   parseSocialMediaUrl,
   selectAudioSource,
+  selectMergedVideo,
   selectProgressiveVideo,
 } from "@/features/social-media-downloader/validation"
 import type { SocialMediaFormat, SocialMediaInfo } from "@/libs/schemas/social-media"
@@ -33,6 +34,35 @@ const makeInfo = (formats: SocialMediaFormat[]): SocialMediaInfo => ({
   is_live: false,
   formats,
 })
+
+const videoOnly = (
+  codec: string,
+  height: number,
+  container: "Mp4" | "WebM" = "Mp4",
+  url = "https://rr.googlevideo.com/videoplayback?id=video",
+): SocialMediaFormat =>
+  makeFormat({
+    url,
+    audio: null,
+    video: { width: Math.round((height * 16) / 9), height, fps: 30, codec },
+    container,
+    mime_type: container === "WebM" ? "video/webm" : "video/mp4",
+    bitrate: height * 1_000,
+  })
+
+const audioOnly = (
+  codec: string,
+  bitrate: number,
+  container: "M4a" | "Weba" = "M4a",
+): SocialMediaFormat =>
+  makeFormat({
+    url: "https://rr.googlevideo.com/videoplayback?id=audio",
+    video: null,
+    audio: { codec, bitrate, sample_rate: 48_000, channels: 2 },
+    container,
+    mime_type: container === "Weba" ? "audio/webm" : "audio/mp4",
+    bitrate,
+  })
 
 describe("parseSocialMediaUrl", () => {
   it("canonicalizes supported YouTube URLs and keeps only the video ID", () => {
@@ -170,6 +200,55 @@ describe("media selection and labels", () => {
     ]
 
     expect(selectAudioSource(makeInfo(formats))?.audio?.bitrate).toBe(160_000)
+  })
+
+  it("merges the best compatible split streams when no progressive video exists", () => {
+    const merged = selectMergedVideo(
+      makeInfo([
+        videoOnly("avc1.640028", 1080),
+        audioOnly("mp4a.40.2", 128_000),
+        audioOnly("opus", 160_000, "Weba"),
+      ]),
+    )
+
+    expect(merged?.container).toBe("mp4")
+    expect(merged?.video.video?.codec).toContain("avc")
+    expect(merged?.audio.audio?.codec).toContain("mp4a")
+  })
+
+  it("prefers WebM for VP9 video with Opus audio", () => {
+    const merged = selectMergedVideo(
+      makeInfo([
+        videoOnly("vp09.00.10.08", 1080, "WebM"),
+        audioOnly("opus", 160_000, "Weba"),
+        audioOnly("mp4a.40.2", 128_000),
+      ]),
+    )
+
+    expect(merged?.container).toBe("webm")
+    expect(merged?.audio.audio?.codec).toBe("opus")
+  })
+
+  it("keeps AV1 with AAC in MP4 and rejects incompatible or unsafe pairs", () => {
+    expect(
+      selectMergedVideo(
+        makeInfo([videoOnly("av01.0.08M.08", 1080), audioOnly("mp4a.40.2", 128_000)]),
+      )?.container,
+    ).toBe("mp4")
+
+    expect(
+      selectMergedVideo(
+        makeInfo([videoOnly("avc1.640028", 1080), audioOnly("flac", 900_000, "M4a")]),
+      ),
+    ).toBeNull()
+    expect(
+      selectMergedVideo(
+        makeInfo([
+          videoOnly("avc1.640028", 1080, "Mp4", "https://googlevideo.com.attacker.invalid/video"),
+          audioOnly("mp4a.40.2", 128_000),
+        ]),
+      ),
+    ).toBeNull()
   })
 
   it("formats durations and makes safe, useful filenames", () => {

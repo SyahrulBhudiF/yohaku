@@ -105,6 +105,8 @@ export function SocialMediaDownloaderPage() {
   const resolved = model.resolve.data
   const videoFormat = resolved?.videoFormat ?? null
   const audioFormat = resolved?.audioFormat ?? null
+  const mergedVideo = resolved?.mergedVideo ?? null
+  const previewFormat = videoFormat ?? mergedVideo?.video ?? null
   const previewUrl = resolved
     ? getSocialMediaEmbedUrl(resolved.platform, resolved.info.webpage_url)
     : null
@@ -122,12 +124,17 @@ export function SocialMediaDownloaderPage() {
   const handleDownload = async (selectedMode: "video" | "mp3") => {
     if (!resolved) return
 
-    const format = selectedMode === "video" ? videoFormat : audioFormat
+    const format =
+      selectedMode === "video" ? (videoFormat ?? mergedVideo?.video ?? null) : audioFormat
 
     if (!format) return
 
     const extension =
-      selectedMode === "mp3" ? "mp3" : videoExtension(format.container, format.mime_type)
+      selectedMode === "mp3"
+        ? "mp3"
+        : videoFormat
+          ? videoExtension(videoFormat.container, videoFormat.mime_type)
+          : (mergedVideo?.container ?? "mp4")
     const fileName = `${mediaFileStem(resolved.info.title)}.${extension}`
     let saveHandle: BrowserFileHandle | undefined
 
@@ -138,11 +145,20 @@ export function SocialMediaDownloaderPage() {
       if (target.kind === "handle") saveHandle = target.handle
     }
 
+    const merge =
+      selectedMode === "video" && !videoFormat && mergedVideo
+        ? {
+            video: mergedVideo.video,
+            audio: mergedVideo.audio,
+            container: mergedVideo.container,
+          }
+        : undefined
     const request: SocialMediaDownloadRequest = {
       format,
       platform: resolved.platform,
       fileName,
       mode: selectedMode,
+      ...(merge ? { merge } : {}),
       ...(saveHandle ? { saveHandle } : {}),
     }
 
@@ -155,10 +171,14 @@ export function SocialMediaDownloaderPage() {
     }
   }
 
-  const selectedVideo = mode === "video" ? videoFormat : audioFormat
+  const selectedVideo = mode === "video" ? (videoFormat ?? mergedVideo?.video ?? null) : audioFormat
   const duration = formatDuration(resolved?.info.duration ?? null)
   const progressLabel =
-    model.progress.phase === "convert" ? "Converting audio to MP3…" : "Downloading media…"
+    model.progress.phase === "convert"
+      ? "Converting audio to MP3…"
+      : model.progress.phase === "merge"
+        ? "Combining video and audio…"
+        : "Downloading media…"
   const isPending = model.resolve.isPending || model.download.isPending
 
   return (
@@ -241,8 +261,8 @@ export function SocialMediaDownloaderPage() {
             {previewUrl && (
               <SocialMediaPreview
                 aspectRatio={
-                  videoFormat?.video?.width && videoFormat.video.height
-                    ? videoFormat.video.width / videoFormat.video.height
+                  previewFormat?.video?.width && previewFormat.video.height
+                    ? previewFormat.video.width / previewFormat.video.height
                     : 16 / 9
                 }
                 embedUrl={previewUrl}
@@ -253,7 +273,7 @@ export function SocialMediaDownloaderPage() {
               <button
                 type="button"
                 aria-pressed={mode === "video"}
-                disabled={!videoFormat || model.download.isPending}
+                disabled={(!videoFormat && !mergedVideo) || model.download.isPending}
                 onClick={() => setMode("video")}
                 className={`flex min-h-24 items-start gap-3 rounded-xl border p-4 text-left transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 ${mode === "video" ? "border-primary bg-primary-container text-on-primary-container" : "border-outline bg-surface-container-low hover:bg-surface-container"}`}
               >
@@ -263,7 +283,9 @@ export function SocialMediaDownloaderPage() {
                   <span className="text-xs text-muted-foreground">
                     {videoFormat
                       ? `${videoExtension(videoFormat.container, videoFormat.mime_type).toUpperCase()}${videoFormat.video?.height ? ` · ${videoFormat.video.height}p` : ""}${videoFormat.filesize ? ` · ${formatBytes(videoFormat.filesize)}` : ""}`
-                      : "No progressive video with audio is available"}
+                      : mergedVideo
+                        ? `${mergedVideo.container.toUpperCase()}${mergedVideo.video.video?.height ? ` · ${mergedVideo.video.video.height}p` : ""} · video + audio`
+                        : "No video stream is available"}
                   </span>
                 </span>
               </button>
@@ -290,6 +312,10 @@ export function SocialMediaDownloaderPage() {
               <p className="text-xs text-muted-foreground">
                 {mode === "mp3" &&
                   `MP3 conversion uses up to ${MAX_SOCIAL_MEDIA_AUDIO_BYTES / 1024 / 1024} MB of source media.`}
+                {mode === "video" &&
+                  !videoFormat &&
+                  mergedVideo &&
+                  "Separate video and audio streams are combined in your browser."}
               </p>
               <Button
                 disabled={!selectedVideo || model.download.isPending}
@@ -300,7 +326,9 @@ export function SocialMediaDownloaderPage() {
                 {model.download.isPending
                   ? model.progress.phase === "convert"
                     ? "Converting…"
-                    : "Downloading…"
+                    : model.progress.phase === "merge"
+                      ? "Combining…"
+                      : "Downloading…"
                   : mode === "mp3"
                     ? "Download MP3"
                     : "Download video"}

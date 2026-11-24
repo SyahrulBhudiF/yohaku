@@ -281,6 +281,103 @@ export const selectAudioSource = (info: SocialMediaInfo) =>
     .filter((format) => hasStream(format, "audio"))
     .sort((left, right) => compareRank(audioRank(left), audioRank(right)) * -1)[0] ?? null
 
+export interface MergedVideo {
+  readonly video: SocialMediaFormat
+  readonly audio: SocialMediaFormat
+  readonly container: "mp4" | "webm"
+}
+
+type VideoFamily = "avc" | "hevc" | "vp8" | "vp9" | "av1"
+type AudioFamily = "aac" | "mp3" | "opus" | "vorbis"
+
+const videoFamily = (codec: string): VideoFamily | null => {
+  const value = codec.toLowerCase()
+
+  if (value.includes("avc") || value.includes("h264")) return "avc"
+  if (value.includes("hev") || value.includes("hvc") || value.includes("h265")) return "hevc"
+  if (value.includes("vp9") || value.includes("vp09")) return "vp9"
+  if (value.includes("vp8")) return "vp8"
+  if (value.includes("av1") || value.includes("av01")) return "av1"
+
+  return null
+}
+
+const audioFamily = (codec: string): AudioFamily | null => {
+  const value = codec.toLowerCase()
+
+  if (value.includes("mp4a") || value.includes("aac")) return "aac"
+  if (value.includes("opus")) return "opus"
+  if (value.includes("vorbis")) return "vorbis"
+  if (value.includes("mp3")) return "mp3"
+
+  return null
+}
+
+const mergedContainer = (
+  video: VideoFamily,
+  audio: AudioFamily,
+): MergedVideo["container"] | null => {
+  if (["vp8", "vp9", "av1"].includes(video) && ["opus", "vorbis"].includes(audio)) {
+    return "webm"
+  }
+
+  if (
+    ["avc", "hevc", "av1", "vp8", "vp9"].includes(video) &&
+    ["aac", "mp3", "opus", "vorbis"].includes(audio)
+  ) {
+    return "mp4"
+  }
+
+  return null
+}
+
+/**
+ * Picks a video-only and audio-only pair for a browser-side merge when the
+ * provider does not offer a progressive stream.
+ */
+export const selectMergedVideo = (info: SocialMediaInfo): MergedVideo | null => {
+  const videos = info.formats
+    .filter(
+      (format) => format.video != null && format.audio == null && isSupportedMediaUrl(format.url),
+    )
+    .sort((left, right) => compareRank(videoRank(left), videoRank(right)) * -1)
+  const audios = info.formats
+    .filter(
+      (format) => format.audio != null && format.video == null && isSupportedMediaUrl(format.url),
+    )
+    .sort((left, right) => compareRank(audioRank(left), audioRank(right)) * -1)
+
+  for (const video of videos) {
+    const videoKind = videoFamily(video.video?.codec ?? "")
+
+    if (!videoKind) continue
+
+    const preferredAudio: ReadonlyArray<AudioFamily> =
+      videoKind === "avc" || videoKind === "hevc" ? ["aac", "mp3"] : ["opus", "vorbis"]
+    const candidates = audios.flatMap((audio) => {
+      const audioKind = audioFamily(audio.audio?.codec ?? "")
+      const container = audioKind ? mergedContainer(videoKind, audioKind) : null
+
+      return container ? [{ audio, audioKind, container }] : []
+    })
+
+    if (candidates.length === 0) continue
+
+    const [first] = candidates
+
+    if (!first) continue
+
+    const choice =
+      candidates.find(
+        (candidate) => candidate.audioKind != null && preferredAudio.includes(candidate.audioKind),
+      ) ?? first
+
+    return { video, audio: choice.audio, container: choice.container }
+  }
+
+  return null
+}
+
 export const mediaFileStem = (title: string) => {
   const normalized = title.normalize("NFKC")
   const stem = Array.from(normalized, (character) => {

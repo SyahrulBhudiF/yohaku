@@ -6,16 +6,20 @@ import { runEffect } from "@/infrastructure/runtime"
 import {
   MAX_SOCIAL_MEDIA_AUDIO_BYTES,
   MAX_SOCIAL_MEDIA_DOWNLOAD_BYTES,
+  MAX_SOCIAL_MEDIA_MERGE_BYTES,
   type SocialMediaFormat,
   type SocialMediaInfo,
   type SocialMediaPlatform,
 } from "@/libs/schemas/social-media"
 import { convertVideoToMp3 } from "@/features/video-to-mp3/process"
+import { mergeInWorker, type MergeContainer } from "./merge"
 import {
   decodeSocialMediaInfo,
   parseSocialMediaUrl,
   selectAudioSource,
+  selectMergedVideo,
   selectProgressiveVideo,
+  type MergedVideo,
 } from "./validation"
 
 export interface ResolvedSocialMedia {
@@ -23,6 +27,7 @@ export interface ResolvedSocialMedia {
   readonly platform: SocialMediaPlatform
   readonly videoFormat: SocialMediaFormat | null
   readonly audioFormat: SocialMediaFormat | null
+  readonly mergedVideo: MergedVideo | null
 }
 
 export interface BrowserFileHandle {
@@ -41,10 +46,15 @@ export interface SocialMediaDownloadRequest {
   readonly fileName: string
   readonly mode: "video" | "mp3"
   readonly saveHandle?: BrowserFileHandle
+  readonly merge?: {
+    readonly video: SocialMediaFormat
+    readonly audio: SocialMediaFormat
+    readonly container: MergeContainer
+  }
 }
 
 export interface DownloadProgress {
-  readonly phase: "download" | "convert"
+  readonly phase: "download" | "convert" | "merge"
   readonly progress: number
 }
 
@@ -202,25 +212,30 @@ export const resolveSocialMedia = (
 
     const videoFormat = selectProgressiveVideo(info)
     const audioFormat = selectAudioSource(info)
+    const mergedVideo = videoFormat ? null : selectMergedVideo(info)
 
-    if (!videoFormat && !audioFormat) {
+    if (!videoFormat && !mergedVideo && !audioFormat) {
       return yield* new SocialMediaDownloaderError({
         message: "No public video or audio stream was available for this link.",
       })
     }
 
-    return { info, platform: parsed.platform, videoFormat, audioFormat }
+    return { info, platform: parsed.platform, videoFormat, audioFormat, mergedVideo }
   })
 
-const downloadResponse = (request: SocialMediaDownloadRequest) =>
+const downloadFormatResponse = (
+  format: SocialMediaFormat,
+  platform: SocialMediaPlatform,
+  fileName: string,
+) =>
   fetch("/api/media/download", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      url: request.format.url,
-      platform: request.platform,
-      fileName: request.fileName,
-      headers: (request.format.http_headers ?? []).map(([name, value]) => ({ name, value })),
+      url: format.url,
+      platform,
+      fileName,
+      headers: (format.http_headers ?? []).map(([name, value]) => ({ name, value })),
     }),
   })
 
@@ -332,13 +347,161 @@ const mediaFileExtension = (mimeType: string, container: string | null | undefin
   return "mp4"
 }
 
+const mergeErrorMessage = (cause: unknown) => {
+  switch (cause) {
+    case "unsupported":
+      return "This video's codecs cannot be combined in this browser."
+    case "too-large":
+      return "This video is too large to combine in the browser. Try a shorter video."
+    case "worker":
+      return "The video merge worker stopped unexpectedly. Try again."
+    default:
+      return "The video and audio streams could not be combined. Try again."
+  }
+}
+
+const mergedSourceError = (reason: "too-large" | "unavailable") =>
+  reason === "too-large"
+    ? "This video is too large to combine in the browser. Try a shorter video."
+    : "The video or audio stream was not available for this post."
+
+const downloadMergedVideo = (
+  request: SocialMediaDownloadRequest & {
+    readonly merge: NonNullable<SocialMediaDownloadRequest["merge"]>
+  },
+  onProgress: (progress: DownloadProgress) => void,
+): Effect.Effect<SocialMediaDownloadResult, SocialMediaDownloaderError> =>
+  Effect.gen(function* () {
+    const { video, audio, container } = request.merge
+    const videoResponse = yield* Effect.tryPromise({
+      try: () => downloadFormatResponse(video, request.platform, request.fileName),
+      catch: () =>
+        new SocialMediaDownloaderError({
+          message: "Could not connect to the media download service. Try again in a moment.",
+        }),
+    })
+
+    if (!videoResponse.ok) {
+      return yield* new SocialMediaDownloaderError({
+        message: readErrorResponse(videoResponse.status),
+      })
+    }
+
+    const videoSource = yield* Effect.tryPromise({
+      try: () =>
+        readResponse(videoResponse, MAX_SOCIAL_MEDIA_MERGE_BYTES, (progress) =>
+          onProgress({ phase: "download", progress: progress * 0.4 }),
+        ),
+      catch: () =>
+        new SocialMediaDownloaderError({
+          message: "The video download was interrupted. Check your connection and try again.",
+        }),
+    })
+
+    if (!videoSource.ok) {
+      return yield* new SocialMediaDownloaderError({
+        message: mergedSourceError(videoSource.reason),
+      })
+    }
+
+    const audioResponse = yield* Effect.tryPromise({
+      try: () => downloadFormatResponse(audio, request.platform, request.fileName),
+      catch: () =>
+        new SocialMediaDownloaderError({
+          message: "Could not connect to the media download service. Try again in a moment.",
+        }),
+    })
+
+    if (!audioResponse.ok) {
+      return yield* new SocialMediaDownloaderError({
+        message: readErrorResponse(audioResponse.status),
+      })
+    }
+
+    const audioSource = yield* Effect.tryPromise({
+      try: () =>
+        readResponse(audioResponse, MAX_SOCIAL_MEDIA_MERGE_BYTES, (progress) =>
+          onProgress({ phase: "download", progress: 0.4 + progress * 0.4 }),
+        ),
+      catch: () =>
+        new SocialMediaDownloaderError({
+          message: "The audio download was interrupted. Check your connection and try again.",
+        }),
+    })
+
+    if (!audioSource.ok) {
+      return yield* new SocialMediaDownloaderError({
+        message: mergedSourceError(audioSource.reason),
+      })
+    }
+
+    if (videoSource.bytes + audioSource.bytes > MAX_SOCIAL_MEDIA_MERGE_BYTES) {
+      return yield* new SocialMediaDownloaderError({
+        message: mergedSourceError("too-large"),
+      })
+    }
+
+    const bytes = yield* Effect.tryPromise({
+      try: () =>
+        mergeInWorker(videoSource.blob, audioSource.blob, container, (progress) =>
+          onProgress({ phase: "merge", progress: 0.8 + progress * 0.2 }),
+        ),
+      catch: (cause) => new SocialMediaDownloaderError({ message: mergeErrorMessage(cause) }),
+    })
+    const blob = new Blob([bytes], { type: container === "webm" ? "video/webm" : "video/mp4" })
+    const inputBytes = videoSource.bytes + audioSource.bytes
+    const saveHandle = request.saveHandle
+
+    if (saveHandle) {
+      const saved = yield* Effect.tryPromise({
+        try: async () => {
+          const writer = await saveHandle.createWritable()
+
+          try {
+            await writer.write(new Uint8Array(bytes))
+            await writer.close()
+          } catch (cause) {
+            try {
+              await writer.abort?.()
+            } catch {
+              // The writer is already unusable.
+            }
+
+            throw cause
+          }
+
+          return bytes.byteLength
+        },
+        catch: () =>
+          new SocialMediaDownloaderError({
+            message:
+              "Could not save this video to the selected location. Choose another location and retry.",
+          }),
+      })
+
+      return { kind: "saved", fileName: request.fileName, outputBytes: saved }
+    }
+
+    return {
+      kind: "file",
+      blob,
+      fileName: request.fileName,
+      inputBytes,
+      outputBytes: blob.size,
+    }
+  })
+
 export const downloadSocialMedia = (
   request: SocialMediaDownloadRequest,
   onProgress: (progress: DownloadProgress) => void,
 ): Effect.Effect<SocialMediaDownloadResult, SocialMediaDownloaderError | VideoToMp3Error> =>
   Effect.gen(function* () {
+    if (request.merge) {
+      return yield* downloadMergedVideo({ ...request, merge: request.merge }, onProgress)
+    }
+
     const response = yield* Effect.tryPromise({
-      try: () => downloadResponse(request),
+      try: () => downloadFormatResponse(request.format, request.platform, request.fileName),
       catch: () =>
         new SocialMediaDownloaderError({
           message: "Could not connect to the media download service. Try again in a moment.",
