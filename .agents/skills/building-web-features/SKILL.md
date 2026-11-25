@@ -25,7 +25,7 @@ Read the root `AGENTS.md`, `.agents/CONTEXT.md`, and
   theme, object-URL cleanup, unmount cleanup). Put the exact marker
   `// architecture: external synchronization` immediately above it.
 - Shared primitives live in `src/components/ui/` (shadcn on Base UI).
-- A new tool also needs an entry in `src/features/tools/registry.ts`.
+- For new public tools, follow [Search and share previews](../../ARCHITECTURE.md#search-and-share-previews) before reporting the feature complete.
 
 ## Interaction rules
 

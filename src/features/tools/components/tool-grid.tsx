@@ -242,7 +242,8 @@ export function ToolGrid() {
             />
           </p>
           <p className="mt-2 text-sm text-muted-foreground lg:text-base">
-            Simple utilities for images, documents and everything in between.
+            Convert PDFs to images, compress photos, and turn Office documents into PDFs with free
+            browser-based tools.
           </p>
           <p lang="ja" className="text-xs text-muted-foreground lg:text-sm">
             画像・文書・メディアなど、日々の作業を少しだけ軽くするツールです。

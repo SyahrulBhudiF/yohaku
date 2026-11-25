@@ -103,5 +103,12 @@ empty/selected/pending/success/error states, and inspect the capture.
    `runEffect`.
 4. Add the Zustand store only for files/results/UI selection.
 5. Build the page with TanStack Form + Query; keep the route thin.
-6. Register the tool in `src/features/tools/registry.ts`.
+6. For a public tool, follow [Search and share previews](#search-and-share-previews).
 7. Add tests under `tests/` and run the verification commands above.
+
+### Search and share previews
+
+- Register the public route in `src/features/tools/registry.ts`. Add a distinct search title, description, short usage guide, and links to relevant tools in `src/features/tools/search-content.ts`. Use the names and file formats people search for, and describe only supported behavior. The registry and search content drive the server-rendered metadata and tool guides.
+- Add a tool-specific illustration to `ToolPictogram`. Share cards reuse the tool grid's light theme, Roboto Flex, Yohaku wordmark, category chip, and pictogram. Use the shared template, not a separate visual style for each feature.
+- Run `node scripts/generate-seo-assets.mjs` from the repository root. It uses Chromium (`CHROME_BIN` can point to Chrome for Testing) and a Japanese-capable system font such as Noto Sans CJK JP. Include the resulting `public/social/<tool-id>.png` (1200×630) and `public/sitemap.xml` in the same change. Regenerate after changing titles, descriptions, pictograms, or theme tokens that affect the cards.
+- Open the generated PNG at full size and as a thumbnail to catch clipping, missing artwork, and unreadable text. Verify that the route's server-rendered canonical and `og:image` URLs match the sitemap and a fetchable PNG. Run `pnpm test:run tests/features/tools/seo.test.ts`.

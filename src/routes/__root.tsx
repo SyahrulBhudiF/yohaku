@@ -13,40 +13,64 @@ import { ArrowLeftIcon } from "lucide-react"
 
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
+import { ToolGuide } from "@/features/tools/components/tool-guide"
+import { pageSeo } from "@/features/tools/seo"
 import appCss from "../styles.css?url"
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      {
-        charSet: "utf-8",
-      },
-      {
-        name: "viewport",
-        content: "width=device-width, initial-scale=1",
-      },
-      {
-        title: "Yohaku",
-      },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      {
-        rel: "icon",
-        type: "image/png",
-        href: "/yohaku-icon.png",
-        sizes: "512x512",
-      },
-      {
-        rel: "shortcut icon",
-        href: "/yohaku-icon.png",
-        type: "image/png",
-      },
-    ],
-  }),
+  head: ({ matches }) => {
+    const match = matches.at(-1)
+    const seo = pageSeo(
+      match?._notFound || match?.status === "notFound" ? "" : (match?.pathname ?? "/"),
+    )
+
+    return {
+      meta: [
+        {
+          charSet: "utf-8",
+        },
+        {
+          name: "viewport",
+          content: "width=device-width, initial-scale=1",
+        },
+        {
+          title: seo.title,
+        },
+        { name: "description", content: seo.description },
+        { name: "robots", content: seo.indexable ? "index, follow" : "noindex, follow" },
+        { property: "og:type", content: "website" },
+        { property: "og:site_name", content: "Yohaku" },
+        { property: "og:title", content: seo.title },
+        { property: "og:description", content: seo.description },
+        { property: "og:url", content: seo.url },
+        { property: "og:image", content: seo.image },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "630" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: seo.title },
+        { name: "twitter:description", content: seo.description },
+        { name: "twitter:image", content: seo.image },
+      ],
+      links: [
+        ...(seo.indexable ? [{ rel: "canonical", href: seo.url }] : []),
+        {
+          rel: "stylesheet",
+          href: appCss,
+        },
+        {
+          rel: "icon",
+          type: "image/png",
+          href: "/yohaku-icon.png",
+          sizes: "512x512",
+        },
+        {
+          rel: "shortcut icon",
+          href: "/yohaku-icon.png",
+          type: "image/png",
+        },
+      ],
+    }
+  },
   notFoundComponent: () => (
     <main className="container mx-auto p-4 pt-16">
       <h1>404</h1>
@@ -81,6 +105,7 @@ function AppShell() {
       </header>
       <main className="flex-1 px-6 pt-4 pb-16">
         <Outlet />
+        <ToolGuide pathname={pathname} />
       </main>
       <footer className="mx-auto flex w-[calc(100%-3rem)] max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-outline-variant py-5 text-sm text-muted-foreground">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">

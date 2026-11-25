@@ -287,7 +287,8 @@ not have one.
 - Zustand (`store.ts`, one per feature) holds client-only state such as the
   selected file and result object URLs, not request status or form values.
 - Route components stay thin and delegate to `src/features/`.
-- Each new tool is added to `src/features/tools/registry.ts`.
+- Ship each new public tool with its registry entry, pictogram, and themed
+  share preview. Follow the [new tool checklist](.agents/ARCHITECTURE.md#when-adding-a-tool).
 
 ## Validation
 
