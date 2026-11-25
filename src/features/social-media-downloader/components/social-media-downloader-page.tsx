@@ -8,7 +8,7 @@ import {
   LinkIcon,
   VideoIcon,
 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -26,45 +26,11 @@ import { formatBytes } from "@/libs/utils/format"
 import {
   formatDuration,
   getSocialMediaEmbedUrl,
-  mediaFileStem,
   parseSocialMediaUrl,
+  videoExtension,
 } from "../validation"
-import type { BrowserFileHandle, SocialMediaDownloadRequest } from "../process"
 import { useSocialMediaDownloader } from "../use-social-media-downloader"
 import { SocialMediaPreview } from "./social-media-preview"
-
-declare global {
-  interface Window {
-    showSaveFilePicker?: (options: { readonly suggestedName: string }) => Promise<BrowserFileHandle>
-  }
-}
-
-type SaveTargetResult =
-  | { readonly kind: "handle"; readonly handle: BrowserFileHandle }
-  | { readonly kind: "browser-download" }
-  | { readonly kind: "cancelled" }
-
-const chooseSaveTarget = async (fileName: string): Promise<SaveTargetResult> => {
-  if (!window.showSaveFilePicker) return { kind: "browser-download" }
-
-  try {
-    return {
-      kind: "handle",
-      handle: await window.showSaveFilePicker({ suggestedName: fileName }),
-    }
-  } catch (cause) {
-    if (cause instanceof DOMException && cause.name === "AbortError") {
-      return { kind: "cancelled" }
-    }
-
-    return { kind: "cancelled" }
-  }
-}
-
-const videoExtension = (
-  container: string | null | undefined,
-  mimeType: string | null | undefined,
-) => (container === "WebM" || mimeType?.includes("webm") ? "webm" : "mp4")
 
 const PLATFORM_LABELS: Record<SocialMediaPlatform, string> = {
   youtube: "YouTube",
@@ -76,7 +42,6 @@ export function SocialMediaDownloaderPage() {
   const model = useSocialMediaDownloader()
   const [validationError, setValidationError] = useState<string | null>(null)
   const [mode, setMode] = useState<"video" | "mp3">("video")
-  const [resultUrl, setResultUrl] = useState<string | null>(null)
   const form = useForm({
     defaultValues: { url: "" } as SocialMediaUrlFormValues,
     validators: { onChange: Schema.toStandardSchemaV1(SocialMediaUrlFormSchema) },
@@ -84,10 +49,9 @@ export function SocialMediaDownloaderPage() {
       onChange: () => {
         model.reset()
         setValidationError(null)
-        setResultUrl(null)
       },
     },
-    onSubmit: async ({ value }) => {
+    onSubmit: ({ value }) => {
       const parsed = parseSocialMediaUrl(value.url)
 
       if (!parsed.ok) {
@@ -99,7 +63,7 @@ export function SocialMediaDownloaderPage() {
       model.download.reset()
       setValidationError(null)
       setMode("video")
-      await model.resolve.mutateAsync(parsed.url).catch(() => null)
+      model.resolve.mutate(parsed.url)
     },
   })
   const resolved = model.resolve.data
@@ -114,62 +78,6 @@ export function SocialMediaDownloaderPage() {
   const fileResult = result?.kind === "file" ? result : null
   const error =
     validationError ?? model.resolve.error?.message ?? model.download.error?.message ?? null
-
-  useEffect(() => {
-    return () => {
-      if (resultUrl) URL.revokeObjectURL(resultUrl)
-    }
-  }, [resultUrl])
-
-  const handleDownload = async (selectedMode: "video" | "mp3") => {
-    if (!resolved) return
-
-    const format =
-      selectedMode === "video" ? (videoFormat ?? mergedVideo?.video ?? null) : audioFormat
-
-    if (!format) return
-
-    const extension =
-      selectedMode === "mp3"
-        ? "mp3"
-        : videoFormat
-          ? videoExtension(videoFormat.container, videoFormat.mime_type)
-          : (mergedVideo?.container ?? "mp4")
-    const fileName = `${mediaFileStem(resolved.info.title)}.${extension}`
-    let saveHandle: BrowserFileHandle | undefined
-
-    if (selectedMode === "video") {
-      const target = await chooseSaveTarget(fileName)
-
-      if (target.kind === "cancelled") return
-      if (target.kind === "handle") saveHandle = target.handle
-    }
-
-    const merge =
-      selectedMode === "video" && !videoFormat && mergedVideo
-        ? {
-            video: mergedVideo.video,
-            audio: mergedVideo.audio,
-            container: mergedVideo.container,
-          }
-        : undefined
-    const request: SocialMediaDownloadRequest = {
-      format,
-      platform: resolved.platform,
-      fileName,
-      mode: selectedMode,
-      ...(merge ? { merge } : {}),
-      ...(saveHandle ? { saveHandle } : {}),
-    }
-
-    setResultUrl(null)
-
-    const downloadResult = await model.download.mutateAsync(request).catch(() => null)
-
-    if (downloadResult?.kind === "file") {
-      setResultUrl(URL.createObjectURL(downloadResult.blob))
-    }
-  }
 
   const selectedVideo = mode === "video" ? (videoFormat ?? mergedVideo?.video ?? null) : audioFormat
   const duration = formatDuration(resolved?.info.duration ?? null)
@@ -319,7 +227,9 @@ export function SocialMediaDownloaderPage() {
               </p>
               <Button
                 disabled={!selectedVideo || model.download.isPending}
-                onClick={() => void handleDownload(mode)}
+                onClick={() => {
+                  if (resolved) void model.downloadTo(mode, resolved)
+                }}
                 aria-busy={model.download.isPending}
               >
                 <DownloadIcon />
@@ -360,9 +270,9 @@ export function SocialMediaDownloaderPage() {
         </Card>
       )}
 
-      {fileResult && resultUrl && (
+      {fileResult && model.resultUrl && (
         <ConversionResult
-          url={resultUrl}
+          url={model.resultUrl}
           fileName={fileResult.fileName}
           inputBytes={fileResult.inputBytes}
           outputBytes={fileResult.outputBytes}

@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest"
 
-import { MAX_SOCIAL_MEDIA_DOWNLOAD_BYTES } from "@/libs/schemas/social-media"
+import {
+  MAX_SOCIAL_MEDIA_CONTROL_BYTES,
+  MAX_SOCIAL_MEDIA_DOWNLOAD_BYTES,
+} from "@/libs/schemas/social-media"
 import { handleMediaDownloadProxy, handleMediaResolveProxy } from "@/apis/social-media-proxy.server"
 
 const origin = "https://yohaku.example"
@@ -197,6 +200,53 @@ describe("social media proxy", () => {
       "https://rr.googlevideo.com/videoplayback?id=1",
     )
     expect(Array.from(new Uint8Array(await response.arrayBuffer()))).toEqual([1, 2, 3, 4])
+  })
+
+  it("forces non-media download responses to an inert octet-stream", async () => {
+    const fetcher = async () =>
+      new Response("<html><script>alert(1)</script></html>", {
+        headers: { "content-type": "text/html" },
+      })
+    const request = new Request(`${origin}/api/media/download`, {
+      method: "POST",
+      headers: { origin, "content-type": "application/json" },
+      body: JSON.stringify({
+        url: "https://rr.googlevideo.com/videoplayback?id=1",
+        platform: "youtube",
+        fileName: "video.mp4",
+        headers: [],
+      }),
+    })
+
+    const response = await handleMediaDownloadProxy(request, fetcher)
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get("content-type")).toBe("application/octet-stream")
+    expect(response.headers.get("content-disposition")).toContain("attachment")
+  })
+
+  it("cuts off a control body that exceeds the stream cap", async () => {
+    const body = new Uint8Array(MAX_SOCIAL_MEDIA_CONTROL_BYTES + 1)
+    const fetcher = async () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(body)
+            controller.close()
+          },
+        }),
+        { headers: { "content-type": "application/json" } },
+      )
+    const target = "https://www.youtube.com/watch?v=abc123"
+    const request = new Request(
+      `${origin}/api/media/resolve-proxy?url=${encodeURIComponent(target)}`,
+      { headers: { origin } },
+    )
+
+    const response = await handleMediaResolveProxy(request, fetcher)
+
+    expect(response.status).toBe(200)
+    await expect(response.arrayBuffer()).rejects.toBeTruthy()
   })
 
   it("rejects media above the stream limit before returning its body", async () => {

@@ -63,6 +63,7 @@ const getWorker = () => {
   }
 
   instance.onerror = failAll
+  instance.onmessageerror = failAll
   worker = instance
 
   return instance

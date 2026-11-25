@@ -404,3 +404,8 @@ export const formatDuration = (duration: SocialMediaInfo["duration"]) => {
 
   return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`
 }
+
+export const videoExtension = (
+  container: string | null | undefined,
+  mimeType: string | null | undefined,
+) => (container === "WebM" || mimeType?.includes("webm") ? "webm" : "mp4")

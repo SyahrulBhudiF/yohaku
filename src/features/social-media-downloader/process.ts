@@ -125,6 +125,7 @@ const getResolverWorker = () => {
   }
 
   worker.onerror = failPendingResolvers
+  worker.onmessageerror = failPendingResolvers
   resolverWorker = worker
 
   return worker
@@ -263,7 +264,7 @@ const readResponse = async (
   if (!response.body) return { ok: false, reason: "unavailable" }
 
   const reader = response.body.getReader()
-  const chunks: Uint8Array[] = []
+  const chunks: Array<Uint8Array<ArrayBuffer>> = []
   let received = 0
 
   while (true) {
@@ -279,15 +280,12 @@ const readResponse = async (
       return { ok: false, reason: "too-large" }
     }
 
-    chunks.push(value)
+    chunks.push(value as Uint8Array<ArrayBuffer>)
     onProgress(contentLength > 0 ? Math.min(1, received / contentLength) : 0)
   }
 
   const mimeType = response.headers.get("content-type")?.split(";")[0] ?? "application/octet-stream"
-  const blob = new Blob(
-    chunks.map((chunk) => chunk.slice()),
-    { type: mimeType },
-  )
+  const blob = new Blob(chunks, { type: mimeType })
 
   return { ok: true, blob, bytes: received, mimeType }
 }

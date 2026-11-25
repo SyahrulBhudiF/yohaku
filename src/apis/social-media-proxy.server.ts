@@ -46,6 +46,8 @@ const SAFE_UPSTREAM_HEADERS = new Set([
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
 const MAX_REDIRECTS = 4
 const UPSTREAM_TIMEOUT_MS = 30_000
+const REQUEST_BODY_TIMEOUT_MS = 10_000
+const UPSTREAM_BODY_IDLE_TIMEOUT_MS = 30_000
 
 type Fetcher = (url: string, init: RequestInit) => Promise<Response>
 type ProxyKind = "control" | "download"
@@ -207,34 +209,76 @@ const bodyWithLimit = (body: ReadableStream<Uint8Array> | null, maxBytes: number
 
   const reader = body.getReader()
   let receivedBytes = 0
+  let finished = false
+  let idleTimer: ReturnType<typeof setTimeout> | null = null
+
+  const clearIdleTimer = () => {
+    if (idleTimer !== null) {
+      clearTimeout(idleTimer)
+      idleTimer = null
+    }
+  }
+
+  const fail = (controller: ReadableStreamDefaultController<Uint8Array>, message: string) => {
+    if (finished) return
+
+    finished = true
+    clearIdleTimer()
+    void reader.cancel().catch(() => undefined)
+    controller.error(new DOMException(message, "TimeoutError"))
+  }
 
   return new ReadableStream<Uint8Array>({
     async pull(controller) {
-      const chunk = await reader.read()
+      if (finished) return
 
-      if (chunk.done) {
-        controller.close()
+      idleTimer = setTimeout(
+        () => fail(controller, "The upstream media stopped responding."),
+        UPSTREAM_BODY_IDLE_TIMEOUT_MS,
+      )
 
-        return
+      try {
+        const chunk = await reader.read()
+
+        clearIdleTimer()
+
+        if (finished) return
+
+        if (chunk.done) {
+          finished = true
+          controller.close()
+
+          return
+        }
+
+        receivedBytes += chunk.value.byteLength
+
+        if (receivedBytes > maxBytes) {
+          finished = true
+          await reader.cancel()
+          controller.error(
+            new DOMException(
+              "The upstream media exceeded the download size limit.",
+              "QuotaExceededError",
+            ),
+          )
+
+          return
+        }
+
+        controller.enqueue(chunk.value)
+      } catch (cause) {
+        if (finished) return
+
+        finished = true
+        clearIdleTimer()
+        controller.error(cause)
       }
-
-      receivedBytes += chunk.value.byteLength
-
-      if (receivedBytes > maxBytes) {
-        await reader.cancel()
-        controller.error(
-          new DOMException(
-            "The upstream media exceeded the download size limit.",
-            "QuotaExceededError",
-          ),
-        )
-
-        return
-      }
-
-      controller.enqueue(chunk.value)
     },
     cancel(reason) {
+      finished = true
+      clearIdleTimer()
+
       return reader.cancel(reason)
     },
   })
@@ -248,22 +292,37 @@ const readRequestBody = async (request: Request, maxBytes: number) => {
   const reader = body.getReader()
   const chunks: Uint8Array[] = []
   let received = 0
+  let timedOut = false
+  const timeoutId = setTimeout(() => {
+    timedOut = true
+    void reader.cancel().catch(() => undefined)
+  }, REQUEST_BODY_TIMEOUT_MS)
 
-  while (true) {
-    const { value, done } = await reader.read()
+  try {
+    while (true) {
+      const { value, done } = await reader.read()
 
-    if (done) break
+      if (timedOut) return null
 
-    received += value.byteLength
+      if (done) break
 
-    if (received > maxBytes) {
-      await reader.cancel()
+      received += value.byteLength
 
-      return null
+      if (received > maxBytes) {
+        await reader.cancel()
+
+        return null
+      }
+
+      chunks.push(value)
     }
-
-    chunks.push(value)
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timeoutId)
   }
+
+  if (timedOut) return null
 
   const result = new Uint8Array(received)
   let offset = 0
@@ -401,6 +460,8 @@ const proxy = async (
 
   const responseHeaders = new Headers({
     "Cache-Control": "no-store",
+    "Cross-Origin-Resource-Policy": "same-origin",
+    "Referrer-Policy": "no-referrer",
     "X-Content-Type-Options": "nosniff",
     "X-Yohaku-Final-Url": upstream.url || target.toString(),
   })
@@ -410,9 +471,16 @@ const proxy = async (
   if (etag) responseHeaders.set("etag", etag)
 
   if (kind === "download") {
-    const contentType = upstream.headers.get("content-type")
+    const contentType = upstream.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase()
+    const safeContentType =
+      contentType?.startsWith("video/") ||
+      contentType?.startsWith("audio/") ||
+      contentType === "application/octet-stream" ||
+      contentType === "binary/octet-stream"
+        ? contentType
+        : "application/octet-stream"
 
-    if (contentType) responseHeaders.set("content-type", contentType)
+    responseHeaders.set("content-type", safeContentType)
 
     for (const name of ["accept-ranges", "content-length", "content-range"] as const) {
       const value = upstream.headers.get(name)
