@@ -14,3 +14,10 @@ export class ImageProcessingError extends Schema.TaggedError<
 >()("ImageProcessingError", {
   message: Schema.String,
 }) {}
+
+export class BatchImageError extends Schema.TaggedError<
+  BatchImageError,
+  { readonly brand: unique symbol }
+>()("BatchImageError", {
+  message: Schema.String,
+}) {}

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ExcelToPdfRouteImport } from './routes/excel/to-pdf'
+import { Route as ImageBatchCompressRouteImport } from './routes/image/batch-compress'
 import { Route as ImageCompressRouteImport } from './routes/image/compress'
 import { Route as ImageConvertRouteImport } from './routes/image/convert'
 import { Route as ImageRemoveBackgroundRouteImport } from './routes/image/remove-background'
@@ -40,6 +41,11 @@ const IndexRoute = IndexRouteImport.update({
 const ExcelToPdfRoute = ExcelToPdfRouteImport.update({
   id: '/excel/to-pdf',
   path: '/excel/to-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImageBatchCompressRoute = ImageBatchCompressRouteImport.update({
+  id: '/image/batch-compress',
+  path: '/image/batch-compress',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImageCompressRoute = ImageCompressRouteImport.update({
@@ -146,6 +152,7 @@ const WordToPdfRoute = WordToPdfRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/excel/to-pdf': typeof ExcelToPdfRoute
+  '/image/batch-compress': typeof ImageBatchCompressRoute
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
@@ -170,6 +177,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/excel/to-pdf': typeof ExcelToPdfRoute
+  '/image/batch-compress': typeof ImageBatchCompressRoute
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
@@ -195,6 +203,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/excel/to-pdf': typeof ExcelToPdfRoute
+  '/image/batch-compress': typeof ImageBatchCompressRoute
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
@@ -221,6 +230,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/excel/to-pdf'
+    | '/image/batch-compress'
     | '/image/compress'
     | '/image/convert'
     | '/image/remove-background'
@@ -245,6 +255,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/excel/to-pdf'
+    | '/image/batch-compress'
     | '/image/compress'
     | '/image/convert'
     | '/image/remove-background'
@@ -269,6 +280,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/excel/to-pdf'
+    | '/image/batch-compress'
     | '/image/compress'
     | '/image/convert'
     | '/image/remove-background'
@@ -294,6 +306,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ExcelToPdfRoute: typeof ExcelToPdfRoute
+  ImageBatchCompressRoute: typeof ImageBatchCompressRoute
   ImageCompressRoute: typeof ImageCompressRoute
   ImageConvertRoute: typeof ImageConvertRoute
   ImageRemoveBackgroundRoute: typeof ImageRemoveBackgroundRoute
@@ -330,6 +343,13 @@ declare module '@tanstack/react-router' {
       path: '/excel/to-pdf'
       fullPath: '/excel/to-pdf'
       preLoaderRoute: typeof ExcelToPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/image/batch-compress': {
+      id: '/image/batch-compress'
+      path: '/image/batch-compress'
+      fullPath: '/image/batch-compress'
+      preLoaderRoute: typeof ImageBatchCompressRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/image/compress': {
@@ -478,6 +498,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ExcelToPdfRoute: ExcelToPdfRoute,
+  ImageBatchCompressRoute: ImageBatchCompressRoute,
   ImageCompressRoute: ImageCompressRoute,
   ImageConvertRoute: ImageConvertRoute,
   ImageRemoveBackgroundRoute: ImageRemoveBackgroundRoute,

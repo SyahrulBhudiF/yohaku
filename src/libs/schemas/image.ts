@@ -25,6 +25,66 @@ export const ImageToolFormSchema = Schema.Struct({
 
 export type ImageToolFormValues = typeof ImageToolFormSchema.Type
 
+export const BatchImageFormatSchema = Schema.Union([ImageFormatSchema, Schema.Literal("original")])
+
+export const BatchImageFormSchema = Schema.Struct({
+  format: BatchImageFormatSchema,
+  quality: QualitySchema,
+})
+
+export type BatchImageFormValues = typeof BatchImageFormSchema.Type
+
+export const BatchImageInputFileSchema = Schema.Struct({
+  id: Schema.String,
+  file: Schema.instanceOf(File),
+  name: Schema.String,
+  size: Schema.Int,
+})
+
+export type BatchImageInputFile = typeof BatchImageInputFileSchema.Type
+
+export const BatchCompressedItemSchema = Schema.Struct({
+  id: Schema.String,
+  fileName: Schema.String,
+  inputBytes: Schema.Int,
+  outputBytes: Schema.Int,
+  mimeType: Schema.String,
+})
+
+export type BatchCompressedItem = typeof BatchCompressedItemSchema.Type
+
+export const BatchCompressedFailureSchema = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  message: Schema.String,
+})
+
+export type BatchCompressedFailure = typeof BatchCompressedFailureSchema.Type
+
+export const BatchCompressInputSchema = Schema.Struct({
+  files: Schema.Array(BatchImageInputFileSchema).check(Schema.isMaxLength(MAX_IMAGE_FILES)),
+  format: BatchImageFormatSchema,
+  quality: QualitySchema,
+})
+
+export type BatchCompressInput = {
+  readonly files: ReadonlyArray<BatchImageInputFile>
+  readonly format: BatchImageFormValues["format"]
+  readonly quality: number
+}
+
+export const BatchCompressOutputSchema = Schema.Struct({
+  blob: Schema.instanceOf(Blob),
+  fileName: Schema.String,
+  inputBytes: Schema.Int,
+  outputBytes: Schema.Int,
+  zipBytes: Schema.Int,
+  items: Schema.Array(BatchCompressedItemSchema),
+  failures: Schema.Array(BatchCompressedFailureSchema),
+})
+
+export type BatchCompressOutput = typeof BatchCompressOutputSchema.Type
+
 export const IMAGE_MIME: Record<ImageFormat, string> = {
   png: "image/png",
   jpeg: "image/jpeg",

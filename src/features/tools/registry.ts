@@ -8,6 +8,7 @@ export interface ToolDefinition {
   readonly to:
     | "/image/convert"
     | "/image/compress"
+    | "/image/batch-compress"
     | "/image/resize"
     | "/image/to-pdf"
     | "/image/remove-background"
@@ -45,6 +46,13 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     description: "Shrink file size and see how much you saved.",
     category: "image",
     to: "/image/compress",
+  },
+  {
+    id: "image-batch-compress",
+    title: "Batch compress images",
+    description: "Compress up to 50 images with one setting and download a ZIP.",
+    category: "image",
+    to: "/image/batch-compress",
   },
   {
     id: "image-resize",

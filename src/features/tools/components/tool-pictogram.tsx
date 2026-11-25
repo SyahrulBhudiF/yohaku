@@ -84,6 +84,29 @@ const pictograms: Record<string, ReactNode> = {
       />
     </>
   ),
+  "image-batch-compress": (
+    <>
+      <g className="pictogram-part pic-left pic-tilt">
+        <rect x="10" y="16" width="38" height="28" fill={sage} />
+        <circle cx="21" cy="26" r="4" fill={paper} />
+        <path d="M14 40 25 28l7 7 5-4 7 9Z" fill={ink} />
+      </g>
+      <g className="pictogram-part pic-right pic-tilt-back">
+        <rect x="34" y="30" width="38" height="28" fill={sand} />
+        <circle cx="45" cy="40" r="4" fill={paper} />
+        <path d="M38 54 49 42l7 7 5-4 7 9Z" fill={ink} />
+      </g>
+      <path
+        d="M74 20v14m-5-5 5 5 5-5"
+        fill="none"
+        stroke={ink}
+        strokeWidth="3"
+        className={shiftDown}
+      />
+      <rect x="64" y="58" width="20" height="22" fill={ink} />
+      <path d="M70 65h8M70 70h8M70 75h5" stroke={paper} strokeWidth="2" />
+    </>
+  ),
   "image-resize": (
     <>
       <g className="pictogram-part pic-stretch">

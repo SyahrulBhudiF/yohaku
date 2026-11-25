@@ -56,6 +56,7 @@ const CATEGORY_ITEMS: ReadonlyArray<{
 const JAPANESE_TITLES: Record<string, string> = {
   "image-convert": "画像の変換",
   "image-compress": "画像の圧縮",
+  "image-batch-compress": "画像の一括圧縮",
   "image-to-pdf": "画像からPDFへ",
   "image-remove-background": "背景除去",
   "pdf-merge": "PDFの結合",

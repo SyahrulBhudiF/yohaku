@@ -1,3 +1,4 @@
+import type { ImageFormat } from "@/libs/schemas/image"
 import type { AnimatedFormat } from "./animation"
 import { animationErrorMessage } from "./animation"
 import { decodeImage } from "./decode"
@@ -25,6 +26,21 @@ interface WorkerScope {
 }
 
 const scope = self as unknown as WorkerScope
+const warming = new Map<ImageFormat, Promise<void>>()
+
+const warm = (format: ImageFormat) => {
+  const existing = warming.get(format)
+
+  if (existing) {
+    return existing
+  }
+
+  const promise = warmImageCodec(format)
+
+  warming.set(format, promise)
+
+  return promise
+}
 
 const transcode = async (request: TranscodeRequest): Promise<TranscodeResponse> => {
   const source = detectImageFormat(request.bytes)
@@ -37,6 +53,8 @@ const transcode = async (request: TranscodeRequest): Promise<TranscodeResponse> 
       message: "The file is not a readable image.",
     }
   }
+
+  await warm(request.format)
 
   if (source === "png" && request.format === "png") {
     try {
@@ -130,6 +148,8 @@ const resize = async (request: ResizeRequest): Promise<ResizeResponse> => {
     }
   }
 
+  await warm(request.format)
+
   let image: ImageData | null
 
   try {
@@ -177,6 +197,8 @@ const resize = async (request: ResizeRequest): Promise<ResizeResponse> => {
 
 const encode = async (request: EncodeRequest): Promise<EncodeResponse> => {
   try {
+    await warm(request.format)
+
     const image = new ImageData(request.data, request.width, request.height)
     const data = await encodeImage(image, request.format, request.quality)
 
@@ -195,7 +217,7 @@ scope.onmessage = (event) => {
   const request = event.data
 
   if (request.type === "preload") {
-    void warmImageCodec(request.format)
+    void warm(request.format)
 
     return
   }

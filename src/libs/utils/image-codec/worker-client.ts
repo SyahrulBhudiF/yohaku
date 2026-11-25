@@ -1,3 +1,4 @@
+import { ImageProcessingError } from "@/infrastructure/errors/image"
 import type { ImageFormat } from "@/libs/schemas/image"
 import type { ResizeOptions } from "@/libs/utils/image-resize"
 import type {
@@ -15,9 +16,18 @@ type Resolve = (response: WorkerResponse) => void
 type Reject = (error: Error) => void
 type JobRequest = TranscodeRequest | EncodeRequest | ResizeRequest
 
+interface QueuedJob {
+  readonly request: JobRequest
+  readonly transfer: Transferable[]
+  readonly resolve: Resolve
+  readonly reject: Reject
+}
+
 interface WorkerSlot {
   readonly worker: Worker
+  readonly queue: Array<QueuedJob>
   active: number
+  busy: boolean
 }
 
 interface PendingRequest {
@@ -57,14 +67,49 @@ const failSlot = (slot: WorkerSlot, message: string) => {
     }
 
     pending.delete(id)
+    request.reject(new ImageProcessingError({ message }))
+  }
+
+  for (const job of slot.queue.splice(0)) {
+    job.reject(new ImageProcessingError({ message }))
+  }
+
+  slot.active = 0
+  slot.busy = false
+}
+
+const drain = (slot: WorkerSlot) => {
+  if (slot.busy) {
+    return
+  }
+
+  const job = slot.queue.shift()
+
+  if (!job) {
+    return
+  }
+
+  slot.busy = true
+  pending.set(job.request.id, { resolve: job.resolve, reject: job.reject, slot })
+
+  try {
+    slot.worker.postMessage(job.request, job.transfer)
+  } catch (cause) {
+    pending.delete(job.request.id)
     slot.active = Math.max(0, slot.active - 1)
-    request.reject(new Error(message))
+    slot.busy = false
+    job.reject(
+      cause instanceof ImageProcessingError
+        ? cause
+        : new ImageProcessingError({ message: "Could not reach the image codec worker." }),
+    )
+    drain(slot)
   }
 }
 
 const createSlot = (): WorkerSlot => {
   const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" })
-  const slot: WorkerSlot = { worker, active: 0 }
+  const slot: WorkerSlot = { worker, active: 0, busy: false, queue: [] }
 
   worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
     const response = event.data
@@ -75,8 +120,10 @@ const createSlot = (): WorkerSlot => {
     }
 
     pending.delete(response.id)
-    request.slot.active = Math.max(0, request.slot.active - 1)
+    slot.active = Math.max(0, slot.active - 1)
+    slot.busy = false
     request.resolve(response)
+    drain(slot)
   }
 
   worker.onerror = ({ message }) => {
@@ -97,7 +144,7 @@ const createSlot = (): WorkerSlot => {
 }
 
 const acquireSlot = (): WorkerSlot => {
-  const idle = slots.find((slot) => slot.active === 0)
+  const idle = slots.find((slot) => !slot.busy && slot.queue.length === 0)
 
   if (idle) {
     return idle
@@ -114,15 +161,8 @@ const post = (request: JobRequest, transfer: Transferable[], resolve: Resolve, r
   const slot = acquireSlot()
 
   slot.active++
-  pending.set(request.id, { resolve, reject, slot })
-
-  try {
-    slot.worker.postMessage(request, transfer)
-  } catch (cause) {
-    pending.delete(request.id)
-    slot.active = Math.max(0, slot.active - 1)
-    reject(cause instanceof Error ? cause : new Error("Could not reach the image codec worker."))
-  }
+  slot.queue.push({ request, transfer, resolve, reject })
+  drain(slot)
 }
 
 export const transcodeInWorker = (
@@ -131,7 +171,7 @@ export const transcodeInWorker = (
   quality: number,
 ): Promise<TranscodeResponse> =>
   new Promise((resolve, reject) => {
-    const id = nextId
+    const id = nextId++
     const request: JobRequest = { type: "transcode", id, bytes, format, quality }
 
     post(
@@ -141,7 +181,11 @@ export const transcodeInWorker = (
         if (response.type === "transcode") {
           resolve(response)
         } else {
-          reject(new Error("The image codec worker returned an unexpected response."))
+          reject(
+            new ImageProcessingError({
+              message: "The image codec worker returned an unexpected response.",
+            }),
+          )
         }
       },
       reject,
@@ -154,7 +198,7 @@ export const encodeInWorker = (
   quality: number,
 ): Promise<EncodeResponse> =>
   new Promise((resolve, reject) => {
-    const id = nextId
+    const id = nextId++
     // Transfer the caller's buffer when possible. The worker owns the pixels
     // after this call, so callers must not reuse the ImageData.
     const source = image.data
@@ -179,7 +223,11 @@ export const encodeInWorker = (
         if (response.type === "encode") {
           resolve(response)
         } else {
-          reject(new Error("The image codec worker returned an unexpected response."))
+          reject(
+            new ImageProcessingError({
+              message: "The image codec worker returned an unexpected response.",
+            }),
+          )
         }
       },
       reject,
@@ -193,7 +241,7 @@ export const resizeInWorker = (
   quality: number,
 ): Promise<ResizeResponse> =>
   new Promise((resolve, reject) => {
-    const id = nextId
+    const id = nextId++
     const request: JobRequest = { type: "resize", id, bytes, options, format, quality }
 
     post(
@@ -203,7 +251,11 @@ export const resizeInWorker = (
         if (response.type === "resize") {
           resolve(response)
         } else {
-          reject(new Error("The image codec worker returned an unexpected response."))
+          reject(
+            new ImageProcessingError({
+              message: "The image codec worker returned an unexpected response.",
+            }),
+          )
         }
       },
       reject,

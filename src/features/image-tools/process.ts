@@ -1,5 +1,4 @@
 import { Effect } from "effect"
-import { zipSync } from "fflate"
 
 import { FileTooLargeError, ImageProcessingError } from "@/infrastructure/errors/image"
 import { PdfProcessingError } from "@/infrastructure/errors/pdf"
@@ -8,8 +7,10 @@ import { ImageProcessor } from "@/infrastructure/services/image-processor"
 import { PdfProcessor } from "@/infrastructure/services/pdf-processor"
 import { removeBackground } from "@/libs/utils/background-removal"
 import { readImageSize } from "@/libs/utils/image-decode"
-import { detectImageFormat, preloadImageCodec } from "@/libs/utils/image-codec"
+import { detectImageFormat } from "@/libs/utils/image-codec"
 import { vectorizeImage } from "@/libs/utils/image-vectorizer"
+import { createZipWriter } from "@/libs/utils/zip"
+import type { PdfImageInput } from "@/libs/utils/pdf/images-to-pdf"
 import { jpegOrientation } from "@/libs/utils/image-codec/jpeg"
 import {
   IMAGE_EXTENSION,
@@ -19,10 +20,10 @@ import {
   MAX_IMAGE_FILES,
   MAX_IMAGE_TOTAL_BYTES,
   type ImageFormat,
+  type ImageToolFormValues,
   type VectorPreset,
 } from "@/libs/schemas/image"
 import type { ImagePdfMode, ImagePdfPageSize } from "@/libs/schemas/pdf"
-import type { PdfImageInput } from "@/libs/utils/pdf/images-to-pdf"
 import type { ImagePdfFileEntry } from "./store"
 
 export type ImageToolMode = "convert" | "compress"
@@ -135,9 +136,6 @@ const program = (input: ProcessImageInput) =>
     const source = detectImageFormat(bytes)
     const format = input.format ?? source ?? (yield* processor.detectFormat(bytes))
 
-    // Start the encoder download while the source image decodes.
-    preloadImageCodec(format)
-
     const output = yield* processor.transcode(bytes, format, input.quality)
     // Re-encoding an already optimized file can inflate it, especially a
     // palette PNG that is expanded to RGBA. A compressor must not return a
@@ -169,8 +167,37 @@ const program = (input: ProcessImageInput) =>
     }
   })
 
+export const processImageEffect = (input: ProcessImageInput) => program(input)
+
 export const processImage = (input: ProcessImageInput): Promise<ProcessImageOutput> =>
   runEffect(program(input))
+
+export interface ProcessImageToolInput {
+  readonly mode: ImageToolMode
+  readonly file: File
+  readonly format: ImageToolFormValues["format"]
+  readonly quality: number
+}
+
+/** Keeps the SVG branch out of the view while preserving the image contract. */
+export const processImageTool = (input: ProcessImageToolInput): Promise<ProcessImageOutput> => {
+  if (input.format === "svg") {
+    return vectorizeImageToSvg({ file: input.file, preset: "high" }).then((output) => ({
+      blob: output.blob,
+      fileName: output.fileName,
+      mimeType: output.mimeType,
+      originalBytes: output.inputBytes,
+      resultBytes: output.bytes,
+    }))
+  }
+
+  return processImage({
+    mode: input.mode,
+    file: input.file,
+    format: input.format === "original" ? undefined : input.format,
+    quality: input.quality,
+  })
+}
 
 export interface ImageToPdfInput {
   readonly files: ReadonlyArray<ImagePdfFileEntry>
@@ -226,57 +253,53 @@ const imageToPdfProgram = (input: ImageToPdfInput) =>
 
     const processor = yield* ImageProcessor
     const pdfProcessor = yield* PdfProcessor
-    const prepared: Array<PdfImageInput> = []
-
-    for (const entry of input.files) {
-      if (entry.size > MAX_IMAGE_BYTES) {
-        return yield* new PdfProcessingError({
-          message: `${entry.name} is larger than ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`,
-        })
-      }
-
-      const bytes = new Uint8Array(
-        yield* Effect.tryPromise({
-          try: () => entry.file.arrayBuffer(),
-          catch: () => new PdfProcessingError({ message: `Could not read ${entry.name}.` }),
-        }),
-      )
-      const source = detectImageFormat(bytes)
-
-      if (source === null) {
-        return yield* new PdfProcessingError({
-          message: `${entry.name} is not a readable image.`,
-        })
-      }
-
-      if (source === "png") {
-        // PNG stays byte-for-byte, preserving lossless pixels and alpha.
-        prepared.push({ data: bytes, format: "png" })
-        continue
-      }
-
-      if (source === "jpeg") {
-        // Most JPEGs are already upright; embed them byte-for-byte. Only a
-        // non-default EXIF orientation needs a decode/re-encode round trip.
-        if (jpegOrientation(bytes) === 1) {
-          prepared.push({ data: bytes, format: "jpeg" })
-        } else {
-          const output = yield* processor.transcode(bytes, "jpeg", input.quality)
-
-          prepared.push({ data: output.data, format: "jpeg" })
+    const prepareImage = (
+      entry: ImagePdfFileEntry,
+    ): Effect.Effect<PdfImageInput, PdfProcessingError | ImageProcessingError> =>
+      Effect.gen(function* () {
+        if (entry.size > MAX_IMAGE_BYTES) {
+          return yield* new PdfProcessingError({
+            message: `${entry.name} is larger than ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`,
+          })
         }
 
-        continue
-      }
+        const bytes = new Uint8Array(
+          yield* Effect.tryPromise({
+            try: () => entry.file.arrayBuffer(),
+            catch: () => new PdfProcessingError({ message: `Could not read ${entry.name}.` }),
+          }),
+        )
+        const source = detectImageFormat(bytes)
 
-      const output = yield* processor.transcode(bytes, "png", 100)
+        if (source === null) {
+          return yield* new PdfProcessingError({
+            message: `${entry.name} is not a readable image.`,
+          })
+        }
 
-      prepared.push({ data: output.data, format: "png" })
-    }
+        if (source === "png") {
+          // PNG stays byte-for-byte, preserving lossless pixels and alpha.
+          return { data: bytes, format: "png" as const }
+        }
+
+        if (source === "jpeg" && jpegOrientation(bytes) === 1) {
+          // Most JPEGs are already upright; embed them byte-for-byte.
+          return { data: bytes, format: "jpeg" as const }
+        }
+
+        const output = yield* processor.transcode(
+          bytes,
+          source === "jpeg" ? "jpeg" : "png",
+          source === "jpeg" ? input.quality : 100,
+        )
+
+        return { data: output.data, format: source === "jpeg" ? "jpeg" : "png" }
+      })
 
     const firstBase = imageBaseName(input.files[0]!.name)
 
     if (input.mode === "one") {
+      const prepared = yield* Effect.forEach(input.files, prepareImage, { concurrency: 1 })
       const data = yield* pdfProcessor.imagesToPdf(prepared, input.pageSize)
 
       return {
@@ -289,46 +312,46 @@ const imageToPdfProgram = (input: ImageToPdfInput) =>
       }
     }
 
-    const used = new Set<string>()
-    const pdfs: Array<{ readonly name: string; readonly data: Uint8Array<ArrayBuffer> }> = []
-
-    for (const [index, image] of prepared.entries()) {
+    if (input.files.length === 1) {
+      const image = yield* prepareImage(input.files[0]!)
       const data = yield* pdfProcessor.imagesToPdf([image], input.pageSize)
 
-      pdfs.push({
-        name: uniquePdfName(imageBaseName(input.files[index]!.name), used),
-        data,
-      })
-    }
-
-    if (pdfs.length === 1) {
-      const only = pdfs[0]!
-
       return {
-        blob: new Blob([only.data], { type: "application/pdf" }),
-        fileName: only.name,
-        bytes: only.data.byteLength,
+        blob: new Blob([data], { type: "application/pdf" }),
+        fileName: uniquePdfName(imageBaseName(input.files[0]!.name), new Set()),
+        bytes: data.byteLength,
         inputBytes,
         images: 1,
         pdfs: 1,
       }
     }
 
-    const entries: Record<string, Uint8Array> = {}
+    const writer = createZipWriter()
+    const used = new Set<string>()
+    let pdfs = 0
 
-    for (const pdf of pdfs) {
-      entries[pdf.name] = pdf.data
+    for (const entry of input.files) {
+      const image = yield* prepareImage(entry)
+      const data = yield* pdfProcessor.imagesToPdf([image], input.pageSize)
+
+      writer.add(uniquePdfName(imageBaseName(entry.name), used), data)
+      pdfs += 1
     }
 
-    const zip = zipSync(entries, { level: 0 })
+    const blob = writer.finish()
+    const error = writer.error()
+
+    if (error) {
+      return yield* new PdfProcessingError({ message: "Could not create the PDF archive." })
+    }
 
     return {
-      blob: new Blob([zip], { type: "application/zip" }),
+      blob,
       fileName: `${firstBase}-pdfs.zip`,
-      bytes: zip.byteLength,
+      bytes: blob.size,
       inputBytes,
       images: input.files.length,
-      pdfs: pdfs.length,
+      pdfs,
     }
   })
 
