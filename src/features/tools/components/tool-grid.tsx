@@ -68,6 +68,7 @@ const JAPANESE_TITLES: Record<string, string> = {
   "pdf-to-word": "PDFからWordへ",
   "pdf-to-excel": "PDFからExcelへ",
   "pdf-sign": "PDFに署名",
+  "pdf-annotate": "ページ番号と透かし",
   "excel-to-pdf": "ExcelからPDFへ",
   "word-to-pdf": "WordからPDFへ",
   "powerpoint-to-pdf": "PowerPointからPDFへ",

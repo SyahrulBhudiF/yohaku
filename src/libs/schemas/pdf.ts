@@ -63,6 +63,51 @@ export const PdfExtractFormSchema = Schema.Struct({
 
 export type PdfExtractFormValues = typeof PdfExtractFormSchema.Type
 
+export const PdfAnnotateModeSchema = Schema.Literals(["numbers", "watermark"])
+export type PdfAnnotateMode = typeof PdfAnnotateModeSchema.Type
+
+export const PdfNumberPositionSchema = Schema.Literals([
+  "top-left",
+  "top-center",
+  "top-right",
+  "middle-left",
+  "middle-center",
+  "middle-right",
+  "bottom-left",
+  "bottom-center",
+  "bottom-right",
+])
+export type PdfNumberPosition = typeof PdfNumberPositionSchema.Type
+
+export const PdfNumberFormatSchema = Schema.Literals(["number", "page-number", "number-total"])
+export type PdfNumberFormat = typeof PdfNumberFormatSchema.Type
+
+export const PdfWatermarkKindSchema = Schema.Literals(["text", "image"])
+export type PdfWatermarkKind = typeof PdfWatermarkKindSchema.Type
+
+export const PdfWatermarkPlacementSchema = Schema.Literals(["single", "tiled"])
+export type PdfWatermarkPlacement = typeof PdfWatermarkPlacementSchema.Type
+
+export const PdfAnnotateFormSchema = Schema.Struct({
+  mode: PdfAnnotateModeSchema,
+  pageSelection: Schema.String.check(Schema.isMaxLength(10_000)),
+  numberStart: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 9_999 })),
+  skipFirstPage: Schema.Boolean,
+  numberFormat: PdfNumberFormatSchema,
+  numberPosition: PdfNumberPositionSchema,
+  numberFontSize: Schema.Int.check(Schema.isBetween({ minimum: 8, maximum: 72 })),
+  numberMargin: Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 144 })),
+  watermarkKind: PdfWatermarkKindSchema,
+  watermarkText: Schema.String.check(Schema.isMaxLength(200)),
+  watermarkPlacement: PdfWatermarkPlacementSchema,
+  watermarkOpacity: Schema.Int.check(Schema.isBetween({ minimum: 5, maximum: 100 })),
+  watermarkRotation: Schema.Int.check(Schema.isBetween({ minimum: -180, maximum: 180 })),
+  watermarkFontSize: Schema.Int.check(Schema.isBetween({ minimum: 12, maximum: 200 })),
+  watermarkScale: Schema.Int.check(Schema.isBetween({ minimum: 5, maximum: 100 })),
+})
+
+export type PdfAnnotateFormValues = typeof PdfAnnotateFormSchema.Type
+
 export const PdfImageDpiSchema = Schema.Literals([72, 150, 300])
 
 export type PdfImageDpi = typeof PdfImageDpiSchema.Type

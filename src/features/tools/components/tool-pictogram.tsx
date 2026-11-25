@@ -260,6 +260,24 @@ const pictograms: Record<string, ReactNode> = {
       </g>
     </>
   ),
+  "pdf-annotate": (
+    <>
+      <rect x="14" y="12" width="48" height="72" fill={sage} />
+      <path d="M23 24h30M23 32h30M23 40h18" stroke={paper} strokeWidth="2" />
+      <g className="pictogram-part pic-tilt">
+        <rect x="21" y="48" width="34" height="10" fill={sand} opacity=".9" />
+        <path d="M27 53h22" stroke={ink} strokeWidth="2" />
+      </g>
+      <path d="M36 77h10M41 77V68l-4 3" fill="none" stroke={paper} strokeWidth="2" />
+      <path
+        d="M70 18v12m-6-6h12"
+        fill="none"
+        stroke={sand}
+        strokeWidth="3"
+        className={`${shiftRightUp} pic-tilt-back`}
+      />
+    </>
+  ),
   "pdf-to-image": (
     <>
       <rect x="14" y="16" width="39" height="54" fill={ink} />

@@ -21,6 +21,7 @@ export interface ToolDefinition {
     | "/pdf/to-word"
     | "/pdf/to-excel"
     | "/pdf/sign"
+    | "/pdf/annotate"
     | "/excel/to-pdf"
     | "/word/to-pdf"
     | "/powerpoint/to-pdf"
@@ -135,6 +136,13 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     description: "Draw or upload signatures and place them on PDF pages.",
     category: "pdf",
     to: "/pdf/sign",
+  },
+  {
+    id: "pdf-annotate",
+    title: "Page numbers & watermark",
+    description: "Stamp page numbers or a text or logo watermark on selected pages.",
+    category: "pdf",
+    to: "/pdf/annotate",
   },
   {
     id: "excel-to-pdf",

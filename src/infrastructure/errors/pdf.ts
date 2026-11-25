@@ -48,3 +48,10 @@ export class PdfDecryptionError extends Schema.TaggedError<
 >()("PdfDecryptionError", {
   message: Schema.String,
 }) {}
+
+export class PdfAnnotateError extends Schema.TaggedError<
+  PdfAnnotateError,
+  { readonly brand: unique symbol }
+>()("PdfAnnotateError", {
+  message: Schema.String,
+}) {}

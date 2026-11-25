@@ -6,9 +6,9 @@ Read this with the root `AGENTS.md` before making architectural changes.
 
 Yohaku is a single TanStack Start app that hosts small file utilities. It
 converts and compresses images, removes uniform backgrounds, traces images to
-SVG, handles PDF pages and signatures, converts between PDF, images, Word,
-Excel, and PowerPoint, extracts audio from local media files to MP3, and
-downloads public YouTube, Instagram, or Facebook videos.
+SVG, handles PDF pages, signatures, page numbers, and watermarks, converts
+between PDF, images, Word, Excel, and PowerPoint, extracts audio from local
+media files to MP3, and downloads public YouTube, Instagram, or Facebook videos.
 
 ## Architecture decisions
 
@@ -36,7 +36,9 @@ downloads public YouTube, Instagram, or Facebook videos.
    lossless compression use `@mssio/qpdf-wasm` behind `PdfProcessor`, pdf.js renders pages for PDF to
    image, and the `image-pdf-core` Rust/WASM package writes image-only PDFs. PDF
    to image uses the native canvas encoder for PNG/JPEG and a bounded worker
-   pool for the other formats. Excel to PDF uses a Rust/WASM core (`calamine` +
+   pool for the other formats. Page numbers and text/logo watermarks use pdf-lib
+   in a module worker and reject encrypted PDFs. Excel to PDF uses a Rust/WASM
+   core (`calamine` +
    `pdf-writer`) that reads rows into a flat span arena and writes compressed PDF
    tables. PowerPoint to PDF uses `pptx-pdf-core` to read the OOXML package and
    write one PDF page per slide, with flat shape/paragraph/run records and one

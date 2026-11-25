@@ -164,6 +164,10 @@ export class MyService extends Context.Service<
 - Image to PDF is assembled by `packages/image-pdf-core`. PNG is decoded and
   Flate-compressed; upright JPEG stays byte-for-byte DCT-encoded; rotated JPEGs
   and other formats are normalized first.
+- Page numbers and text/logo watermarks are added with pdf-lib in a module
+  worker; page ranges reuse `parsePageSelection`. Encrypted PDFs are rejected
+  and the UI says to unlock them first. Annotations rewrite the PDF, so existing
+  digital signatures may be invalidated.
 - dnd-kit orders PDF pages and image-to-PDF cards. OS file drops stay on native
   `drop` events because dnd-kit only tracks in-app drags.
 

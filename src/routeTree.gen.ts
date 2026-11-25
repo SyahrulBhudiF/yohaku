@@ -18,6 +18,7 @@ import { Route as ImageResizeRouteImport } from './routes/image/resize'
 import { Route as ImageToPdfRouteImport } from './routes/image/to-pdf'
 import { Route as MediaSocialDownloaderRouteImport } from './routes/media/social-downloader'
 import { Route as MediaVideoToMp3RouteImport } from './routes/media/video-to-mp3'
+import { Route as PdfAnnotateRouteImport } from './routes/pdf/annotate'
 import { Route as PdfCompressRouteImport } from './routes/pdf/compress'
 import { Route as PdfExtractRouteImport } from './routes/pdf/extract'
 import { Route as PdfMergeRouteImport } from './routes/pdf/merge'
@@ -74,6 +75,11 @@ const MediaSocialDownloaderRoute = MediaSocialDownloaderRouteImport.update({
 const MediaVideoToMp3Route = MediaVideoToMp3RouteImport.update({
   id: '/media/video-to-mp3',
   path: '/media/video-to-mp3',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PdfAnnotateRoute = PdfAnnotateRouteImport.update({
+  id: '/pdf/annotate',
+  path: '/pdf/annotate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PdfCompressRoute = PdfCompressRouteImport.update({
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/image/to-pdf': typeof ImageToPdfRoute
   '/media/social-downloader': typeof MediaSocialDownloaderRoute
   '/media/video-to-mp3': typeof MediaVideoToMp3Route
+  '/pdf/annotate': typeof PdfAnnotateRoute
   '/pdf/compress': typeof PdfCompressRoute
   '/pdf/extract': typeof PdfExtractRoute
   '/pdf/merge': typeof PdfMergeRoute
@@ -170,6 +177,7 @@ export interface FileRoutesByTo {
   '/image/to-pdf': typeof ImageToPdfRoute
   '/media/social-downloader': typeof MediaSocialDownloaderRoute
   '/media/video-to-mp3': typeof MediaVideoToMp3Route
+  '/pdf/annotate': typeof PdfAnnotateRoute
   '/pdf/compress': typeof PdfCompressRoute
   '/pdf/extract': typeof PdfExtractRoute
   '/pdf/merge': typeof PdfMergeRoute
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/image/to-pdf': typeof ImageToPdfRoute
   '/media/social-downloader': typeof MediaSocialDownloaderRoute
   '/media/video-to-mp3': typeof MediaVideoToMp3Route
+  '/pdf/annotate': typeof PdfAnnotateRoute
   '/pdf/compress': typeof PdfCompressRoute
   '/pdf/extract': typeof PdfExtractRoute
   '/pdf/merge': typeof PdfMergeRoute
@@ -219,6 +228,7 @@ export interface FileRouteTypes {
     | '/image/to-pdf'
     | '/media/social-downloader'
     | '/media/video-to-mp3'
+    | '/pdf/annotate'
     | '/pdf/compress'
     | '/pdf/extract'
     | '/pdf/merge'
@@ -242,6 +252,7 @@ export interface FileRouteTypes {
     | '/image/to-pdf'
     | '/media/social-downloader'
     | '/media/video-to-mp3'
+    | '/pdf/annotate'
     | '/pdf/compress'
     | '/pdf/extract'
     | '/pdf/merge'
@@ -265,6 +276,7 @@ export interface FileRouteTypes {
     | '/image/to-pdf'
     | '/media/social-downloader'
     | '/media/video-to-mp3'
+    | '/pdf/annotate'
     | '/pdf/compress'
     | '/pdf/extract'
     | '/pdf/merge'
@@ -289,6 +301,7 @@ export interface RootRouteChildren {
   ImageToPdfRoute: typeof ImageToPdfRoute
   MediaSocialDownloaderRoute: typeof MediaSocialDownloaderRoute
   MediaVideoToMp3Route: typeof MediaVideoToMp3Route
+  PdfAnnotateRoute: typeof PdfAnnotateRoute
   PdfCompressRoute: typeof PdfCompressRoute
   PdfExtractRoute: typeof PdfExtractRoute
   PdfMergeRoute: typeof PdfMergeRoute
@@ -366,6 +379,13 @@ declare module '@tanstack/react-router' {
       path: '/media/video-to-mp3'
       fullPath: '/media/video-to-mp3'
       preLoaderRoute: typeof MediaVideoToMp3RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pdf/annotate': {
+      id: '/pdf/annotate'
+      path: '/pdf/annotate'
+      fullPath: '/pdf/annotate'
+      preLoaderRoute: typeof PdfAnnotateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pdf/compress': {
@@ -465,6 +485,7 @@ const rootRouteChildren: RootRouteChildren = {
   ImageToPdfRoute: ImageToPdfRoute,
   MediaSocialDownloaderRoute: MediaSocialDownloaderRoute,
   MediaVideoToMp3Route: MediaVideoToMp3Route,
+  PdfAnnotateRoute: PdfAnnotateRoute,
   PdfCompressRoute: PdfCompressRoute,
   PdfExtractRoute: PdfExtractRoute,
   PdfMergeRoute: PdfMergeRoute,
