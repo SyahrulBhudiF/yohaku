@@ -277,10 +277,7 @@ export function MergePage() {
           <Button variant="ghost" onClick={handleReset} disabled={merge.isPending}>
             <Trash2Icon /> Clear all
           </Button>
-          <Button
-            onClick={() => void merge.mutateAsync({ files, pages }).catch(() => null)}
-            disabled={merge.isPending}
-          >
+          <Button onClick={() => merge.mutate({ files, pages })} disabled={merge.isPending}>
             {merge.isPending && <Loader2Icon className="animate-spin" />}
             {merge.isPending
               ? "Merging…"

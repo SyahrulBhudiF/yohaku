@@ -34,7 +34,7 @@ export function ExtractPage() {
         setError(null)
       },
     },
-    onSubmit: async ({ value }) => {
+    onSubmit: ({ value }) => {
       if (!file) return
 
       const parsed = parsePageSelection(value.selection, file.pageCount)
@@ -52,7 +52,7 @@ export function ExtractPage() {
       }
 
       setError(null)
-      await extract.mutateAsync({ file, pages: parsed.pages }).catch(() => null)
+      extract.mutate({ file, pages: parsed.pages })
     },
   })
   const pdf = usePdfFile({

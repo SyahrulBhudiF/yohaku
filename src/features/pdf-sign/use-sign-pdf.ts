@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 
 import { preparePdfFile } from "@/features/pdf-tools/process"
@@ -15,20 +15,29 @@ export function useSignPdf() {
   const state = useSignStore()
   const mounted = useRef(false)
   const [error, setError] = useState<string | null>(null)
-  const [renderedPreview, setPreview] = useState<{
-    aspect: number
-    fileId: string
-    page: number
-  } | null>(null)
+  const pageAspect = useQuery({
+    queryKey: ["pdf-sign-page-aspect", state.file?.id ?? "none", state.page],
+    queryFn: async () => {
+      const file = useSignStore.getState().file
+
+      if (!file) return null
+
+      const { document } = await getPdfDocument(file.id, file.file)
+      const page = await document.getPage(state.page)
+      const viewport = page.getViewport({ scale: 1 })
+      const aspect = viewport.width / viewport.height
+
+      page.cleanup()
+
+      return aspect
+    },
+    enabled: state.file !== null,
+    staleTime: Infinity,
+    retry: false,
+  })
   const preview =
-    renderedPreview &&
-    renderedPreview.fileId === state.file?.id &&
-    renderedPreview.page === state.page
-      ? renderedPreview
-      : null
-  const [result, setResult] = useState<{ url: string; bytes: number; revision: number } | null>(
-    null,
-  )
+    pageAspect.data === undefined || pageAspect.data === null ? null : { aspect: pageAspect.data }
+  const result = state.result?.revision === state.revision ? state.result : null
 
   const open = useMutation({
     mutationFn: async (source: File) => {
@@ -71,6 +80,7 @@ export function useSignPdf() {
       }
 
       setError(null)
+      useSignStore.getState().clearResult()
       useSignStore.setState((s) => ({
         file: value.entry,
         page: 1,
@@ -84,11 +94,12 @@ export function useSignPdf() {
     mutationFn: ({ source, items }: { source: File; items: PlacedSignature[]; revision: number }) =>
       signPdf(source, items),
     onSuccess: (blob, variables) => {
-      if (useSignStore.getState().revision !== variables.revision) return
-      setResult({ url: URL.createObjectURL(blob), bytes: blob.size, revision: variables.revision })
+      if (!mounted.current || useSignStore.getState().revision !== variables.revision) return
+      useSignStore.getState().setResult({ blob, revision: variables.revision })
     },
   })
 
+  // architecture: external synchronization (route unmount cleanup)
   useEffect(() => {
     mounted.current = true
 
@@ -97,51 +108,13 @@ export function useSignPdf() {
       const current = useSignStore.getState()
 
       if (current.file) disposePdfFile(current.file.id)
-      useSignStore.setState({
-        file: null,
-        page: 1,
-        signatures: [],
-        placements: [],
-        selected: null,
-        revision: current.revision + 1,
-      })
+      current.reset()
     }
   }, [])
-  useEffect(
-    () => () => {
-      if (result) URL.revokeObjectURL(result.url)
-    },
-    [result],
-  )
-  useEffect(() => {
-    if (!state.file) return
-    const file = state.file
-    let cancelled = false
-
-    void getPdfDocument(file.id, file.file)
-      .then(async ({ document }) => {
-        const pdfPage = await document.getPage(state.page)
-        const viewport = pdfPage.getViewport({ scale: 1 })
-
-        if (cancelled) return
-        setPreview({
-          aspect: viewport.width / viewport.height,
-          fileId: file.id,
-          page: state.page,
-        })
-      })
-      .catch(() => {
-        if (!cancelled) setError("Could not render this page.")
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [state.file, state.page])
 
   const edit = (placements: PlacedSignature[], selected: string | null) => {
     useSignStore.setState((s) => ({ placements, selected, revision: s.revision + 1 }))
-    setResult(null)
+    useSignStore.getState().clearResult()
     exportPdf.reset()
   }
   const addSignature = async (source: Blob) => {
@@ -210,7 +183,7 @@ export function useSignPdf() {
       selected: null,
       revision: s.revision + 1,
     }))
-    setResult(null)
+    useSignStore.getState().clearResult()
     setError(null)
     exportPdf.reset()
   }
@@ -219,7 +192,7 @@ export function useSignPdf() {
     ...state,
     error,
     preview,
-    result: result?.revision === state.revision ? result : null,
+    result,
     open,
     exportPdf,
     addSignature,
@@ -229,7 +202,6 @@ export function useSignPdf() {
     removeFile,
     select: (selected: string | null) => useSignStore.setState({ selected }),
     changePage: (page: number) => {
-      setPreview(null)
       useSignStore.setState({ page, selected: null })
     },
     removePlacement: (id: string) =>
@@ -239,7 +211,7 @@ export function useSignPdf() {
       ),
     createPdf: () => {
       if (state.file) {
-        setResult(null)
+        useSignStore.getState().clearResult()
         exportPdf.mutate({
           source: state.file.file,
           items: state.placements,

@@ -137,7 +137,7 @@ export function RemoveBackgroundPage() {
               </Button>
               <Button
                 type="button"
-                onClick={() => void mutation.mutateAsync(file).catch(() => null)}
+                onClick={() => mutation.mutate(file)}
                 disabled={mutation.isPending}
               >
                 {mutation.isPending && <Loader2Icon className="animate-spin" />}

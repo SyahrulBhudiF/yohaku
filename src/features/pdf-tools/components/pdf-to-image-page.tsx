@@ -63,7 +63,7 @@ export function PdfToImagePage() {
         setError(null)
       },
     },
-    onSubmit: async ({ value }) => {
+    onSubmit: ({ value }) => {
       if (!file) {
         return
       }
@@ -89,15 +89,13 @@ export function PdfToImagePage() {
       }
 
       setError(null)
-      await render
-        .mutateAsync({
-          file,
-          pages: parsed.pages,
-          format: value.format,
-          quality: value.quality,
-          dpi: value.dpi,
-        })
-        .catch(() => null)
+      render.mutate({
+        file,
+        pages: parsed.pages,
+        format: value.format,
+        quality: value.quality,
+        dpi: value.dpi,
+      })
     },
   })
   const pdf = usePdfFile({

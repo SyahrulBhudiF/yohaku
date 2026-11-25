@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 
 import type { PdfFileEntry } from "@/features/pdf-tools/store"
-import { getPdfDocument } from "@/features/pdf-tools/thumbnails"
+import { getPdfPagePreview } from "@/features/pdf-tools/thumbnails"
 import type { useSignPdf } from "../use-sign-pdf"
 import { useSignatureGesture, type ResizeHandle } from "../use-signature-gesture"
 
@@ -30,56 +30,24 @@ export function PdfSignPage({
     model.select(id)
   }
   const { page: pageRef, start, move, stop } = useSignatureGesture(selectSignature, model.update)
-  const [preview, setPreview] = useState<{ url: string; aspect: number } | null>(null)
-  const [error, setError] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    let url: string | null = null
-
-    void getPdfDocument(file.id, file.file)
-      .then(async ({ document }) => {
-        const page = await document.getPage(pageNumber)
-        const viewport = page.getViewport({ scale: 1 })
-        const { renderPageThumbnail } = await import("@/libs/utils/pdf/pdfjs")
-        const rendered = await renderPageThumbnail(document, pageNumber, 900)
-
-        if (cancelled) {
-          if (rendered) URL.revokeObjectURL(rendered)
-
-          return
-        }
-
-        if (!rendered) {
-          setError(true)
-
-          return
-        }
-
-        url = rendered
-        setPreview({ url, aspect: viewport.width / viewport.height })
-      })
-      .catch(() => {
-        if (!cancelled) setError(true)
-      })
-
-    return () => {
-      cancelled = true
-      if (url) URL.revokeObjectURL(url)
-    }
-  }, [file.id, file.file, pageNumber])
+  const preview = useQuery({
+    queryKey: ["pdf-sign-preview", file.id, pageNumber],
+    queryFn: () => getPdfPagePreview(file.id, file.file, pageNumber, file.password, 900),
+    staleTime: Infinity,
+    retry: false,
+  })
 
   return (
     <div>
       <p className="pb-2 text-sm text-muted-foreground">Page {pageNumber}</p>
-      {preview ? (
+      {preview.data ? (
         <div
           ref={pageRef}
           className="relative w-full overflow-hidden bg-white shadow-sm"
-          style={{ aspectRatio: preview.aspect }}
+          style={{ aspectRatio: preview.data.aspect }}
         >
           <img
-            src={preview.url}
+            src={preview.data.url}
             alt={`PDF page ${pageNumber}`}
             className="absolute inset-0 size-full"
             draggable={false}
@@ -128,7 +96,7 @@ export function PdfSignPage({
               </div>
             ))}
         </div>
-      ) : error ? (
+      ) : preview.isError || (preview.isSuccess && !preview.data) ? (
         <p role="alert">Could not render page {pageNumber}.</p>
       ) : (
         <div className="h-96 animate-pulse rounded-xl bg-surface-container-high" />

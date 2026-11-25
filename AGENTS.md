@@ -6,10 +6,47 @@ Workers. Image and document work runs in the browser in Effect v4; server work,
 when a tool needs it, also runs in Effect v4. UI is shadcn on Base UI, styled
 after Material Design 3.
 
-Read [.agents/CONTEXT.md](.agents/CONTEXT.md) for architecture decisions and
-[.agents/GIT.md](.agents/GIT.md) for commit conventions. Use the matching
-workflow in `.agents/skills/` when building server features, web features, or
-verifying changes.
+Read [.agents/CONTEXT.md](.agents/CONTEXT.md) for architecture decisions,
+[.agents/ARCHITECTURE.md](.agents/ARCHITECTURE.md) for the enforced review
+contract, and [.agents/GIT.md](.agents/GIT.md) for commit conventions. Use the
+matching workflow in `.agents/skills/` when building server features, web
+features, reviewing architecture, or verifying changes.
+
+## Architecture invariants
+
+These are non-negotiable. `pnpm arch:check` enforces the machine-checkable
+ones and is part of `pnpm check`.
+
+1. **Thin routes.** A file in `src/routes/` imports `createFileRoute` and one
+   feature page. Schemas, infrastructure, codecs, and feature internals belong
+   below the route.
+2. **Effect owns domain work.** `src/features/<feature>/process.ts` exposes
+   `runEffect`. Dependencies, async work, and typed failures stay in the Effect
+   channel. Do not construct or throw a plain `Error` in `src/`; use
+   `Schema.TaggedError` from `src/infrastructure/errors/`.
+3. **Effect Schema is the contract.** Request/response options, limits, and
+   form schemas live in `src/libs/schemas/` and derive their types from
+   `Schema`. Do not add `interface` contracts there. Parse at the form,
+   process, or server boundary.
+4. **Query, Form, Zustand.** TanStack Query owns request state and mutations;
+   TanStack Form owns editable options with
+   `Schema.toStandardSchemaV1(sharedSchema)`; Zustand owns only selected
+   files, result object URLs, and UI selection. Never duplicate Query state in
+   Zustand.
+5. **Views do not do domain work.** Components must not import codecs,
+   infrastructure services, `runEffect`, or call `fetch`. Call a feature
+   process or hook through Query. Do not `await` in a form submit; use
+   `mutation.mutate(...)`. Browser-only pickers live in a hook, not a view.
+6. **Effects are external synchronization only.** Data fetching belongs in
+   `useQuery`. Every allowed `useEffect` must have the exact marker
+   `// architecture: external synchronization` immediately above it.
+7. **Server functions only.** Backend work is `createServerFn` in
+   `src/apis/<name>.ts` plus an Effect handler in `<name>.server.ts`. Do not add
+   `src/routes/api/**`. Streaming media proxy handlers are the documented
+   exception.
+8. **Data-oriented hot paths.** Keep bytes and pixels in flat typed arrays,
+   avoid per-pixel objects, copy once at a library boundary, and keep heavy
+   codecs in workers. Measure with `pnpm bench` before changing a hot path.
 
 ## Effect source
 
@@ -26,14 +63,15 @@ with `pnpm repos:sync` (`.agents/setup` runs it). Never edit files under `repos/
 - `pnpm build` — production build (`dist/`)
 - `pnpm run deploy` — `alchemy deploy` to Cloudflare Workers
 - `pnpm run destroy` — remove the deployed stack
-- `pnpm check` — format check + lint + typecheck
+- `pnpm check` — format check + lint + typecheck + architecture gate
+- `pnpm arch:check` — architecture invariants and review warnings
 - `pnpm test:run` — run tests once (vitest)
 - `pnpm bench` — run the image codec benchmarks
 - `pnpm wasm:build` — rebuild the Rust/WASM packages
 - `pnpm wasm:test` — run the Rust crate tests
 - `pnpm lint:fix` / `pnpm format` — auto-fix lint / format
 - Single test: `pnpm test:run tests/infrastructure/services/image-processor.test.ts`
-- Pre-commit (husky): `pnpm check && pnpm test:run`
+- Pre-commit (husky): `pnpm check && pnpm test:run` (`check` includes `arch:check`)
 
 ## Toolchain
 
@@ -240,6 +278,12 @@ not have one.
 - Async work uses TanStack Query (`useMutation`/`useQuery`) even when it runs
   locally; forms use TanStack Form with `Schema.toStandardSchemaV1(...)` from the
   shared Effect Schema.
+- Data fetching belongs in `useQuery`, not `useEffect`. The only allowed effects
+  are external synchronization and must carry
+  `// architecture: external synchronization` immediately above them.
+- Do not `await` inside a form submit or button handler. Use
+  `mutation.mutate(...)`; keep multi-step async orchestration in a hook or
+  process. Browser-only pickers are the documented exception.
 - Zustand (`store.ts`, one per feature) holds client-only state such as the
   selected file and result object URLs, not request status or form values.
 - Route components stay thin and delegate to `src/features/`.

@@ -10,13 +10,27 @@ Run checks against the real repository and report failures without hiding them.
 ## Static checks
 
 ```sh
+pnpm arch:check
 pnpm check
 pnpm test:run
 pnpm build
 ```
 
+`pnpm check` already includes `pnpm arch:check`. Read the architecture
+checklist in `.agents/ARCHITECTURE.md`; fix violations rather than suppressing
+them. If a legitimate browser-only exception is needed, add it to
+`scripts/check-architecture.mjs` with a narrow comment and update
+`.agents/ARCHITECTURE.md`.
+
 If oxlint aborts with SIGABRT, run `sudo sysctl vm.overcommit_memory=1` and retry.
 Treat diagnostics as evidence to read, not a reason to suppress a rule.
+
+## Architecture checks
+
+Confirm the changed feature follows the flow in `.agents/ARCHITECTURE.md`:
+thin route, TanStack Form + Query, Zustand only for files/results/UI, Effect
+process with tagged errors, and no data-fetching `useEffect`. `pnpm arch:check`
+catches the hard violations and unmarked effects.
 
 ## Processing checks
 

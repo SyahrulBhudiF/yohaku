@@ -107,7 +107,7 @@ export function ResizePage() {
         setError(null)
       },
     },
-    onSubmit: async ({ value }) => {
+    onSubmit: ({ value }) => {
       if (!file || !source) return
 
       const output = computeResizeGeometry(source.width, source.height, {
@@ -127,22 +127,20 @@ export function ResizePage() {
       }
 
       setError(null)
-      await resize
-        .mutateAsync({
-          file,
-          options: {
-            width: value.width,
-            height: value.height,
-            mode: value.mode,
-            crop: value.crop,
-            rotate: value.rotate,
-            flipX: value.flipX,
-            flipY: value.flipY,
-          },
-          format: value.format,
-          quality: value.quality,
-        })
-        .catch(() => null)
+      resize.mutate({
+        file,
+        options: {
+          width: value.width,
+          height: value.height,
+          mode: value.mode,
+          crop: value.crop,
+          rotate: value.rotate,
+          flipX: value.flipX,
+          flipY: value.flipY,
+        },
+        format: value.format,
+        quality: value.quality,
+      })
     },
   })
   const prepare = useMutation({ mutationFn: prepareResizeFile })

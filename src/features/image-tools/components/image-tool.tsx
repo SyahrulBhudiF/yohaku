@@ -19,7 +19,7 @@ import { IMAGE_FORMATS, ImageToolFormSchema, type ImageToolFormValues } from "@/
 import { preloadImageCodec } from "@/libs/utils/image-codec"
 import { formatBytes } from "@/libs/utils/format"
 import { isPreviewableImageMime } from "@/libs/utils/image-preview"
-import { processImage, vectorizeImageToSvg, type ImageToolMode } from "../process"
+import { processImageTool, type ImageToolMode } from "../process"
 import type { ImageToolStore } from "../store"
 import { Dropzone } from "./dropzone"
 
@@ -88,30 +88,11 @@ export function ImageTool({
 }: ImageToolProps) {
   const { file, previewUrl, result, setFile, setResult, clearResult } = useStore()
   const mutation = useMutation({
-    mutationFn: async (input: {
+    mutationFn: (input: {
       readonly file: File
       readonly format: ImageToolFormValues["format"]
       readonly quality: number
-    }) => {
-      if (input.format === "svg") {
-        const output = await vectorizeImageToSvg({ file: input.file, preset: "high" })
-
-        return {
-          blob: output.blob,
-          fileName: output.fileName,
-          mimeType: output.mimeType,
-          originalBytes: output.inputBytes,
-          resultBytes: output.bytes,
-        }
-      }
-
-      return processImage({
-        mode,
-        file: input.file,
-        format: input.format === "original" ? undefined : input.format,
-        quality: input.quality,
-      })
-    },
+    }) => processImageTool({ ...input, mode }),
     onSuccess: (output, input) => {
       if (useStore.getState().file === input.file) {
         setResult(output)
@@ -130,14 +111,12 @@ export function ImageTool({
         mutation.reset()
       },
     },
-    onSubmit: async ({ value }) => {
+    onSubmit: ({ value }) => {
       if (!file) {
         return
       }
 
-      await mutation
-        .mutateAsync({ file, format: value.format, quality: value.quality })
-        .catch(() => null)
+      mutation.mutate({ file, format: value.format, quality: value.quality })
     },
   })
   const preload = (choice: ImageToolFormValues["format"]) => {

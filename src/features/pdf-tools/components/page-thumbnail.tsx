@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query"
 import { FileTextIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
@@ -12,8 +13,6 @@ interface PageThumbnailProps {
   readonly rotation?: 0 | 90 | 180 | 270
 }
 
-type ThumbnailState = "idle" | "loading" | "ready" | "error"
-
 export function PageThumbnail({
   fileId,
   file,
@@ -22,9 +21,11 @@ export function PageThumbnail({
   rotation = 0,
 }: PageThumbnailProps) {
   const container = useRef<HTMLDivElement>(null)
-  const [url, setUrl] = useState<string | null>(null)
-  const [state, setState] = useState<ThumbnailState>("idle")
+  const [visible, setVisible] = useState(
+    () => typeof window !== "undefined" && typeof IntersectionObserver === "undefined",
+  )
 
+  // architecture: external synchronization (IntersectionObserver)
   useEffect(() => {
     const element = container.current
 
@@ -32,37 +33,15 @@ export function PageThumbnail({
       return
     }
 
-    let cancelled = false
-
-    const render = () => {
-      setState("loading")
-      getPdfThumbnail(fileId, file, pageNumber, password)
-        .then((value) => {
-          if (!cancelled) {
-            setUrl(value)
-            setState(value ? "ready" : "error")
-          }
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setState("error")
-          }
-        })
-    }
-
     if (typeof IntersectionObserver === "undefined") {
-      render()
-
-      return () => {
-        cancelled = true
-      }
+      return
     }
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
           observer.disconnect()
-          render()
+          setVisible(true)
         }
       },
       { rootMargin: "240px" },
@@ -71,16 +50,23 @@ export function PageThumbnail({
     observer.observe(element)
 
     return () => {
-      cancelled = true
       observer.disconnect()
     }
-  }, [fileId, file, pageNumber, password])
+  }, [])
+
+  const thumbnail = useQuery({
+    queryKey: ["pdf-thumbnail", fileId, pageNumber, password ?? ""],
+    queryFn: () => getPdfThumbnail(fileId, file, pageNumber, password),
+    enabled: visible,
+    staleTime: Infinity,
+    retry: false,
+  })
 
   return (
     <div ref={container} className="flex size-full items-center justify-center overflow-hidden">
-      {state === "ready" && url ? (
+      {thumbnail.data ? (
         <img
-          src={url}
+          src={thumbnail.data}
           alt={`Page ${pageNumber}`}
           draggable={false}
           decoding="async"
@@ -90,7 +76,7 @@ export function PageThumbnail({
           )}
           style={{ transform: `rotate(${rotation}deg)` }}
         />
-      ) : state === "error" ? (
+      ) : thumbnail.isError || (thumbnail.isSuccess && !thumbnail.data) ? (
         <FileTextIcon className="size-8 text-outline" />
       ) : (
         <div className="size-full animate-pulse bg-surface-container-high" />

@@ -58,19 +58,17 @@ export function ExcelToPdfPage() {
         setError(null)
       },
     },
-    onSubmit: async ({ value }) => {
+    onSubmit: ({ value }) => {
       if (!file) {
         return
       }
 
       setError(null)
-      await convert
-        .mutateAsync({
-          file,
-          pageSize: value.pageSize,
-          orientation: value.orientation,
-        })
-        .catch(() => null)
+      convert.mutate({
+        file,
+        pageSize: value.pageSize,
+        orientation: value.orientation,
+      })
     },
   })
   const errorMessage = error ?? convert.error?.message ?? null

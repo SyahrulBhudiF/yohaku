@@ -68,6 +68,7 @@ export function usePdfAnnotate() {
     },
   })
 
+  // architecture: external synchronization (route unmount cleanup)
   useEffect(
     () => () => {
       const current = usePdfAnnotateStore.getState()

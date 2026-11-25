@@ -15,6 +15,12 @@ export interface PlacedSignature extends SignaturePlacement {
   url: string
 }
 
+export interface SignResult {
+  readonly url: string
+  readonly bytes: number
+  readonly revision: number
+}
+
 interface SignState {
   file: PdfFileEntry | null
   page: number
@@ -22,13 +28,44 @@ interface SignState {
   placements: PlacedSignature[]
   selected: string | null
   revision: number
+  result: SignResult | null
+  setResult: (result: { readonly blob: Blob; readonly revision: number }) => void
+  clearResult: () => void
+  reset: () => void
 }
 
-export const useSignStore = create<SignState>(() => ({
+const revoke = (url: string | null | undefined) => {
+  if (url) {
+    URL.revokeObjectURL(url)
+  }
+}
+
+export const useSignStore = create<SignState>()((set, get) => ({
   file: null,
   page: 1,
   signatures: [],
   placements: [],
   selected: null,
   revision: 0,
+  result: null,
+  setResult: ({ blob, revision }) => {
+    revoke(get().result?.url)
+    set({ result: { url: URL.createObjectURL(blob), bytes: blob.size, revision } })
+  },
+  clearResult: () => {
+    revoke(get().result?.url)
+    set({ result: null })
+  },
+  reset: () => {
+    revoke(get().result?.url)
+    set((state) => ({
+      file: null,
+      page: 1,
+      signatures: [],
+      placements: [],
+      selected: null,
+      revision: state.revision + 1,
+      result: null,
+    }))
+  },
 }))

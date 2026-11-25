@@ -1,6 +1,8 @@
 # Project context
 
-Read this with the root `AGENTS.md` before making architectural changes.
+Read this with the root `AGENTS.md` and the enforced
+[`.agents/ARCHITECTURE.md`](ARCHITECTURE.md) checklist before making
+architectural changes. `pnpm arch:check` is part of `pnpm check`.
 
 ## What
 
@@ -55,9 +57,12 @@ media files to MP3, and downloads public YouTube, Instagram, or Facebook videos.
    login-protected content is not supported.
 7. **Shared UI boundary.** Primitives under `src/components/ui/` wrap Base UI and
    follow Material Design 3. Feature UI lives under `src/features/`.
-8. **Query, Form, Zustand.** TanStack Query runs mutations, TanStack Form owns
-   options, Zustand holds the selected file and result.
-   Revoke object URLs when a file is replaced or removed.
+8. **Query, Form, Zustand.** TanStack Query owns request state and mutations,
+   TanStack Form owns editable options, and Zustand holds only selected files,
+   result object URLs, and UI selection. Do not mirror Query state in Zustand.
+   Revoke object URLs when a file is replaced or removed. Data fetching belongs
+   in `useQuery`; an allowed `useEffect` is external synchronization only and
+   carries the `architecture: external synchronization` marker.
 9. **Six image formats.** PNG, JPEG, WebP and AVIF use `@jsquash`; GIF uses
    `gifenc`/`gifuct-js`; animated WebP uses `wasm-webp`; TIFF uses `utif`.
    Animated GIFs and WebPs keep their frames when converting to GIF or WebP;

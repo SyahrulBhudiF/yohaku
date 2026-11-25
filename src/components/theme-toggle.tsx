@@ -7,6 +7,7 @@ export function ThemeToggle() {
   const [dark, setDark] = useState(false)
   const chosen = useRef(false)
 
+  // architecture: external synchronization (theme DOM)
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)")
     const sync = () => setDark(document.documentElement.dataset.theme === "dark")

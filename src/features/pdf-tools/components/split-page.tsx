@@ -69,7 +69,7 @@ export function SplitPage() {
         setError(null)
       },
     },
-    onSubmit: async ({ value }) => {
+    onSubmit: ({ value }) => {
       if (!file) {
         return
       }
@@ -115,14 +115,12 @@ export function SplitPage() {
       }
 
       setError(null)
-      await split
-        .mutateAsync({
-          file,
-          mode: value.mode,
-          pagesPerFile: value.pagesPerFile,
-          ranges: pageRanges,
-        })
-        .catch(() => null)
+      split.mutate({
+        file,
+        mode: value.mode,
+        pagesPerFile: value.pagesPerFile,
+        ranges: pageRanges,
+      })
     },
   })
   const pdf = usePdfFile({

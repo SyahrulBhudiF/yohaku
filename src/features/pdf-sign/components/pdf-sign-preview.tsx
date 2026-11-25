@@ -24,6 +24,7 @@ export function PdfSignPreview({ model }: { model: ReturnType<typeof useSignPdf>
     },
   })
 
+  // architecture: external synchronization (scroll selected signature into view)
   useEffect(() => {
     if (!model.selected || !scrollRef.current) return
     const container = scrollRef.current

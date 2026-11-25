@@ -20,7 +20,7 @@ export function PdfProtectPage() {
   const protectForm = useForm({
     defaultValues: { password: "", confirmation: "" },
     validators: { onChange: Schema.toStandardSchemaV1(PdfProtectFormSchema) },
-    onSubmit: async ({ value }) => {
+    onSubmit: ({ value }) => {
       if (!model.file) return
       setFormError(null)
 
@@ -30,16 +30,16 @@ export function PdfProtectPage() {
         return
       }
 
-      await model.protect.mutateAsync({ file: model.file, ...value }).catch(() => null)
+      model.protect.mutate({ file: model.file, ...value })
     },
   })
   const unlockForm = useForm({
     defaultValues: { password: "" },
     validators: { onChange: Schema.toStandardSchemaV1(PdfUnlockFormSchema) },
-    onSubmit: async ({ value }) => {
+    onSubmit: ({ value }) => {
       if (!model.file) return
       setFormError(null)
-      await model.unlock.mutateAsync({ file: model.file, ...value }).catch(() => null)
+      model.unlock.mutate({ file: model.file, ...value })
     },
   })
   const operationError =

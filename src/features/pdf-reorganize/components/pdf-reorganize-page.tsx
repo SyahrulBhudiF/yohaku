@@ -44,7 +44,7 @@ export function PdfReorganizePage() {
 
   const handleReorganize = () => {
     if (!model.file) return
-    void model.reorganize.mutateAsync({ file: model.file, pages: model.pages }).catch(() => null)
+    model.reorganize.mutate({ file: model.file, pages: model.pages })
   }
 
   return (

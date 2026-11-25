@@ -1,18 +1,36 @@
+import { useForm } from "@tanstack/react-form"
+import { Schema } from "effect"
 import { DownloadIcon, FileDownIcon, XIcon } from "lucide-react"
-import { useRef } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { PdfDropzone } from "@/features/pdf-tools/components/pdf-dropzone"
 import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
-import { MAX_PDF_BYTES } from "@/libs/schemas/pdf"
+import { MAX_PDF_BYTES, PdfUnlockFormSchema, type PdfUnlockFormValues } from "@/libs/schemas/pdf"
 import { formatBytes } from "@/libs/utils/format"
 import { useCompressPdf } from "../use-compress-pdf"
 
 export function CompressPdfPage() {
   const model = useCompressPdf()
-  const input = useRef<HTMLInputElement>(null)
   const { file, result } = model
+  const passwordForm = useForm({
+    defaultValues: { password: "" } as PdfUnlockFormValues,
+    validators: { onChange: Schema.toStandardSchemaV1(PdfUnlockFormSchema) },
+    onSubmit: ({ value }) => {
+      if (file) {
+        model.compress.mutate({ file, password: value.password })
+      }
+    },
+  })
+  const selectFile = (selected: File | undefined) => {
+    passwordForm.reset()
+    model.selectFile(selected)
+  }
+  const clear = () => {
+    passwordForm.reset()
+    model.clear()
+  }
   const reduction = result ? result.inputBytes - result.outputBytes : 0
   const reduced = reduction > 0
 
@@ -26,36 +44,11 @@ export function CompressPdfPage() {
       </ToolPageHeader>
       {!file ? (
         <>
-          <button
-            type="button"
-            onClick={() => input.current?.click()}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => {
-              event.preventDefault()
-              const selected = event.dataTransfer.files[0]
-
-              if (selected) model.selectFile(selected)
-            }}
-            className="flex min-h-56 w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-outline bg-surface-container-low p-8 text-center transition-colors hover:bg-surface-container focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            <span className="flex size-14 items-center justify-center rounded-full bg-primary-container text-on-primary-container">
-              <FileDownIcon className="size-6" />
-            </span>
-            <span className="font-medium">Drop a PDF here, or click to browse</span>
-            <span className="text-xs text-muted-foreground">
-              PDF only · up to {MAX_PDF_BYTES / 1024 / 1024} MB
-            </span>
-            <input
-              ref={input}
-              type="file"
-              accept="application/pdf,.pdf"
-              hidden
-              onChange={(event) => {
-                model.selectFile(event.target.files?.[0])
-                event.target.value = ""
-              }}
-            />
-          </button>
+          <PdfDropzone
+            disabled={model.compress.isPending}
+            onFiles={(files) => selectFile(files[0])}
+            hint={`PDF only · up to ${MAX_PDF_BYTES / 1024 / 1024} MB`}
+          />
           {model.error && (
             <p role="alert" className="text-sm text-on-error-container">
               {model.error}
@@ -72,7 +65,7 @@ export function CompressPdfPage() {
               <span className="truncate font-medium">{file.name}</span>
               <span className="text-sm text-muted-foreground">{formatBytes(file.size)}</span>
             </div>
-            <Button variant="ghost" size="icon" onClick={model.clear} aria-label="Remove PDF">
+            <Button variant="ghost" size="icon" onClick={clear} aria-label="Remove PDF">
               <XIcon />
             </Button>
           </CardContent>
@@ -85,30 +78,34 @@ export function CompressPdfPage() {
         >
           <span>{model.error ?? model.compress.error?.message}</span>
           {model.compress.error?._tag === "PdfPasswordError" && (
-            <div className="flex shrink-0 gap-2">
-              <Input
-                aria-label="PDF password"
-                type="password"
-                autoComplete="current-password"
-                placeholder="PDF password"
-                value={model.password}
-                onChange={(event) => model.setPassword(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && file) {
-                    event.preventDefault()
-                    model.compress.mutate({ file, password: model.password })
-                  }
-                }}
-                className="w-44 bg-surface text-foreground"
-              />
-              <Button
-                size="sm"
-                disabled={!model.password || model.compress.isPending}
-                onClick={() => file && model.compress.mutate({ file, password: model.password })}
-              >
-                Unlock
-              </Button>
-            </div>
+            <form
+              className="flex shrink-0 gap-2"
+              onSubmit={(event) => {
+                event.preventDefault()
+                void passwordForm.handleSubmit()
+              }}
+            >
+              <passwordForm.Field name="password">
+                {(field) => (
+                  <Input
+                    aria-label="PDF password"
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder="PDF password"
+                    value={field.state.value}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                    className="w-44 bg-surface text-foreground"
+                  />
+                )}
+              </passwordForm.Field>
+              <passwordForm.Subscribe selector={(state) => state.values.password}>
+                {(password) => (
+                  <Button type="submit" size="sm" disabled={!password || model.compress.isPending}>
+                    Unlock
+                  </Button>
+                )}
+              </passwordForm.Subscribe>
+            </form>
           )}
         </div>
       )}

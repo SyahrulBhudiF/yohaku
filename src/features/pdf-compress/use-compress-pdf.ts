@@ -14,7 +14,6 @@ import { useCompressPdfStore } from "./store"
 export function useCompressPdf() {
   const { file, result, setFile, setResult, reset } = useCompressPdfStore()
   const [error, setError] = useState<string | null>(null)
-  const [password, setPassword] = useState("")
   const compress = useMutation<
     Awaited<ReturnType<typeof compressPdfFile>>,
     PdfCompressionError | PdfInvalidFileError | PdfPasswordError,
@@ -27,9 +26,6 @@ export function useCompressPdf() {
         setResult(output)
       }
     },
-    onError: (cause) => {
-      setError(cause.message)
-    },
   })
 
   const selectFile = (selected: File | undefined) => {
@@ -39,7 +35,6 @@ export function useCompressPdf() {
 
     if (!isPdfFile(selected)) {
       setFile(null)
-      setPassword("")
       setError("Choose a PDF file.")
 
       return
@@ -57,14 +52,12 @@ export function useCompressPdf() {
       return
     }
 
-    setPassword("")
     setFile(selected)
   }
 
   const clear = () => {
     compress.reset()
     setError(null)
-    setPassword("")
     reset()
   }
 
@@ -72,8 +65,6 @@ export function useCompressPdf() {
     file,
     result,
     error,
-    password,
-    setPassword,
     selectFile,
     clear,
     compress,

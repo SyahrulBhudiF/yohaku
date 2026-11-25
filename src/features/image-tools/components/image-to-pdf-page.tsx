@@ -62,20 +62,18 @@ export function ImageToPdfPage() {
         setError(null)
       },
     },
-    onSubmit: async ({ value }) => {
+    onSubmit: ({ value }) => {
       if (files.length === 0) {
         return
       }
 
       setError(null)
-      await createPdf
-        .mutateAsync({
-          files,
-          mode: value.mode,
-          pageSize: value.pageSize,
-          quality: value.quality,
-        })
-        .catch(() => null)
+      createPdf.mutate({
+        files,
+        mode: value.mode,
+        pageSize: value.pageSize,
+        quality: value.quality,
+      })
     },
   })
   const values = form.state.values
