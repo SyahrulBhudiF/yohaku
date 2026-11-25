@@ -1,5 +1,8 @@
 export type ToolCategory = "image" | "pdf" | "document" | "media"
 
+// Enter and leave this tool with a document navigation so only OCR is isolated.
+export const ISOLATED_OCR_PATH = "/pdf/to-markdown"
+
 export interface ToolDefinition {
   readonly id: string
   readonly title: string
@@ -195,9 +198,9 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
   {
     id: "pdf-to-markdown",
     title: "PDF to Markdown",
-    description: "Extract selectable PDF text into Markdown with page breaks, in your browser.",
-    category: "document",
-    to: "/pdf/to-markdown",
+    description: "Convert PDF pages to Markdown, including scanned pages with local OCR.",
+    category: "pdf",
+    to: ISOLATED_OCR_PATH,
   },
   {
     id: "powerpoint-to-pdf",

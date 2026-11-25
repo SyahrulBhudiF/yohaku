@@ -1,8 +1,10 @@
+import { Effect } from "effect"
 import * as pdfjs from "pdfjs-dist"
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url"
-import type { PDFDocumentProxy } from "pdfjs-dist"
+import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist"
 
-import { MAX_PDF_IMAGE_PIXELS } from "@/libs/schemas/pdf"
+import { PdfOcrError } from "@/infrastructure/errors/pdf"
+import { MAX_PDF_IMAGE_PIXELS, MAX_PDF_OCR_IMAGE_PIXELS } from "@/libs/schemas/pdf"
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
 
@@ -141,3 +143,46 @@ export const canvasToBlob = (
   new Promise((resolve) => {
     canvas.toBlob(resolve, mimeType, quality)
   })
+
+/** Render scanned pages at up to 150 DPI, the selected side limit, and 8 MP. */
+export const renderPdfPageToOcrBitmap = (page: PDFPageProxy, maxSide: number, pageNumber: number) =>
+  Effect.acquireUseRelease(
+    Effect.sync(createPdfRenderCanvas),
+    (canvas) =>
+      Effect.gen(function* () {
+        const renderError = () =>
+          new PdfOcrError({ message: `Could not render page ${pageNumber} for OCR.` })
+        const context = canvas?.getContext("2d", { alpha: false })
+
+        if (!canvas || !context) return yield* renderError()
+
+        const base = page.getViewport({ scale: 1 })
+        const scale = Math.min(
+          150 / 72,
+          maxSide / Math.max(base.width, base.height),
+          Math.sqrt(MAX_PDF_OCR_IMAGE_PIXELS / (base.width * base.height)),
+        )
+        const viewport = page.getViewport({ scale })
+
+        canvas.width = Math.max(1, Math.ceil(viewport.width))
+        canvas.height = Math.max(1, Math.ceil(viewport.height))
+
+        yield* Effect.tryPromise({
+          try: () =>
+            page.render({ canvas, canvasContext: context, viewport, background: "#fff" }).promise,
+          catch: renderError,
+        })
+
+        return yield* Effect.tryPromise({
+          try: () => createImageBitmap(canvas),
+          catch: renderError,
+        })
+      }),
+    (canvas) =>
+      Effect.sync(() => {
+        if (canvas) {
+          canvas.width = 0
+          canvas.height = 0
+        }
+      }),
+  )

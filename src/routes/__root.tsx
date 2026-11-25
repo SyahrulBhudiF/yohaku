@@ -14,6 +14,7 @@ import { ArrowLeftIcon } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { ToolGuide } from "@/features/tools/components/tool-guide"
+import { ISOLATED_OCR_PATH } from "@/features/tools/registry"
 import { pageSeo } from "@/features/tools/seo"
 import appCss from "../styles.css?url"
 
@@ -83,11 +84,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function AppShell() {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const leaveIsolatedDocument = pathname === ISOLATED_OCR_PATH
 
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="mx-auto flex h-16 w-[calc(100%-3rem)] max-w-5xl shrink-0 items-center border-b border-outline-variant bg-surface">
-        <Link to="/" className="flex items-center gap-2 text-xl font-medium tracking-tight">
+        <Link
+          to="/"
+          reloadDocument={leaveIsolatedDocument}
+          className="flex items-center gap-2 text-xl font-medium tracking-tight"
+        >
           <img src="/yohaku-icon.png" alt="" className="size-8 dark:invert" />
           Yohaku{" "}
           <span lang="ja" className="text-sm font-normal text-muted-foreground">
@@ -96,7 +102,12 @@ function AppShell() {
         </Link>
         <div className="ml-auto flex items-center gap-1">
           {pathname !== "/" && (
-            <Button variant="ghost" size="sm" render={<Link to="/" />} nativeButton={false}>
+            <Button
+              variant="ghost"
+              size="sm"
+              render={<Link to="/" reloadDocument={leaveIsolatedDocument} />}
+              nativeButton={false}
+            >
               <ArrowLeftIcon /> All tools
             </Button>
           )}

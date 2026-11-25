@@ -82,6 +82,15 @@ the server-function rule. Its security contract is:
 Any change to this file needs tests in `tests/apis/social-media-proxy.test.ts`
 covering the changed boundary.
 
+## OCR document boundary
+
+PDF to Markdown uses cross-origin isolation for threaded browser inference.
+Links entering or leaving `ISOLATED_OCR_PATH` must use document navigation;
+client-side navigation cannot change a document's isolation policy. Keep the
+document headers on that route, not globally: media tools embed third-party
+previews. Worker assets need an embedder policy in Vite and `public/_headers`.
+The OCR service falls back to one thread when the browser is not isolated.
+
 ## Verification
 
 ```sh
@@ -103,8 +112,11 @@ empty/selected/pending/success/error states, and inspect the capture.
    `runEffect`.
 4. Add the Zustand store only for files/results/UI selection.
 5. Build the page with TanStack Form + Query; keep the route thin.
-6. For a public tool, follow [Search and share previews](#search-and-share-previews).
-7. Add tests under `tests/` and run the verification commands above.
+6. Group tools by their primary input: PDF-input tools belong in PDF, while
+   tools starting from Word, Excel, PowerPoint, or Markdown belong in Documents.
+   Image-to-PDF belongs in Image.
+7. For a public tool, follow [Search and share previews](#search-and-share-previews).
+8. Add tests under `tests/` and run the verification commands above.
 
 ### Search and share previews
 

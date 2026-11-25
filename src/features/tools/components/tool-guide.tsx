@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router"
 
-import { TOOLS } from "../registry"
+import { ISOLATED_OCR_PATH, TOOLS } from "../registry"
 import { toolSearchContent } from "../search-content"
 
 export function ToolGuide({ pathname }: { pathname: string }) {
@@ -24,7 +24,12 @@ export function ToolGuide({ pathname }: { pathname: string }) {
         <span className="font-medium">Related tools</span>
         {TOOLS.map(({ to, title }) =>
           to && related.includes(to) ? (
-            <Link key={to} to={to} className="text-primary underline underline-offset-4">
+            <Link
+              key={to}
+              to={to}
+              reloadDocument={path === ISOLATED_OCR_PATH || to === ISOLATED_OCR_PATH}
+              className="text-primary underline underline-offset-4"
+            >
               {title}
             </Link>
           ) : null,

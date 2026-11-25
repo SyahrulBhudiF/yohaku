@@ -10,6 +10,7 @@ interface PdfToMarkdownState {
   readonly result: DocumentConversionResult | null
   readonly setFile: (file: File | null) => void
   readonly setResult: (result: DocumentConversionOutput) => void
+  readonly clearResult: () => void
   readonly reset: () => void
 }
 
@@ -27,6 +28,10 @@ export const usePdfToMarkdownStore = create<PdfToMarkdownState>()((set, get) => 
   setResult: ({ blob, ...result }) => {
     revoke(get().result?.url)
     set({ result: { ...result, url: URL.createObjectURL(blob) } })
+  },
+  clearResult: () => {
+    revoke(get().result?.url)
+    set({ result: null })
   },
   reset: () => {
     revoke(get().result?.url)

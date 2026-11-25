@@ -28,6 +28,13 @@ export class PdfInvalidFileError extends Schema.TaggedError<
   message: Schema.String,
 }) {}
 
+export class PdfOcrError extends Schema.TaggedError<
+  PdfOcrError,
+  { readonly brand: unique symbol }
+>()("PdfOcrError", {
+  message: Schema.String,
+}) {}
+
 export class PdfReorganizationError extends Schema.TaggedError<
   PdfReorganizationError,
   { readonly brand: unique symbol }

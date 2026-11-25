@@ -40,7 +40,9 @@ Markdown, and downloads public YouTube, Instagram, or Facebook videos.
    image, and the `image-pdf-core` Rust/WASM package writes image-only PDFs. PDF
    to image uses the native canvas encoder for PNG/JPEG and a bounded worker
    pool for the other formats. Page numbers and text/logo watermarks use pdf-lib
-   in a module worker and reject encrypted PDFs. Excel to PDF uses a Rust/WASM
+   in a module worker and reject encrypted PDFs. PDF→Markdown extracts selectable
+   text with PDF.js and recognizes scanned pages with OCR in a worker; engine
+   files load only when needed and the source PDF stays local. Excel to PDF uses a Rust/WASM
    core (`calamine` +
    `pdf-writer`) that reads rows into a flat span arena and writes compressed PDF
    tables. PowerPoint to PDF uses `pptx-pdf-core` to read the OOXML package and

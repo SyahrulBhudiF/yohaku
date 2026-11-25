@@ -1,0 +1,64 @@
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index d1d786cee6a78b33aa09bd8c117c60bd41655a7e..d302a103f9c85bac65808d8b512927535dadc8ef 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -10,4 +10,6 @@ export type { ModelAsset, ModelAssetsMap } from "./resources/model-asset";
+ export type { WebGpuState, OrtOptions } from "./runtime/ort";
+ export type { ImageSource, SourceMatResult } from "./platform/browser";
+ export type { PaddleOCRCreateOptions } from "./pipelines/ocr/index";
++import type { PaddleOCR, PaddleOCRCreateOptions } from "./pipelines/ocr/index";
++export declare function createWorkerOcr(options: Omit<PaddleOCRCreateOptions, "worker" | "fetch" | "initialize">): Promise<Pick<PaddleOCR, "predict" | "dispose">>;
+ //# sourceMappingURL=index.d.ts.map
+diff --git a/dist/index.mjs b/dist/index.mjs
+index ba5137a08a70ad3507d80f7cedc14aca0c8e858c..a8d25bb63c6a3db68e1f3fc2dd409e4548c6b341 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -3,7 +3,6 @@ var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { en
+ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+ import yaml from "js-yaml";
+ import ClipperLib from "clipper-lib";
+-import cvModule from "@techstark/opencv-js";
+ function readString(bytes, start, length) {
+   let output = "";
+   for (let index = start; index < start + length; index += 1) {
+@@ -378,7 +377,9 @@ async function loadOrtModule() {
+   if (ortModulePromise) {
+     return ortModulePromise;
+   }
+-  ortModulePromise = import("onnxruntime-web");
++  // Match the SDK's worker runtime and avoid emitting an unused >25 MiB WASM asset.
++  const runtimeUrl = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/ort.bundle.min.mjs";
++  ortModulePromise = import(/* @vite-ignore */ runtimeUrl);
+   return ortModulePromise;
+ }
+ async function detectWebGpuAvailability() {
+@@ -1335,6 +1336,8 @@ function cropByPoly(cv, srcMat, poly) {
+ }
+ let cachedCvPromise = null;
+ async function getOpenCv() {
++  // Worker mode brings its own OpenCV; only import this copy for local inference.
++  const { default: cvModule } = await import("@techstark/opencv-js");
+   let cv;
+   if (cvModule instanceof Promise) {
+     cv = await cvModule;
+@@ -2393,6 +2396,12 @@ function createWorkerBackedPaddleOCR(options, workerOptions = {}) {
+   });
+   return new WorkerBackedPaddleOCR(options, transportClient);
+ }
++// Keep the local inference implementation out of worker-only browser builds.
++async function createWorkerOcr(options) {
++  const instance = createWorkerBackedPaddleOCR(resolvePaddleOCROptions(options));
++  await instance.initialize();
++  return instance;
++}
+ class PaddleOCR extends OcrPipelineRunner {
+   constructor(options) {
+     super({
+@@ -2421,6 +2430,7 @@ class PaddleOCR extends OcrPipelineRunner {
+ }
+ export {
+   PaddleOCR,
++  createWorkerOcr,
+   normalizeOcrPipelineConfig,
+   parseOcrPipelineConfigText
+ };

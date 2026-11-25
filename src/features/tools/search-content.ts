@@ -183,11 +183,11 @@ const CONTENT: Record<
     related: ["/markdown/to-word", "/word/to-pdf"],
   },
   "/pdf/to-markdown": {
-    title: "PDF to Markdown Converter — Extract PDF Text to MD",
+    title: "PDF to Markdown Converter — OCR Scanned PDFs to MD",
     description:
-      "Extract selectable text from PDF files and save it as Markdown with page breaks. Scanned PDFs need OCR first; processing stays in your browser.",
+      "Convert selectable PDF text and scanned pages to Markdown with page breaks. OCR runs in your browser; your PDF is never uploaded.",
     guide:
-      "Choose a text-based PDF and convert its pages to Markdown. Page breaks and approximate reading order are included. Scanned pages without selectable text require OCR, and complex layouts may be reordered.",
+      "Choose a PDF to convert its pages to Markdown. Selectable text is extracted directly; scanned pages can be recognized locally with OCR. First use downloads the OCR engine and its data, while your PDF stays on your device. Page breaks and approximate reading order are included, but complex layouts may be reordered.",
     related: ["/pdf/to-word", "/markdown/to-pdf"],
   },
   "/powerpoint/to-pdf": {

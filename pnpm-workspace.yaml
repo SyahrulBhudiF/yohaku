@@ -6,3 +6,7 @@ allowBuilds:
   unrs-resolver: true
   msw: false
   workerd: true
+  protobufjs: false
+
+patchedDependencies:
+  "@paddleocr/paddleocr-js@0.4.2": patches/@paddleocr__paddleocr-js@0.4.2.patch

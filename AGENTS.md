@@ -234,8 +234,12 @@ export class MyService extends Context.Service<
   Markdown→PDF reuses that DOCX representation and the existing Word-to-PDF
   worker. DOCX→Markdown extracts text, heading styles, lists, and simple tables
   from the OOXML body. PDF→Markdown reuses PDF.js text rows and labels page
-  breaks. These are text conversions, not layout-preserving exports; scanned
-  PDFs still need OCR, and legacy `.doc` files are not supported.
+  breaks; pages without selectable text can be recognized with OCR in a worker.
+  OCR renders pages at up to 150 DPI, 640 px per side, and 8 MP, and is capped
+  at 100 scanned pages per file. Its engine data loads only when a scanned page needs OCR; the PDF
+  remains in the browser. These are text
+  conversions, not layout-preserving exports, and legacy `.doc` files are not
+  supported.
 
 ## Data-oriented design
 

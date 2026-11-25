@@ -4,7 +4,7 @@ import { type PointerEvent, useState } from "react"
 
 import { Input } from "@/components/ui/input"
 import { cn } from "@/libs/utils/cn"
-import { TOOLS, type ToolCategory, type ToolDefinition } from "../registry"
+import { ISOLATED_OCR_PATH, TOOLS, type ToolCategory, type ToolDefinition } from "../registry"
 import { ToolPictogram } from "./tool-pictogram"
 
 const SECTIONS: ReadonlyArray<{
@@ -26,7 +26,8 @@ const SECTIONS: ReadonlyArray<{
     title: "PDF tools",
     label: "PDF",
     japanese: "PDF",
-    description: "Compress, merge, reorganize, protect, sign, convert, and render PDFs as images.",
+    description:
+      "Work with PDF files: organize, protect, annotate, sign, extract, or convert them.",
   },
   {
     id: "document",
@@ -34,7 +35,7 @@ const SECTIONS: ReadonlyArray<{
     label: "Document",
     japanese: "文書",
     description:
-      "Convert Markdown, Word documents, spreadsheets, and presentations between formats.",
+      "Convert Markdown, Word documents, spreadsheets, and presentations to other formats.",
   },
   {
     id: "media",
@@ -146,6 +147,7 @@ function ToolCard({
   return tool.to ? (
     <Link
       to={tool.to}
+      reloadDocument={tool.to === ISOLATED_OCR_PATH}
       aria-label={tool.title}
       className="tool-card-link rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       onPointerMove={aimPictogram}

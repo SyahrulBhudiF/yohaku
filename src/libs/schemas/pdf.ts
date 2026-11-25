@@ -9,8 +9,46 @@ export const MAX_PDF_FILES = 50
 export const MAX_SPLIT_OUTPUTS = 500
 export const MAX_PDF_IMAGE_PAGES = 500
 export const MAX_PDF_IMAGE_PIXELS = 50_000_000
+export const MAX_PDF_OCR_PAGES = 100
+export const MAX_PDF_OCR_BATCH_PAGES = 4
+export const MAX_PDF_OCR_IMAGE_PIXELS = 8_000_000
+export const MAX_PDF_OCR_IMAGE_SIDE = 640
+export const MAX_PDF_OCR_SPEED_IMAGE_SIDE = 480
 export const MIN_PDF_PASSWORD_LENGTH = 8
 export const MAX_PDF_PASSWORD_LENGTH = 128
+
+export const PdfToMarkdownFormSchema = Schema.Struct({
+  recognizeScannedPages: Schema.Boolean,
+  preferAccuracy: Schema.Boolean,
+})
+
+export type PdfToMarkdownFormValues = typeof PdfToMarkdownFormSchema.Type
+
+export const PdfOcrQualitySchema = Schema.Literals(["speed", "accuracy"])
+
+export type PdfOcrQuality = typeof PdfOcrQualitySchema.Type
+
+export const PdfOcrProgressSchema = Schema.Struct({
+  phase: Schema.Literals(["scanning", "rendering", "loading-model", "recognizing"]),
+  pageNumber: Schema.Int.check(Schema.isGreaterThan(0)),
+  pageEndNumber: Schema.optional(Schema.Int.check(Schema.isGreaterThan(0))),
+  pageCount: Schema.Int.check(Schema.isGreaterThan(0)),
+})
+
+export type PdfOcrProgress = typeof PdfOcrProgressSchema.Type
+
+export const PdfOcrLineSchema = Schema.Struct({
+  text: Schema.String,
+  x: Schema.Finite,
+  y: Schema.Finite,
+  width: Schema.Finite,
+  height: Schema.Finite,
+  score: Schema.Finite,
+})
+
+export type PdfOcrLine = typeof PdfOcrLineSchema.Type
+
+export const PdfOcrPagesSchema = Schema.Array(Schema.Array(PdfOcrLineSchema))
 
 const PdfPasswordSchema = Schema.String.check(
   Schema.isMinLength(MIN_PDF_PASSWORD_LENGTH),

@@ -6,6 +6,12 @@ import { TOOLS } from "@/features/tools/registry"
 import { pageSeo, SITE_URL } from "@/features/tools/seo"
 
 describe("tool search metadata", () => {
+  it("groups tools by their primary input format", () => {
+    const pdfToMarkdown = TOOLS.find((tool) => tool.to === "/pdf/to-markdown")
+
+    assert.strictEqual(pdfToMarkdown?.category, "pdf")
+  })
+
   it("provides a unique indexed page and PNG preview for every available tool", () => {
     const sitemap = readFileSync("public/sitemap.xml", "utf8")
     const home = pageSeo("/")
