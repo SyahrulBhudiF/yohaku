@@ -33,7 +33,7 @@ const SECTIONS: ReadonlyArray<{
     title: "Document tools",
     label: "Document",
     japanese: "文書",
-    description: "Convert Word documents and spreadsheets to PDF.",
+    description: "Convert Word documents, spreadsheets, and presentations to PDF.",
   },
   {
     id: "media",
@@ -70,6 +70,7 @@ const JAPANESE_TITLES: Record<string, string> = {
   "pdf-sign": "PDFに署名",
   "excel-to-pdf": "ExcelからPDFへ",
   "word-to-pdf": "WordからPDFへ",
+  "powerpoint-to-pdf": "PowerPointからPDFへ",
   "video-to-mp3": "音声の抽出",
   "social-media-downloader": "動画のダウンロード",
 }

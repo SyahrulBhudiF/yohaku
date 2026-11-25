@@ -1,0 +1,10 @@
+pub(crate) const MAX_SLIDES: usize = 300;
+pub(crate) const MAX_SHAPES: usize = 20_000;
+pub(crate) const MAX_PARAGRAPHS: usize = 60_000;
+pub(crate) const MAX_RUNS: usize = 200_000;
+pub(crate) const MAX_TEXT_BYTES: usize = 8 * 1024 * 1024;
+pub(crate) const MAX_PART_BYTES: usize = 32 * 1024 * 1024;
+pub(crate) const MAX_UNCOMPRESSED_BYTES: usize = 256 * 1024 * 1024;
+pub(crate) const MAX_IMAGE_PIXELS: u64 = 24_000_000;
+pub(crate) const MAX_IMAGES: usize = 200;
+pub(crate) const MAX_TABLE_CELLS: usize = 20_000;

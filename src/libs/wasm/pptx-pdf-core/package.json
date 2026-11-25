@@ -1,0 +1,20 @@
+{
+  "name": "pptx-pdf-core",
+  "type": "module",
+  "description": "Render PPTX presentations to PDF in the browser.",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SyahrulBhudiF/yohaku"
+  },
+  "files": [
+    "pptx_pdf_core_bg.wasm",
+    "pptx_pdf_core.js",
+    "pptx_pdf_core.d.ts"
+  ],
+  "main": "pptx_pdf_core.js",
+  "types": "pptx_pdf_core.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

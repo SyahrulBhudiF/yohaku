@@ -1,7 +1,7 @@
 # Yohaku — Agent Rules
 
-Yohaku is a centralized web app of file tools (image, PDF, and Excel to PDF
-today; more document tools later). One TanStack Start app deployed to Cloudflare
+Yohaku is a centralized web app of file tools (image, PDF, and Office
+documents to PDF today; more tools later). One TanStack Start app deployed to Cloudflare
 Workers. Image and document work runs in the browser in Effect v4; server work,
 when a tool needs it, also runs in Effect v4. UI is shadcn on Base UI, styled
 after Material Design 3.
@@ -182,6 +182,12 @@ export class MyService extends Context.Service<
   tests with a stable Rust toolchain.
 - Excel→PDF is a table export: no formulas, charts, merged cells, or full
   Unicode. Standard Helvetica uses WinAnsi encoding.
+- PowerPoint→PDF lives in `packages/pptx-pdf-core` and renders PPTX slides in
+  a worker through `src/libs/wasm/pptx-pdf-core/`. It covers slide size and
+  order, backgrounds, preset shapes, solid/gradient fills, images with crop and
+  alpha, tables, and styled text. Charts, SmartArt, animations, and legacy
+  `.ppt` files are rejected or skipped. Keep the parsed deck flat: shape,
+  paragraph, and run records with one text arena.
 
 ## Data-oriented design
 

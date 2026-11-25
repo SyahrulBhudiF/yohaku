@@ -367,6 +367,26 @@ const pictograms: Record<string, ReactNode> = {
       />
     </>
   ),
+  "powerpoint-to-pdf": (
+    <>
+      <g className="pictogram-part pic-left pic-tilt">
+        <rect x="12" y="17" width="46" height="38" fill={sage} />
+        <path d="M20 46h8V34h7v12h8V28h7v18" fill="none" stroke={paper} strokeWidth="3" />
+        <path d="M12 55h46" stroke={paper} strokeWidth="2" />
+      </g>
+      <g className="pictogram-part pic-pop pic-tilt-back">
+        <rect x="51" y="34" width="31" height="45" fill={ink} stroke={paper} strokeWidth="3" />
+        <path d="M59 46h15M59 53h15M59 60h10" stroke={paper} strokeWidth="2" />
+      </g>
+      <path
+        d="M30 77h16m-6-6 6 6-6 6"
+        fill="none"
+        stroke={sand}
+        strokeWidth="3"
+        className={shiftRight}
+      />
+    </>
+  ),
   "video-to-mp3": (
     <>
       <rect x="12" y="20" width="48" height="39" fill={sage} />

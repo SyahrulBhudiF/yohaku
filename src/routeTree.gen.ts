@@ -28,6 +28,7 @@ import { Route as PdfSplitRouteImport } from './routes/pdf/split'
 import { Route as PdfToExcelRouteImport } from './routes/pdf/to-excel'
 import { Route as PdfToImageRouteImport } from './routes/pdf/to-image'
 import { Route as PdfToWordRouteImport } from './routes/pdf/to-word'
+import { Route as PowerpointToPdfRouteImport } from './routes/powerpoint/to-pdf'
 import { Route as WordToPdfRouteImport } from './routes/word/to-pdf'
 
 const IndexRoute = IndexRouteImport.update({
@@ -125,6 +126,11 @@ const PdfToWordRoute = PdfToWordRouteImport.update({
   path: '/pdf/to-word',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PowerpointToPdfRoute = PowerpointToPdfRouteImport.update({
+  id: '/powerpoint/to-pdf',
+  path: '/powerpoint/to-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WordToPdfRoute = WordToPdfRouteImport.update({
   id: '/word/to-pdf',
   path: '/word/to-pdf',
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/pdf/to-excel': typeof PdfToExcelRoute
   '/pdf/to-image': typeof PdfToImageRoute
   '/pdf/to-word': typeof PdfToWordRoute
+  '/powerpoint/to-pdf': typeof PowerpointToPdfRoute
   '/word/to-pdf': typeof WordToPdfRoute
 }
 export interface FileRoutesByTo {
@@ -173,6 +180,7 @@ export interface FileRoutesByTo {
   '/pdf/to-excel': typeof PdfToExcelRoute
   '/pdf/to-image': typeof PdfToImageRoute
   '/pdf/to-word': typeof PdfToWordRoute
+  '/powerpoint/to-pdf': typeof PowerpointToPdfRoute
   '/word/to-pdf': typeof WordToPdfRoute
 }
 export interface FileRoutesById {
@@ -196,6 +204,7 @@ export interface FileRoutesById {
   '/pdf/to-excel': typeof PdfToExcelRoute
   '/pdf/to-image': typeof PdfToImageRoute
   '/pdf/to-word': typeof PdfToWordRoute
+  '/powerpoint/to-pdf': typeof PowerpointToPdfRoute
   '/word/to-pdf': typeof WordToPdfRoute
 }
 export interface FileRouteTypes {
@@ -220,6 +229,7 @@ export interface FileRouteTypes {
     | '/pdf/to-excel'
     | '/pdf/to-image'
     | '/pdf/to-word'
+    | '/powerpoint/to-pdf'
     | '/word/to-pdf'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -242,6 +252,7 @@ export interface FileRouteTypes {
     | '/pdf/to-excel'
     | '/pdf/to-image'
     | '/pdf/to-word'
+    | '/powerpoint/to-pdf'
     | '/word/to-pdf'
   id:
     | '__root__'
@@ -264,6 +275,7 @@ export interface FileRouteTypes {
     | '/pdf/to-excel'
     | '/pdf/to-image'
     | '/pdf/to-word'
+    | '/powerpoint/to-pdf'
     | '/word/to-pdf'
   fileRoutesById: FileRoutesById
 }
@@ -287,6 +299,7 @@ export interface RootRouteChildren {
   PdfToExcelRoute: typeof PdfToExcelRoute
   PdfToImageRoute: typeof PdfToImageRoute
   PdfToWordRoute: typeof PdfToWordRoute
+  PowerpointToPdfRoute: typeof PowerpointToPdfRoute
   WordToPdfRoute: typeof WordToPdfRoute
 }
 
@@ -425,6 +438,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PdfToWordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/powerpoint/to-pdf': {
+      id: '/powerpoint/to-pdf'
+      path: '/powerpoint/to-pdf'
+      fullPath: '/powerpoint/to-pdf'
+      preLoaderRoute: typeof PowerpointToPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/word/to-pdf': {
       id: '/word/to-pdf'
       path: '/word/to-pdf'
@@ -455,6 +475,7 @@ const rootRouteChildren: RootRouteChildren = {
   PdfToExcelRoute: PdfToExcelRoute,
   PdfToImageRoute: PdfToImageRoute,
   PdfToWordRoute: PdfToWordRoute,
+  PowerpointToPdfRoute: PowerpointToPdfRoute,
   WordToPdfRoute: WordToPdfRoute,
 }
 export const routeTree = rootRouteImport

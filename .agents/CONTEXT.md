@@ -6,9 +6,9 @@ Read this with the root `AGENTS.md` before making architectural changes.
 
 Yohaku is a single TanStack Start app that hosts small file utilities. It
 converts and compresses images, removes uniform backgrounds, traces images to
-SVG, handles PDF pages and signatures, converts between PDF, images, Word, and
-Excel, extracts audio from local media files to MP3, and downloads public
-YouTube, Instagram, or Facebook videos.
+SVG, handles PDF pages and signatures, converts between PDF, images, Word,
+Excel, and PowerPoint, extracts audio from local media files to MP3, and
+downloads public YouTube, Instagram, or Facebook videos.
 
 ## Architecture decisions
 
@@ -38,7 +38,9 @@ YouTube, Instagram, or Facebook videos.
    to image uses the native canvas encoder for PNG/JPEG and a bounded worker
    pool for the other formats. Excel to PDF uses a Rust/WASM core (`calamine` +
    `pdf-writer`) that reads rows into a flat span arena and writes compressed PDF
-   tables. Background removal uses a border-colour matte in a module worker,
+   tables. PowerPoint to PDF uses `pptx-pdf-core` to read the OOXML package and
+   write one PDF page per slide, with flat shape/paragraph/run records and one
+   text arena. Background removal uses a border-colour matte in a module worker,
    backed by the `background-removal-core` Rust/WASM package, with no model or JS
    fallback. Image to SVG is an output option in the image converter and uses
    `imagetracerjs`; the Rust VTracer experiment was reverted for photographic
@@ -84,7 +86,8 @@ YouTube, Instagram, or Facebook videos.
     as-is, and normalizes rotated JPEGs and other formats through
     `ImageProcessor` before `image-pdf-core` writes the pages.
 16. **Rust/WASM cores are narrow and committed.** Excel to PDF keeps parsing and
-    PDF writing in `packages/xlsx-pdf-core`; background removal keeps its matte
+    PDF writing in `packages/xlsx-pdf-core`; PowerPoint to PDF keeps package
+    parsing, layout, and PDF writing in `packages/pptx-pdf-core`; background removal keeps its matte
     in `packages/background-removal-core`; image-to-PDF assembly lives in
     `packages/image-pdf-core`; public media metadata resolution lives in
     `packages/social-media-core`. Generated packages under `src/libs/wasm/` are

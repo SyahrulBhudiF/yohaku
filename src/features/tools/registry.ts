@@ -23,6 +23,7 @@ export interface ToolDefinition {
     | "/pdf/sign"
     | "/excel/to-pdf"
     | "/word/to-pdf"
+    | "/powerpoint/to-pdf"
     | "/media/video-to-mp3"
     | "/media/social-downloader"
     | null
@@ -148,6 +149,13 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     description: "Render DOCX documents to PDF in your browser.",
     category: "document",
     to: "/word/to-pdf",
+  },
+  {
+    id: "powerpoint-to-pdf",
+    title: "PowerPoint to PDF",
+    description: "Render PPTX slides to PDF, with text, shapes, images, and tables.",
+    category: "document",
+    to: "/powerpoint/to-pdf",
   },
   {
     id: "video-to-mp3",

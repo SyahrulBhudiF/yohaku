@@ -18,6 +18,8 @@ case "${1:-build}" in
       --out-dir ../../src/libs/wasm/image-pdf-core
     wasm-pack build packages/word-pdf-core --target web --release \
       --out-dir ../../src/libs/wasm/word-pdf-core
+    wasm-pack build packages/pptx-pdf-core --target web --release \
+      --out-dir ../../src/libs/wasm/pptx-pdf-core
     wasm-pack build packages/social-media-core --target web --release \
       --out-dir ../../src/libs/wasm/social-media-core
     # wasm-pack marks its output directory with a catch-all .gitignore and
@@ -26,6 +28,7 @@ case "${1:-build}" in
     rm -f src/libs/wasm/background-removal-core/.gitignore src/libs/wasm/background-removal-core/README.md
     rm -f src/libs/wasm/image-pdf-core/.gitignore src/libs/wasm/image-pdf-core/README.md
     rm -f src/libs/wasm/word-pdf-core/.gitignore src/libs/wasm/word-pdf-core/README.md
+    rm -f src/libs/wasm/pptx-pdf-core/.gitignore src/libs/wasm/pptx-pdf-core/README.md
     rm -f src/libs/wasm/social-media-core/.gitignore src/libs/wasm/social-media-core/README.md
     ;;
   test)
