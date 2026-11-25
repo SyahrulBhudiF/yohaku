@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router"
 import { ArrowUpRightIcon, SearchIcon } from "lucide-react"
-import { useState } from "react"
+import { type PointerEvent, useState } from "react"
 
 import { Input } from "@/components/ui/input"
 import { cn } from "@/libs/utils/cn"
@@ -74,6 +74,21 @@ const JAPANESE_TITLES: Record<string, string> = {
   "social-media-downloader": "動画のダウンロード",
 }
 
+function aimPictogram(event: PointerEvent<HTMLAnchorElement>) {
+  if (
+    event.pointerType === "touch" ||
+    !matchMedia("(hover: hover) and (prefers-reduced-motion: no-preference)").matches
+  ) {
+    return
+  }
+
+  const { currentTarget, clientX, clientY } = event
+  const { left, top, width, height } = currentTarget.getBoundingClientRect()
+
+  currentTarget.style.setProperty("--card-aim-x", String(2 * ((clientX - left) / width) - 1))
+  currentTarget.style.setProperty("--card-aim-y", String(2 * ((clientY - top) / height) - 1))
+}
+
 function ToolCard({
   tool,
   japanese,
@@ -86,7 +101,7 @@ function ToolCard({
   const card = (
     <article
       className={cn(
-        "group relative flex h-full min-h-40 items-center gap-4 rounded-md border border-outline-variant bg-card p-4 transition-colors motion-reduce:transition-none",
+        "relative flex h-full min-h-40 items-center gap-4 rounded-md border border-outline-variant bg-card p-4 transition-colors motion-reduce:transition-none",
         tool.to ? "hover:bg-surface-container" : "opacity-60",
       )}
     >
@@ -124,7 +139,12 @@ function ToolCard({
     <Link
       to={tool.to}
       aria-label={tool.title}
-      className="rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="tool-card-link rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      onPointerMove={aimPictogram}
+      onPointerLeave={({ currentTarget }) => {
+        currentTarget.style.removeProperty("--card-aim-x")
+        currentTarget.style.removeProperty("--card-aim-y")
+      }}
     >
       {card}
     </Link>
