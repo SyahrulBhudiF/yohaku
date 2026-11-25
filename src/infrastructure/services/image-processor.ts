@@ -9,14 +9,21 @@ import {
   detectImageFormat,
   encodeImage,
   encodeInWorker,
+  resizeInWorker,
   transcodeInWorker,
 } from "@/libs/utils/image-codec"
 import { transcodeGif } from "@/libs/utils/image-codec/gif"
 import { isAnimatedWebp, transcodeWebpAnimation } from "@/libs/utils/image-codec/webp-animation"
+import { flattenOnWhite, resizeImageData, type ResizeOptions } from "@/libs/utils/image-resize"
 
 export interface ProcessedImage {
   readonly data: Uint8Array<ArrayBuffer>
   readonly format: ImageFormat
+}
+
+export interface ResizedImage extends ProcessedImage {
+  readonly width: number
+  readonly height: number
 }
 
 const detectFormat = Effect.fn("ImageProcessor.detectFormat")(function* (input: Uint8Array) {
@@ -90,6 +97,48 @@ const transcode = Effect.fn("ImageProcessor.transcode")(function* (
   return { data, format }
 })
 
+const resize = Effect.fn("ImageProcessor.resize")(function* (
+  input: Uint8Array,
+  options: ResizeOptions,
+  format: ImageFormat,
+  quality: number,
+) {
+  const source = yield* detectFormat(input)
+  const image = yield* decode(input, source)
+  const resized = resizeImageData(image, options)
+
+  if (format === "jpeg") {
+    flattenOnWhite(resized)
+  }
+
+  const data = yield* encode(resized, format, quality)
+
+  return { data, format, width: resized.width, height: resized.height }
+})
+
+const resizeInWorkerEffect = Effect.fn("ImageProcessor.resizeInWorker")(function* (
+  input: Uint8Array,
+  options: ResizeOptions,
+  format: ImageFormat,
+  quality: number,
+) {
+  const response = yield* Effect.tryPromise({
+    try: () => resizeInWorker(input, options, format, quality),
+    catch: () => new ImageProcessingError({ message: "Could not process this image." }),
+  })
+
+  if (!response.ok) {
+    return yield* new ImageProcessingError({ message: response.message })
+  }
+
+  return {
+    data: response.data,
+    format: response.format,
+    width: response.width,
+    height: response.height,
+  }
+})
+
 const transcodeInWorkerEffect = Effect.fn("ImageProcessor.transcodeInWorker")(function* (
   input: Uint8Array,
   format: ImageFormat,
@@ -139,12 +188,19 @@ export class ImageProcessor extends Context.Service<
       format: ImageFormat,
       quality: number,
     ) => Effect.Effect<Uint8Array<ArrayBuffer>, ImageProcessingError>
+    /** Decodes, crops/rotates, resizes, and encodes without blocking the UI. */
+    readonly resize: (
+      input: Uint8Array,
+      options: ResizeOptions,
+      format: ImageFormat,
+      quality: number,
+    ) => Effect.Effect<ResizedImage, ImageProcessingError>
   }
 >()("tools/ImageProcessor") {
   /** Runs the codecs on the calling thread. Used by tests and non-worker hosts. */
   static readonly layer = Layer.succeed(
     ImageProcessor,
-    ImageProcessor.of({ detectFormat, transcode, encode }),
+    ImageProcessor.of({ detectFormat, transcode, encode, resize }),
   )
 
   /** Runs the codecs in a Web Worker so encoding never blocks the UI. */
@@ -154,6 +210,7 @@ export class ImageProcessor extends Context.Service<
       detectFormat,
       transcode: transcodeInWorkerEffect,
       encode: encodeInWorkerEffect,
+      resize: resizeInWorkerEffect,
     }),
   )
 }

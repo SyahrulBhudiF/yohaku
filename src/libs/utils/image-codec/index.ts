@@ -5,5 +5,6 @@ export {
   encodeInWorker,
   imageWorkerLimit,
   preloadImageCodec,
+  resizeInWorker,
   transcodeInWorker,
 } from "./worker-client"

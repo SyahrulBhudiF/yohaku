@@ -8,12 +8,15 @@ import { warmImageCodec } from "./preload"
 import type {
   EncodeRequest,
   EncodeResponse,
+  ResizeRequest,
+  ResizeResponse,
   TranscodeRequest,
   TranscodeResponse,
   WorkerRequest,
   WorkerResponse,
 } from "./protocol"
 import { isAnimatedWebp, transcodeWebpAnimation } from "./webp-animation"
+import { flattenOnWhite, resizeImageData } from "@/libs/utils/image-resize"
 
 interface WorkerScope {
   onmessage: ((event: MessageEvent<WorkerRequest>) => void) | null
@@ -99,6 +102,63 @@ const transcode = async (request: TranscodeRequest): Promise<TranscodeResponse> 
   }
 }
 
+const resize = async (request: ResizeRequest): Promise<ResizeResponse> => {
+  const source = detectImageFormat(request.bytes)
+
+  if (source === null) {
+    return {
+      type: "resize",
+      id: request.id,
+      ok: false,
+      message: "The file is not a readable image.",
+    }
+  }
+
+  let image: ImageData | null
+
+  try {
+    image = await decodeImage(request.bytes, source)
+  } catch {
+    return { type: "resize", id: request.id, ok: false, message: "Could not read this image." }
+  }
+
+  if (image === null) {
+    return {
+      type: "resize",
+      id: request.id,
+      ok: false,
+      message: `Could not decode ${source}.`,
+    }
+  }
+
+  const resized = resizeImageData(image, request.options)
+
+  if (request.format === "jpeg") {
+    flattenOnWhite(resized)
+  }
+
+  try {
+    const data = await encodeImage(resized, request.format, request.quality)
+
+    return {
+      type: "resize",
+      id: request.id,
+      ok: true,
+      data,
+      format: request.format,
+      width: resized.width,
+      height: resized.height,
+    }
+  } catch {
+    return {
+      type: "resize",
+      id: request.id,
+      ok: false,
+      message: `Could not encode the image as ${request.format}.`,
+    }
+  }
+}
+
 const encode = async (request: EncodeRequest): Promise<EncodeResponse> => {
   try {
     const image = new ImageData(request.data, request.width, request.height)
@@ -120,6 +180,18 @@ scope.onmessage = (event) => {
 
   if (request.type === "preload") {
     void warmImageCodec(request.format)
+
+    return
+  }
+
+  if (request.type === "resize") {
+    void resize(request).then((response) => {
+      if (response.ok) {
+        scope.postMessage(response, [response.data.buffer])
+      } else {
+        scope.postMessage(response)
+      }
+    })
 
     return
   }

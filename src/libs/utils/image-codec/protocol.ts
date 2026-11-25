@@ -1,4 +1,5 @@
 import type { ImageFormat } from "@/libs/schemas/image"
+import type { ResizeOptions } from "@/libs/utils/image-resize"
 
 export interface TranscodeRequest {
   readonly type: "transcode"
@@ -18,12 +19,21 @@ export interface EncodeRequest {
   readonly quality: number
 }
 
+export interface ResizeRequest {
+  readonly type: "resize"
+  readonly id: number
+  readonly bytes: Uint8Array
+  readonly options: ResizeOptions
+  readonly format: ImageFormat
+  readonly quality: number
+}
+
 export interface PreloadRequest {
   readonly type: "preload"
   readonly format: ImageFormat
 }
 
-export type WorkerRequest = TranscodeRequest | EncodeRequest | PreloadRequest
+export type WorkerRequest = TranscodeRequest | EncodeRequest | ResizeRequest | PreloadRequest
 
 export type TranscodeResponse =
   | {
@@ -55,4 +65,21 @@ export type EncodeResponse =
       readonly message: string
     }
 
-export type WorkerResponse = TranscodeResponse | EncodeResponse
+export type ResizeResponse =
+  | {
+      readonly type: "resize"
+      readonly id: number
+      readonly ok: true
+      readonly data: Uint8Array<ArrayBuffer>
+      readonly format: ImageFormat
+      readonly width: number
+      readonly height: number
+    }
+  | {
+      readonly type: "resize"
+      readonly id: number
+      readonly ok: false
+      readonly message: string
+    }
+
+export type WorkerResponse = TranscodeResponse | EncodeResponse | ResizeResponse

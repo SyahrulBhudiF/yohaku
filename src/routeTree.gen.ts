@@ -14,6 +14,7 @@ import { Route as ExcelToPdfRouteImport } from './routes/excel/to-pdf'
 import { Route as ImageCompressRouteImport } from './routes/image/compress'
 import { Route as ImageConvertRouteImport } from './routes/image/convert'
 import { Route as ImageRemoveBackgroundRouteImport } from './routes/image/remove-background'
+import { Route as ImageResizeRouteImport } from './routes/image/resize'
 import { Route as ImageToPdfRouteImport } from './routes/image/to-pdf'
 import { Route as MediaSocialDownloaderRouteImport } from './routes/media/social-downloader'
 import { Route as MediaVideoToMp3RouteImport } from './routes/media/video-to-mp3'
@@ -52,6 +53,11 @@ const ImageConvertRoute = ImageConvertRouteImport.update({
 const ImageRemoveBackgroundRoute = ImageRemoveBackgroundRouteImport.update({
   id: '/image/remove-background',
   path: '/image/remove-background',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImageResizeRoute = ImageResizeRouteImport.update({
+  id: '/image/resize',
+  path: '/image/resize',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImageToPdfRoute = ImageToPdfRouteImport.update({
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
+  '/image/resize': typeof ImageResizeRoute
   '/image/to-pdf': typeof ImageToPdfRoute
   '/media/social-downloader': typeof MediaSocialDownloaderRoute
   '/media/video-to-mp3': typeof MediaVideoToMp3Route
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
+  '/image/resize': typeof ImageResizeRoute
   '/image/to-pdf': typeof ImageToPdfRoute
   '/media/social-downloader': typeof MediaSocialDownloaderRoute
   '/media/video-to-mp3': typeof MediaVideoToMp3Route
@@ -174,6 +182,7 @@ export interface FileRoutesById {
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
+  '/image/resize': typeof ImageResizeRoute
   '/image/to-pdf': typeof ImageToPdfRoute
   '/media/social-downloader': typeof MediaSocialDownloaderRoute
   '/media/video-to-mp3': typeof MediaVideoToMp3Route
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/image/compress'
     | '/image/convert'
     | '/image/remove-background'
+    | '/image/resize'
     | '/image/to-pdf'
     | '/media/social-downloader'
     | '/media/video-to-mp3'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/image/compress'
     | '/image/convert'
     | '/image/remove-background'
+    | '/image/resize'
     | '/image/to-pdf'
     | '/media/social-downloader'
     | '/media/video-to-mp3'
@@ -239,6 +250,7 @@ export interface FileRouteTypes {
     | '/image/compress'
     | '/image/convert'
     | '/image/remove-background'
+    | '/image/resize'
     | '/image/to-pdf'
     | '/media/social-downloader'
     | '/media/video-to-mp3'
@@ -261,6 +273,7 @@ export interface RootRouteChildren {
   ImageCompressRoute: typeof ImageCompressRoute
   ImageConvertRoute: typeof ImageConvertRoute
   ImageRemoveBackgroundRoute: typeof ImageRemoveBackgroundRoute
+  ImageResizeRoute: typeof ImageResizeRoute
   ImageToPdfRoute: typeof ImageToPdfRoute
   MediaSocialDownloaderRoute: typeof MediaSocialDownloaderRoute
   MediaVideoToMp3Route: typeof MediaVideoToMp3Route
@@ -312,6 +325,13 @@ declare module '@tanstack/react-router' {
       path: '/image/remove-background'
       fullPath: '/image/remove-background'
       preLoaderRoute: typeof ImageRemoveBackgroundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/image/resize': {
+      id: '/image/resize'
+      path: '/image/resize'
+      fullPath: '/image/resize'
+      preLoaderRoute: typeof ImageResizeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/image/to-pdf': {
@@ -421,6 +441,7 @@ const rootRouteChildren: RootRouteChildren = {
   ImageCompressRoute: ImageCompressRoute,
   ImageConvertRoute: ImageConvertRoute,
   ImageRemoveBackgroundRoute: ImageRemoveBackgroundRoute,
+  ImageResizeRoute: ImageResizeRoute,
   ImageToPdfRoute: ImageToPdfRoute,
   MediaSocialDownloaderRoute: MediaSocialDownloaderRoute,
   MediaVideoToMp3Route: MediaVideoToMp3Route,

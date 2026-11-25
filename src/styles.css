@@ -45,6 +45,7 @@
   --color-on-surface-variant: var(--md-on-surface-variant);
   --color-outline: var(--md-outline);
   --color-outline-variant: var(--md-outline-variant);
+  --color-scrim: var(--md-scrim);
 
   /* One corner radius for interface surfaces and controls. */
   --radius-sm: var(--radius);
@@ -85,6 +86,7 @@
   --md-surface-container: #f0eee7;
   --md-surface-container-high: #e9e8e0;
   --md-surface-container-highest: #e1e2d8;
+  --md-scrim: #000000;
   --yohaku-ink: #272b24;
   --yohaku-sage: #829175;
   --yohaku-sand: #c8a570;
@@ -116,6 +118,7 @@
   --md-surface-container: #242a22;
   --md-surface-container-high: #2e342b;
   --md-surface-container-highest: #394036;
+  --md-scrim: #000000;
   --yohaku-ink: #e4e4d9;
   --yohaku-sage: #aaba9d;
   --yohaku-sand: #e3c18c;

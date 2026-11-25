@@ -8,6 +8,7 @@ export interface ToolDefinition {
   readonly to:
     | "/image/convert"
     | "/image/compress"
+    | "/image/resize"
     | "/image/to-pdf"
     | "/image/remove-background"
     | "/pdf/merge"
@@ -42,6 +43,13 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     description: "Shrink file size and see how much you saved.",
     category: "image",
     to: "/image/compress",
+  },
+  {
+    id: "image-resize",
+    title: "Resize image",
+    description: "Change dimensions, crop, rotate, or flip an image without losing quality.",
+    category: "image",
+    to: "/image/resize",
   },
   {
     id: "image-to-pdf",

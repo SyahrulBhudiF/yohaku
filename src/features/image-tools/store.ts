@@ -177,3 +177,5 @@ const createImageResultStore = () =>
   }))
 
 export const useRemoveBackgroundStore = createImageResultStore()
+
+export const useResizeStore = createImageResultStore()

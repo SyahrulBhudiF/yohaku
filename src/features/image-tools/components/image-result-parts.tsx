@@ -21,11 +21,13 @@ export function ImageFileCard({
   previewUrl,
   disabled,
   onRemove,
+  showPreview = true,
 }: {
   readonly file: File
   readonly previewUrl: string | null
   readonly disabled: boolean
   readonly onRemove: () => void
+  readonly showPreview?: boolean
 }) {
   return (
     <Card>
@@ -51,8 +53,8 @@ export function ImageFileCard({
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {previewUrl && (
+      {showPreview && previewUrl && (
+        <CardContent className="flex flex-col gap-4">
           <Checkerboard className="flex max-h-80 min-h-40 items-center justify-center">
             <img
               src={previewUrl}
@@ -60,8 +62,8 @@ export function ImageFileCard({
               className="max-h-80 w-full object-contain"
             />
           </Checkerboard>
-        )}
-      </CardContent>
+        </CardContent>
+      )}
     </Card>
   )
 }

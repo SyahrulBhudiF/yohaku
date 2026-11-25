@@ -76,6 +76,27 @@ const pictograms: Record<string, ReactNode> = {
       />
     </>
   ),
+  "image-resize": (
+    <>
+      <rect x="18" y="22" width="44" height="34" fill={sage} />
+      <circle cx="30" cy="34" r="4" fill={paper} />
+      <path d="M22 50 34 38l7 8 5-5 8 9Z" fill={ink} />
+      <path
+        d="M62 24h18v18M80 24 66 38"
+        fill="none"
+        stroke={sand}
+        strokeWidth="3"
+        className={shiftRightUp}
+      />
+      <path
+        d="M18 76h18V58M18 76l14-14"
+        fill="none"
+        stroke={ink}
+        strokeWidth="3"
+        className={shiftRightDown}
+      />
+    </>
+  ),
   "image-to-pdf": (
     <>
       <rect x="37" y="13" width="40" height="58" fill={sand} />

@@ -1,7 +1,10 @@
 import type { ImageFormat } from "@/libs/schemas/image"
+import type { ResizeOptions } from "@/libs/utils/image-resize"
 import type {
   EncodeRequest,
   EncodeResponse,
+  ResizeRequest,
+  ResizeResponse,
   TranscodeRequest,
   TranscodeResponse,
   WorkerRequest,
@@ -10,7 +13,7 @@ import type {
 
 type Resolve = (response: WorkerResponse) => void
 type Reject = (error: Error) => void
-type JobRequest = TranscodeRequest | EncodeRequest
+type JobRequest = TranscodeRequest | EncodeRequest | ResizeRequest
 
 interface WorkerSlot {
   readonly worker: Worker
@@ -174,6 +177,30 @@ export const encodeInWorker = (
       [data.buffer],
       (response) => {
         if (response.type === "encode") {
+          resolve(response)
+        } else {
+          reject(new Error("The image codec worker returned an unexpected response."))
+        }
+      },
+      reject,
+    )
+  })
+
+export const resizeInWorker = (
+  bytes: Uint8Array,
+  options: ResizeOptions,
+  format: ImageFormat,
+  quality: number,
+): Promise<ResizeResponse> =>
+  new Promise((resolve, reject) => {
+    const id = nextId
+    const request: JobRequest = { type: "resize", id, bytes, options, format, quality }
+
+    post(
+      request,
+      [bytes.buffer],
+      (response) => {
+        if (response.type === "resize") {
           resolve(response)
         } else {
           reject(new Error("The image codec worker returned an unexpected response."))
