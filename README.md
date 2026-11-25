@@ -13,6 +13,24 @@ Yohaku is a browser-based toolkit for working with images, PDFs, documents, and 
 
 Local files are processed in your browser and are not uploaded or stored. Public video downloads are streamed through a same-origin Cloudflare Worker proxy restricted to YouTube, Instagram, Facebook, and their media CDNs; the Worker does not save media. Private or login-protected posts are not supported. CPU-intensive processing stays client-side to fit Workers runtime limits. Background removal targets uniform backgrounds and is not an AI subject-segmentation tool. Excel export focuses on table data; it does not preserve formulas, charts, or merged cells.
 
+## Performance
+
+Median timings from `pnpm bench` on a 2 vCPU AMD EPYC development machine running Node.js 26. These are codec and core benchmarks, not browser measurements; real devices and files will vary.
+
+| Operation             | Fixture                                      |     Median |
+| --------------------- | -------------------------------------------- | ---------: |
+| Images to PDF         | 10 × 1200 × 800 PNG → one PDF                |     300 ms |
+| Images to PDF         | 10 × 1200 × 800 JPEG → one PDF (passthrough) |      10 ms |
+| PDF text extraction   | 100 pages                                    |     196 ms |
+| PDF to Word           | 100 pages → DOCX                             |     256 ms |
+| PDF to Excel          | 100 pages → XLSX                             |     240 ms |
+| Word to PDF           | 100-page DOCX → PDF                          |     372 ms |
+| PDF page organization | Reorder 50 pages and rotate one              |      16 ms |
+| PDF protection        | AES-256 protect / unlock 50 pages            | 21 / 23 ms |
+| PDF compression       | Representative PDF, lossless qpdf            |      17 ms |
+
+The benchmark fixtures live in `tests/**/*.bench.ts`. Run them with `pnpm bench`; results are written under `.amp/in/`.
+
 ## Development
 
 Requirements: Node.js 24 or newer, pnpm 12, and Rust with the `wasm32-unknown-unknown` target for rebuilding WebAssembly packages.
