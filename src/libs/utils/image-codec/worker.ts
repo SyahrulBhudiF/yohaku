@@ -4,6 +4,7 @@ import { decodeImage } from "./decode"
 import { detectImageFormat } from "./detect"
 import { encodeImage } from "./encode"
 import { transcodeGif } from "./gif"
+import { optimizePng } from "./oxipng"
 import { warmImageCodec } from "./preload"
 import type {
   EncodeRequest,
@@ -34,6 +35,21 @@ const transcode = async (request: TranscodeRequest): Promise<TranscodeResponse> 
       id: request.id,
       ok: false,
       message: "The file is not a readable image.",
+    }
+  }
+
+  if (source === "png" && request.format === "png") {
+    try {
+      const data = await optimizePng(request.bytes)
+
+      return { type: "transcode", id: request.id, ok: true, data, format: "png" }
+    } catch {
+      return {
+        type: "transcode",
+        id: request.id,
+        ok: false,
+        message: "Could not optimize this PNG.",
+      }
     }
   }
 

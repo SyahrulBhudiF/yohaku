@@ -13,6 +13,7 @@ import {
   transcodeInWorker,
 } from "@/libs/utils/image-codec"
 import { transcodeGif } from "@/libs/utils/image-codec/gif"
+import { optimizePng } from "@/libs/utils/image-codec/oxipng"
 import { isAnimatedWebp, transcodeWebpAnimation } from "@/libs/utils/image-codec/webp-animation"
 import { flattenOnWhite, resizeImageData, type ResizeOptions } from "@/libs/utils/image-resize"
 
@@ -69,6 +70,16 @@ const transcode = Effect.fn("ImageProcessor.transcode")(function* (
   quality: number,
 ) {
   const source = yield* detectFormat(input)
+
+  if (source === "png" && format === "png") {
+    const data = yield* Effect.tryPromise({
+      try: () => optimizePng(input),
+      catch: () => new ImageProcessingError({ message: "Could not optimize this PNG." }),
+    })
+
+    return { data, format }
+  }
+
   const animationTarget: AnimatedFormat | null =
     format === "gif" || format === "webp" ? format : null
   const animationSource: AnimatedFormat | null =

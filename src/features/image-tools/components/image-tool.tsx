@@ -154,9 +154,13 @@ export function ImageTool({
   const sizeLabel =
     result?.mimeType === "image/svg+xml"
       ? "SVG"
-      : saved >= 0
+      : saved > 0
         ? `${saved}% smaller`
-        : `${-saved}% larger`
+        : saved === 0
+          ? mode === "compress"
+            ? "Already optimized"
+            : "Same size"
+          : `${-saved}% larger`
   const error = mutation.error?.message ?? null
   const reset = () => {
     mutation.reset()

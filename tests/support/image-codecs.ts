@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url"
 
 import { simd } from "wasm-feature-detect"
 
+import { initOptimizePng } from "@/libs/utils/image-codec/oxipng"
+
 // The codecs expect a browser `ImageData`; Node only has the wasm modules.
 if (typeof globalThis.ImageData === "undefined") {
   globalThis.ImageData = class {
@@ -34,6 +36,7 @@ export const initImageCodecs = async () => {
   await Promise.all([
     import("@jsquash/png/encode").then((codec) => codec.init(pngModule)),
     import("@jsquash/png/decode").then((codec) => codec.init(pngModule)),
+    compileWasm("@jsquash/oxipng/codec/pkg/squoosh_oxipng_bg.wasm").then(initOptimizePng),
     import("@jsquash/jpeg/encode").then(async (codec) =>
       codec.init(await compileWasm("@jsquash/jpeg/codec/enc/mozjpeg_enc.wasm")),
     ),

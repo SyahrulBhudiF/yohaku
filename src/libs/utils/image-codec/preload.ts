@@ -5,7 +5,11 @@ type Loader = () => Promise<unknown>
 const noop = async () => undefined
 
 const encoders: Record<ImageFormat, Loader> = {
-  png: () => import("@jsquash/png/encode").then((codec) => codec.init()),
+  png: () =>
+    Promise.all([
+      import("@jsquash/png/encode").then((codec) => codec.init()),
+      import("./oxipng").then((codec) => codec.initOptimizePng()),
+    ]),
   jpeg: () => import("@jsquash/jpeg/encode").then((codec) => codec.init()),
   webp: () => import("@jsquash/webp/encode").then((codec) => codec.init()),
   avif: () => import("@jsquash/avif/encode").then((codec) => codec.init()),

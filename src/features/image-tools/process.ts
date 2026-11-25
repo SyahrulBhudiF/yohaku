@@ -139,15 +139,33 @@ const program = (input: ProcessImageInput) =>
     preloadImageCodec(format)
 
     const output = yield* processor.transcode(bytes, format, input.quality)
-    const mimeType = IMAGE_MIME[output.format]
+    // Re-encoding an already optimized file can inflate it, especially a
+    // palette PNG that is expanded to RGBA. A compressor must not return a
+    // larger file when the format is unchanged. The worker owns `bytes` now,
+    // so re-read the file when the original wins.
+    const keepOriginal =
+      input.mode === "compress" &&
+      source !== null &&
+      output.format === source &&
+      output.data.byteLength >= input.file.size
+    const data = keepOriginal
+      ? new Uint8Array(
+          yield* Effect.tryPromise({
+            try: () => input.file.arrayBuffer(),
+            catch: () => new ImageProcessingError({ message: "Could not read this image." }),
+          }),
+        )
+      : output.data
+    const outputFormat = keepOriginal && source !== null ? source : output.format
+    const mimeType = IMAGE_MIME[outputFormat]
     const suffix = input.mode === "compress" ? "-compressed" : ""
 
     return {
-      blob: new Blob([output.data], { type: mimeType }),
-      fileName: `${fileBaseName(input.file.name)}${suffix}.${IMAGE_EXTENSION[output.format]}`,
+      blob: new Blob([data], { type: mimeType }),
+      fileName: `${fileBaseName(input.file.name)}${suffix}.${IMAGE_EXTENSION[outputFormat]}`,
       mimeType,
       originalBytes: input.file.size,
-      resultBytes: output.data.byteLength,
+      resultBytes: data.byteLength,
     }
   })
 

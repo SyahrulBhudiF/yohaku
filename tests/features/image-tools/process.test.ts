@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs"
+
 import { assert, describe, it } from "@effect/vitest"
 import { beforeAll } from "vitest"
 
@@ -23,6 +25,30 @@ describe("processImage", () => {
 
     assert.strictEqual(result.fileName, "photo-compressed.png")
     assert.strictEqual(result.mimeType, "image/png")
+    assert.isAtMost(result.resultBytes, result.originalBytes)
+  })
+
+  it("losslessly shrinks a palette PNG instead of expanding it to RGBA", async () => {
+    const bytes = new Uint8Array(
+      readFileSync(new URL("../../support/fixtures/palette.png", import.meta.url)),
+    )
+    const file = new File([bytes], "palette.png", { type: "image/png" })
+    const result = await processImage({ mode: "compress", file, format: undefined, quality: 20 })
+
+    assert.strictEqual(result.fileName, "palette-compressed.png")
+    assert.isBelow(result.resultBytes, bytes.byteLength)
+  })
+
+  it("keeps an already optimized file instead of inflating it", async () => {
+    const bytes = new Uint8Array(
+      readFileSync(new URL("../../support/fixtures/palette-optimized.png", import.meta.url)),
+    )
+    const file = new File([bytes], "palette.png", { type: "image/png" })
+    const result = await processImage({ mode: "compress", file, format: undefined, quality: 20 })
+
+    assert.strictEqual(result.fileName, "palette-compressed.png")
+    assert.strictEqual(result.resultBytes, bytes.byteLength)
+    assert.deepEqual(new Uint8Array(await result.blob.arrayBuffer()), bytes)
   })
 
   it("accepts readable images and reports unreadable files", async () => {
