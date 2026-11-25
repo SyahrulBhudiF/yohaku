@@ -1,21 +1,15 @@
 import { FileDownIcon, Loader2Icon, PresentationIcon, Trash2Icon } from "lucide-react"
-import { useEffect } from "react"
 
 import { Button } from "@/components/ui/button"
 import { FileDropzone } from "@/features/document-tools/components/file-dropzone"
 import { ConversionResult } from "@/features/tools/components/conversion-result"
 import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import { MAX_PPTX_BYTES, MAX_PPTX_SLIDES } from "@/libs/schemas/powerpoint"
-import { preloadPptxPdf } from "@/libs/utils/pptx-pdf"
 import { usePowerPointToPdf } from "../use-powerpoint-to-pdf"
 
 export function PowerPointToPdfPage() {
   const model = usePowerPointToPdf()
   const error = model.selectionError ?? model.convert.error?.message
-
-  useEffect(() => {
-    void preloadPptxPdf().catch(() => null)
-  }, [])
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6">

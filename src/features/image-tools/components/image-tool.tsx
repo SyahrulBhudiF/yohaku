@@ -2,7 +2,7 @@ import { useForm } from "@tanstack/react-form"
 import { useMutation } from "@tanstack/react-query"
 import { Schema } from "effect"
 import { ArrowRightIcon, DownloadIcon, Loader2Icon, XIcon } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -146,10 +146,6 @@ export function ImageTool({
     }
   }
 
-  useEffect(() => {
-    preload(allowOriginalFormat ? "original" : "webp")
-  }, [allowOriginalFormat])
-
   const saved = result ? Math.round((1 - result.resultBytes / result.originalBytes) * 100) : 0
   const sizeLabel =
     result?.mimeType === "image/svg+xml"
@@ -178,7 +174,12 @@ export function ImageTool({
       </ToolPageHeader>
 
       {file === null ? (
-        <Dropzone onFiles={(files) => setFile(files[0] ?? null)} />
+        <Dropzone
+          onFiles={(files) => {
+            preload(form.state.values.format)
+            setFile(files[0] ?? null)
+          }}
+        />
       ) : (
         <Card>
           <CardHeader>

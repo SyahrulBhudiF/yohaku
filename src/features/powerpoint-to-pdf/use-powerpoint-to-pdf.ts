@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query"
 import { useState } from "react"
 
 import { MAX_PPTX_BYTES } from "@/libs/schemas/powerpoint"
+import { preloadPptxPdf } from "@/libs/utils/pptx-pdf"
 import { processPowerPointToPdf } from "./process"
 import { usePowerPointToPdfStore } from "./store"
 import { isLegacyPptFile, isPptxFile } from "./validation"
@@ -51,6 +52,7 @@ export function usePowerPointToPdf() {
     }
 
     setFile(selected)
+    void preloadPptxPdf().catch(() => null)
   }
 
   const clear = () => {

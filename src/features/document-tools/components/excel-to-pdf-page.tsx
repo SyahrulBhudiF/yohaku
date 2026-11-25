@@ -2,7 +2,7 @@ import { useForm } from "@tanstack/react-form"
 import { useMutation } from "@tanstack/react-query"
 import { Schema } from "effect"
 import { DownloadIcon, FileSpreadsheetIcon, Loader2Icon, Trash2Icon, XIcon } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -75,10 +75,6 @@ export function ExcelToPdfPage() {
   })
   const errorMessage = error ?? convert.error?.message ?? null
 
-  useEffect(() => {
-    void preloadXlsxPdf().catch(() => null)
-  }, [])
-
   const handleFile = (incoming: ReadonlyArray<File>) => {
     const next = incoming[0]
 
@@ -101,6 +97,7 @@ export function ExcelToPdfPage() {
       return
     }
 
+    void preloadXlsxPdf().catch(() => null)
     setFile(next)
   }
 

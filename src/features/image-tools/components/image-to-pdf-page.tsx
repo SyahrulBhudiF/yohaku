@@ -2,7 +2,7 @@ import { useForm } from "@tanstack/react-form"
 import { useMutation } from "@tanstack/react-query"
 import { Schema } from "effect"
 import { DownloadIcon, FilePlus2Icon, Loader2Icon, Trash2Icon } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -83,10 +83,6 @@ export function ImageToPdfPage() {
   const outputCount = values.mode === "one" ? 1 : files.length
   const errorMessage = error ?? createPdf.error?.message ?? null
 
-  useEffect(() => {
-    preloadImageCodec("png")
-  }, [])
-
   const resetMutation = () => {
     createPdf.reset()
     addFilesMutation.reset()
@@ -94,6 +90,7 @@ export function ImageToPdfPage() {
   }
 
   const handleFiles = (incoming: ReadonlyArray<File>) => {
+    preloadImageCodec("png")
     resetMutation()
     addFilesMutation.mutate(
       { files: incoming, existingFileCount: files.length, existingTotalBytes: totalBytes },
