@@ -408,6 +408,93 @@ const pictograms: Record<string, ReactNode> = {
       />
     </>
   ),
+  "markdown-to-word": (
+    <>
+      <g className="pictogram-part pic-left pic-tilt">
+        <rect x="12" y="18" width="35" height="48" fill={ink} />
+        <path d="m19 30 4 18 5-11 5 11 5-18" fill="none" stroke={paper} strokeWidth="3" />
+      </g>
+      <path
+        d="M44 43h12m-5-5 5 5-5 5"
+        fill="none"
+        stroke={sand}
+        strokeWidth="3"
+        className={shiftRight}
+      />
+      <g className="pictogram-part pic-pop pic-tilt-back">
+        <rect x="56" y="25" width="29" height="48" fill={sage} />
+        <path d="M62 38h17M62 46h17M62 54h12" stroke={paper} strokeWidth="2" />
+      </g>
+    </>
+  ),
+  "markdown-to-pdf": (
+    <>
+      <g className="pictogram-part pic-left pic-tilt">
+        <rect x="12" y="18" width="35" height="48" fill={ink} />
+        <path d="m19 30 4 18 5-11 5 11 5-18" fill="none" stroke={paper} strokeWidth="3" />
+      </g>
+      <path
+        d="M44 43h12m-5-5 5 5-5 5"
+        fill="none"
+        stroke={sand}
+        strokeWidth="3"
+        className={shiftRight}
+      />
+      <g className="pictogram-part pic-pop pic-tilt-back">
+        <path d="M60 18h18l8 8v49H60Z" fill={sage} />
+        <path
+          d="M78 18v10h8M66 43h14M66 50h14M66 57h10"
+          fill="none"
+          stroke={paper}
+          strokeWidth="2"
+        />
+      </g>
+    </>
+  ),
+  "word-to-markdown": (
+    <>
+      <g className="pictogram-part pic-left pic-tilt">
+        <rect x="12" y="24" width="30" height="45" fill={sage} />
+        <path d="m18 36 3 17 5-11 5 11 4-17" fill="none" stroke={paper} strokeWidth="3" />
+      </g>
+      <path
+        d="M44 46h12m-5-5 5 5-5 5"
+        fill="none"
+        stroke={sand}
+        strokeWidth="3"
+        className={shiftRight}
+      />
+      <g className="pictogram-part pic-pop pic-tilt-back">
+        <rect x="56" y="18" width="30" height="52" fill={ink} />
+        <path d="M63 31h16M63 39h16M63 47h11" stroke={paper} strokeWidth="2" />
+        <path d="M63 57h5l3 4 3-4h5" fill="none" stroke={sand} strokeWidth="2" />
+      </g>
+    </>
+  ),
+  "pdf-to-markdown": (
+    <>
+      <g className="pictogram-part pic-left pic-tilt">
+        <path d="M12 18h25l9 9v48H12Z" fill={ink} />
+        <path
+          d="M37 18v11h9M19 43h18M19 50h18M19 57h13"
+          fill="none"
+          stroke={paper}
+          strokeWidth="2"
+        />
+      </g>
+      <path
+        d="M44 49h12m-5-5 5 5-5 5"
+        fill="none"
+        stroke={sand}
+        strokeWidth="3"
+        className={shiftRight}
+      />
+      <g className="pictogram-part pic-pop pic-tilt-back">
+        <rect x="57" y="23" width="29" height="48" fill={sage} />
+        <path d="m63 36 3 14 4-9 4 9 4-14M63 57h17" fill="none" stroke={paper} strokeWidth="2" />
+      </g>
+    </>
+  ),
   "powerpoint-to-pdf": (
     <>
       <g className="pictogram-part pic-left pic-tilt">

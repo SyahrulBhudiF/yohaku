@@ -20,6 +20,10 @@
   <url><loc>https://yohaku.ryuko.my.id/pdf/annotate</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/excel/to-pdf</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/word/to-pdf</loc></url>
+  <url><loc>https://yohaku.ryuko.my.id/markdown/to-word</loc></url>
+  <url><loc>https://yohaku.ryuko.my.id/markdown/to-pdf</loc></url>
+  <url><loc>https://yohaku.ryuko.my.id/word/to-markdown</loc></url>
+  <url><loc>https://yohaku.ryuko.my.id/pdf/to-markdown</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/powerpoint/to-pdf</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/media/video-to-mp3</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/media/social-downloader</loc></url>

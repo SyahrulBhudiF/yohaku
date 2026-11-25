@@ -158,6 +158,38 @@ const CONTENT: Record<
       "Choose a DOCX file, convert it and open the resulting PDF to check the pages before sharing. Save older DOC files as DOCX first; this tool does not convert the legacy DOC format.",
     related: ["/pdf/to-word", "/pdf/compress"],
   },
+  "/markdown/to-word": {
+    title: "Markdown to Word Converter — Convert MD to DOCX",
+    description:
+      "Convert Markdown text or a .md file to an editable Word DOCX document. Headings, emphasis, lists, links, quotes, code blocks and simple tables are supported; files stay in your browser.",
+    guide:
+      "Paste or type Markdown, or open an .md file. Convert it to DOCX and review the downloaded document. The converter supports common Markdown blocks; advanced extensions and exact page layout are not preserved.",
+    related: ["/word/to-markdown", "/markdown/to-pdf"],
+  },
+  "/markdown/to-pdf": {
+    title: "Markdown to PDF Converter — Convert MD to PDF",
+    description:
+      "Turn Markdown text or a .md file into a paginated, searchable PDF. Common headings, lists, emphasis, links, quotes, code blocks and simple tables are supported locally.",
+    guide:
+      "Paste or type Markdown, or open an .md file, then convert and download the PDF. The PDF is laid out for reading and printing; complex Markdown extensions and original web styling are not included.",
+    related: ["/markdown/to-word", "/pdf/to-markdown"],
+  },
+  "/word/to-markdown": {
+    title: "Word to Markdown Converter — Convert DOCX to MD",
+    description:
+      "Convert a Word DOCX document to Markdown. Extract text, heading levels, lists and simple tables in your browser without uploading the file.",
+    guide:
+      "Choose a DOCX file to extract its readable document text as Markdown. Text emphasis, heading levels, lists and tables are recognized. Images, page layout, and older .doc files are not supported.",
+    related: ["/markdown/to-word", "/word/to-pdf"],
+  },
+  "/pdf/to-markdown": {
+    title: "PDF to Markdown Converter — Extract PDF Text to MD",
+    description:
+      "Extract selectable text from PDF files and save it as Markdown with page breaks. Scanned PDFs need OCR first; processing stays in your browser.",
+    guide:
+      "Choose a text-based PDF and convert its pages to Markdown. Page breaks and approximate reading order are included. Scanned pages without selectable text require OCR, and complex layouts may be reordered.",
+    related: ["/pdf/to-word", "/markdown/to-pdf"],
+  },
   "/powerpoint/to-pdf": {
     title: "PowerPoint to PDF Converter — Convert PPTX Slides",
     description:

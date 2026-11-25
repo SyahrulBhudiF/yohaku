@@ -1,0 +1,35 @@
+import { create } from "zustand"
+
+import type {
+  DocumentConversionOutput,
+  DocumentConversionResult,
+} from "@/features/document-tools/types"
+
+interface WordToMarkdownState {
+  readonly file: File | null
+  readonly result: DocumentConversionResult | null
+  readonly setFile: (file: File | null) => void
+  readonly setResult: (result: DocumentConversionOutput) => void
+  readonly reset: () => void
+}
+
+const revoke = (url: string | null | undefined) => {
+  if (url) URL.revokeObjectURL(url)
+}
+
+export const useWordToMarkdownStore = create<WordToMarkdownState>()((set, get) => ({
+  file: null,
+  result: null,
+  setFile: (file) => {
+    revoke(get().result?.url)
+    set({ file, result: null })
+  },
+  setResult: ({ blob, ...result }) => {
+    revoke(get().result?.url)
+    set({ result: { ...result, url: URL.createObjectURL(blob) } })
+  },
+  reset: () => {
+    revoke(get().result?.url)
+    set({ file: null, result: null })
+  },
+}))

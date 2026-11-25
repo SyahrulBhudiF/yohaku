@@ -25,6 +25,10 @@ export interface ToolDefinition {
     | "/pdf/annotate"
     | "/excel/to-pdf"
     | "/word/to-pdf"
+    | "/markdown/to-word"
+    | "/markdown/to-pdf"
+    | "/word/to-markdown"
+    | "/pdf/to-markdown"
     | "/powerpoint/to-pdf"
     | "/media/video-to-mp3"
     | "/media/social-downloader"
@@ -165,6 +169,35 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     description: "Render DOCX documents to PDF in your browser.",
     category: "document",
     to: "/word/to-pdf",
+  },
+  {
+    id: "markdown-to-word",
+    title: "Markdown to Word",
+    description: "Convert Markdown text or .md files into editable DOCX documents in your browser.",
+    category: "document",
+    to: "/markdown/to-word",
+  },
+  {
+    id: "markdown-to-pdf",
+    title: "Markdown to PDF",
+    description:
+      "Turn Markdown text or .md files into paginated, searchable PDF documents locally.",
+    category: "document",
+    to: "/markdown/to-pdf",
+  },
+  {
+    id: "word-to-markdown",
+    title: "Word to Markdown",
+    description: "Extract headings, text, lists and simple tables from DOCX files into Markdown.",
+    category: "document",
+    to: "/word/to-markdown",
+  },
+  {
+    id: "pdf-to-markdown",
+    title: "PDF to Markdown",
+    description: "Extract selectable PDF text into Markdown with page breaks, in your browser.",
+    category: "document",
+    to: "/pdf/to-markdown",
   },
   {
     id: "powerpoint-to-pdf",

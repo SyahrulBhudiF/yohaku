@@ -80,39 +80,40 @@ const convertInWorker = async (file: File) => {
   })
 }
 
-export const convertWordToPdf = (file: File): Promise<WordToPdfOutput> =>
-  runEffect(
-    Effect.gen(function* () {
-      if (!file.name.toLowerCase().endsWith(".docx")) {
-        return yield* new WordToPdfError({ message: "Choose a .docx Word document." })
-      }
+export const convertWordToPdfEffect = (file: File) =>
+  Effect.gen(function* () {
+    if (!file.name.toLowerCase().endsWith(".docx")) {
+      return yield* new WordToPdfError({ message: "Choose a .docx Word document." })
+    }
 
-      if (file.size === 0 || file.size > MAX_DOCX_BYTES) {
-        return yield* new WordToPdfError({
-          message:
-            file.size === 0
-              ? "This Word document is empty."
-              : `Word documents can be at most ${MAX_DOCX_BYTES / 1024 / 1024} MB.`,
-        })
-      }
-
-      const bytes = yield* Effect.tryPromise({
-        try: () => convertInWorker(file),
-        catch: (cause) =>
-          new WordToPdfError({
-            message:
-              cause instanceof Error
-                ? `Could not convert this Word document: ${cause.message}`
-                : `Could not convert this Word document: ${String(cause)}`,
-          }),
+    if (file.size === 0 || file.size > MAX_DOCX_BYTES) {
+      return yield* new WordToPdfError({
+        message:
+          file.size === 0
+            ? "This Word document is empty."
+            : `Word documents can be at most ${MAX_DOCX_BYTES / 1024 / 1024} MB.`,
       })
-      const blob = new Blob([bytes], { type: "application/pdf" })
+    }
 
-      return {
-        blob,
-        fileName: `${file.name.replace(/\.docx$/i, "") || "document"}.pdf`,
-        inputBytes: file.size,
-        outputBytes: blob.size,
-      }
-    }),
-  )
+    const bytes = yield* Effect.tryPromise({
+      try: () => convertInWorker(file),
+      catch: (cause) =>
+        new WordToPdfError({
+          message:
+            cause instanceof Error
+              ? `Could not convert this Word document: ${cause.message}`
+              : `Could not convert this Word document: ${String(cause)}`,
+        }),
+    })
+    const blob = new Blob([bytes], { type: "application/pdf" })
+
+    return {
+      blob,
+      fileName: `${file.name.replace(/\.docx$/i, "") || "document"}.pdf`,
+      inputBytes: file.size,
+      outputBytes: blob.size,
+    }
+  })
+
+export const convertWordToPdf = (file: File): Promise<WordToPdfOutput> =>
+  runEffect(convertWordToPdfEffect(file))

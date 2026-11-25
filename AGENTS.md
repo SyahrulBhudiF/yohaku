@@ -230,6 +230,12 @@ export class MyService extends Context.Service<
   alpha, tables, and styled text. Charts, SmartArt, animations, and legacy
   `.ppt` files are rejected or skipped. Keep the parsed deck flat: shape,
   paragraph, and run records with one text arena.
+- Markdown→DOCX parses common Markdown blocks into Word paragraphs and tables;
+  Markdown→PDF reuses that DOCX representation and the existing Word-to-PDF
+  worker. DOCX→Markdown extracts text, heading styles, lists, and simple tables
+  from the OOXML body. PDF→Markdown reuses PDF.js text rows and labels page
+  breaks. These are text conversions, not layout-preserving exports; scanned
+  PDFs still need OCR, and legacy `.doc` files are not supported.
 
 ## Data-oriented design
 

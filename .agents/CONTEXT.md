@@ -10,7 +10,8 @@ Yohaku is a single TanStack Start app that hosts small file utilities. It
 converts and compresses images, removes uniform backgrounds, traces images to
 SVG, handles PDF pages, signatures, page numbers, and watermarks, converts
 between PDF, images, Word, Excel, and PowerPoint, extracts audio from local
-media files to MP3, and downloads public YouTube, Instagram, or Facebook videos.
+media files to MP3, converts Markdown and DOCX/PDF documents to and from
+Markdown, and downloads public YouTube, Instagram, or Facebook videos.
 
 ## Architecture decisions
 

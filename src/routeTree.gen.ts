@@ -17,6 +17,8 @@ import { Route as ImageConvertRouteImport } from './routes/image/convert'
 import { Route as ImageRemoveBackgroundRouteImport } from './routes/image/remove-background'
 import { Route as ImageResizeRouteImport } from './routes/image/resize'
 import { Route as ImageToPdfRouteImport } from './routes/image/to-pdf'
+import { Route as MarkdownToPdfRouteImport } from './routes/markdown/to-pdf'
+import { Route as MarkdownToWordRouteImport } from './routes/markdown/to-word'
 import { Route as MediaSocialDownloaderRouteImport } from './routes/media/social-downloader'
 import { Route as MediaVideoToMp3RouteImport } from './routes/media/video-to-mp3'
 import { Route as PdfAnnotateRouteImport } from './routes/pdf/annotate'
@@ -29,8 +31,10 @@ import { Route as PdfSignRouteImport } from './routes/pdf/sign'
 import { Route as PdfSplitRouteImport } from './routes/pdf/split'
 import { Route as PdfToExcelRouteImport } from './routes/pdf/to-excel'
 import { Route as PdfToImageRouteImport } from './routes/pdf/to-image'
+import { Route as PdfToMarkdownRouteImport } from './routes/pdf/to-markdown'
 import { Route as PdfToWordRouteImport } from './routes/pdf/to-word'
 import { Route as PowerpointToPdfRouteImport } from './routes/powerpoint/to-pdf'
+import { Route as WordToMarkdownRouteImport } from './routes/word/to-markdown'
 import { Route as WordToPdfRouteImport } from './routes/word/to-pdf'
 
 const IndexRoute = IndexRouteImport.update({
@@ -71,6 +75,16 @@ const ImageResizeRoute = ImageResizeRouteImport.update({
 const ImageToPdfRoute = ImageToPdfRouteImport.update({
   id: '/image/to-pdf',
   path: '/image/to-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarkdownToPdfRoute = MarkdownToPdfRouteImport.update({
+  id: '/markdown/to-pdf',
+  path: '/markdown/to-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarkdownToWordRoute = MarkdownToWordRouteImport.update({
+  id: '/markdown/to-word',
+  path: '/markdown/to-word',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MediaSocialDownloaderRoute = MediaSocialDownloaderRouteImport.update({
@@ -133,6 +147,11 @@ const PdfToImageRoute = PdfToImageRouteImport.update({
   path: '/pdf/to-image',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PdfToMarkdownRoute = PdfToMarkdownRouteImport.update({
+  id: '/pdf/to-markdown',
+  path: '/pdf/to-markdown',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PdfToWordRoute = PdfToWordRouteImport.update({
   id: '/pdf/to-word',
   path: '/pdf/to-word',
@@ -141,6 +160,11 @@ const PdfToWordRoute = PdfToWordRouteImport.update({
 const PowerpointToPdfRoute = PowerpointToPdfRouteImport.update({
   id: '/powerpoint/to-pdf',
   path: '/powerpoint/to-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WordToMarkdownRoute = WordToMarkdownRouteImport.update({
+  id: '/word/to-markdown',
+  path: '/word/to-markdown',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WordToPdfRoute = WordToPdfRouteImport.update({
@@ -158,6 +182,8 @@ export interface FileRoutesByFullPath {
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
   '/image/resize': typeof ImageResizeRoute
   '/image/to-pdf': typeof ImageToPdfRoute
+  '/markdown/to-pdf': typeof MarkdownToPdfRoute
+  '/markdown/to-word': typeof MarkdownToWordRoute
   '/media/social-downloader': typeof MediaSocialDownloaderRoute
   '/media/video-to-mp3': typeof MediaVideoToMp3Route
   '/pdf/annotate': typeof PdfAnnotateRoute
@@ -170,8 +196,10 @@ export interface FileRoutesByFullPath {
   '/pdf/split': typeof PdfSplitRoute
   '/pdf/to-excel': typeof PdfToExcelRoute
   '/pdf/to-image': typeof PdfToImageRoute
+  '/pdf/to-markdown': typeof PdfToMarkdownRoute
   '/pdf/to-word': typeof PdfToWordRoute
   '/powerpoint/to-pdf': typeof PowerpointToPdfRoute
+  '/word/to-markdown': typeof WordToMarkdownRoute
   '/word/to-pdf': typeof WordToPdfRoute
 }
 export interface FileRoutesByTo {
@@ -183,6 +211,8 @@ export interface FileRoutesByTo {
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
   '/image/resize': typeof ImageResizeRoute
   '/image/to-pdf': typeof ImageToPdfRoute
+  '/markdown/to-pdf': typeof MarkdownToPdfRoute
+  '/markdown/to-word': typeof MarkdownToWordRoute
   '/media/social-downloader': typeof MediaSocialDownloaderRoute
   '/media/video-to-mp3': typeof MediaVideoToMp3Route
   '/pdf/annotate': typeof PdfAnnotateRoute
@@ -195,8 +225,10 @@ export interface FileRoutesByTo {
   '/pdf/split': typeof PdfSplitRoute
   '/pdf/to-excel': typeof PdfToExcelRoute
   '/pdf/to-image': typeof PdfToImageRoute
+  '/pdf/to-markdown': typeof PdfToMarkdownRoute
   '/pdf/to-word': typeof PdfToWordRoute
   '/powerpoint/to-pdf': typeof PowerpointToPdfRoute
+  '/word/to-markdown': typeof WordToMarkdownRoute
   '/word/to-pdf': typeof WordToPdfRoute
 }
 export interface FileRoutesById {
@@ -209,6 +241,8 @@ export interface FileRoutesById {
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
   '/image/resize': typeof ImageResizeRoute
   '/image/to-pdf': typeof ImageToPdfRoute
+  '/markdown/to-pdf': typeof MarkdownToPdfRoute
+  '/markdown/to-word': typeof MarkdownToWordRoute
   '/media/social-downloader': typeof MediaSocialDownloaderRoute
   '/media/video-to-mp3': typeof MediaVideoToMp3Route
   '/pdf/annotate': typeof PdfAnnotateRoute
@@ -221,8 +255,10 @@ export interface FileRoutesById {
   '/pdf/split': typeof PdfSplitRoute
   '/pdf/to-excel': typeof PdfToExcelRoute
   '/pdf/to-image': typeof PdfToImageRoute
+  '/pdf/to-markdown': typeof PdfToMarkdownRoute
   '/pdf/to-word': typeof PdfToWordRoute
   '/powerpoint/to-pdf': typeof PowerpointToPdfRoute
+  '/word/to-markdown': typeof WordToMarkdownRoute
   '/word/to-pdf': typeof WordToPdfRoute
 }
 export interface FileRouteTypes {
@@ -236,6 +272,8 @@ export interface FileRouteTypes {
     | '/image/remove-background'
     | '/image/resize'
     | '/image/to-pdf'
+    | '/markdown/to-pdf'
+    | '/markdown/to-word'
     | '/media/social-downloader'
     | '/media/video-to-mp3'
     | '/pdf/annotate'
@@ -248,8 +286,10 @@ export interface FileRouteTypes {
     | '/pdf/split'
     | '/pdf/to-excel'
     | '/pdf/to-image'
+    | '/pdf/to-markdown'
     | '/pdf/to-word'
     | '/powerpoint/to-pdf'
+    | '/word/to-markdown'
     | '/word/to-pdf'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -261,6 +301,8 @@ export interface FileRouteTypes {
     | '/image/remove-background'
     | '/image/resize'
     | '/image/to-pdf'
+    | '/markdown/to-pdf'
+    | '/markdown/to-word'
     | '/media/social-downloader'
     | '/media/video-to-mp3'
     | '/pdf/annotate'
@@ -273,8 +315,10 @@ export interface FileRouteTypes {
     | '/pdf/split'
     | '/pdf/to-excel'
     | '/pdf/to-image'
+    | '/pdf/to-markdown'
     | '/pdf/to-word'
     | '/powerpoint/to-pdf'
+    | '/word/to-markdown'
     | '/word/to-pdf'
   id:
     | '__root__'
@@ -286,6 +330,8 @@ export interface FileRouteTypes {
     | '/image/remove-background'
     | '/image/resize'
     | '/image/to-pdf'
+    | '/markdown/to-pdf'
+    | '/markdown/to-word'
     | '/media/social-downloader'
     | '/media/video-to-mp3'
     | '/pdf/annotate'
@@ -298,8 +344,10 @@ export interface FileRouteTypes {
     | '/pdf/split'
     | '/pdf/to-excel'
     | '/pdf/to-image'
+    | '/pdf/to-markdown'
     | '/pdf/to-word'
     | '/powerpoint/to-pdf'
+    | '/word/to-markdown'
     | '/word/to-pdf'
   fileRoutesById: FileRoutesById
 }
@@ -312,6 +360,8 @@ export interface RootRouteChildren {
   ImageRemoveBackgroundRoute: typeof ImageRemoveBackgroundRoute
   ImageResizeRoute: typeof ImageResizeRoute
   ImageToPdfRoute: typeof ImageToPdfRoute
+  MarkdownToPdfRoute: typeof MarkdownToPdfRoute
+  MarkdownToWordRoute: typeof MarkdownToWordRoute
   MediaSocialDownloaderRoute: typeof MediaSocialDownloaderRoute
   MediaVideoToMp3Route: typeof MediaVideoToMp3Route
   PdfAnnotateRoute: typeof PdfAnnotateRoute
@@ -324,8 +374,10 @@ export interface RootRouteChildren {
   PdfSplitRoute: typeof PdfSplitRoute
   PdfToExcelRoute: typeof PdfToExcelRoute
   PdfToImageRoute: typeof PdfToImageRoute
+  PdfToMarkdownRoute: typeof PdfToMarkdownRoute
   PdfToWordRoute: typeof PdfToWordRoute
   PowerpointToPdfRoute: typeof PowerpointToPdfRoute
+  WordToMarkdownRoute: typeof WordToMarkdownRoute
   WordToPdfRoute: typeof WordToPdfRoute
 }
 
@@ -385,6 +437,20 @@ declare module '@tanstack/react-router' {
       path: '/image/to-pdf'
       fullPath: '/image/to-pdf'
       preLoaderRoute: typeof ImageToPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/markdown/to-pdf': {
+      id: '/markdown/to-pdf'
+      path: '/markdown/to-pdf'
+      fullPath: '/markdown/to-pdf'
+      preLoaderRoute: typeof MarkdownToPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/markdown/to-word': {
+      id: '/markdown/to-word'
+      path: '/markdown/to-word'
+      fullPath: '/markdown/to-word'
+      preLoaderRoute: typeof MarkdownToWordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/media/social-downloader': {
@@ -471,6 +537,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PdfToImageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pdf/to-markdown': {
+      id: '/pdf/to-markdown'
+      path: '/pdf/to-markdown'
+      fullPath: '/pdf/to-markdown'
+      preLoaderRoute: typeof PdfToMarkdownRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pdf/to-word': {
       id: '/pdf/to-word'
       path: '/pdf/to-word'
@@ -483,6 +556,13 @@ declare module '@tanstack/react-router' {
       path: '/powerpoint/to-pdf'
       fullPath: '/powerpoint/to-pdf'
       preLoaderRoute: typeof PowerpointToPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/word/to-markdown': {
+      id: '/word/to-markdown'
+      path: '/word/to-markdown'
+      fullPath: '/word/to-markdown'
+      preLoaderRoute: typeof WordToMarkdownRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/word/to-pdf': {
@@ -504,6 +584,8 @@ const rootRouteChildren: RootRouteChildren = {
   ImageRemoveBackgroundRoute: ImageRemoveBackgroundRoute,
   ImageResizeRoute: ImageResizeRoute,
   ImageToPdfRoute: ImageToPdfRoute,
+  MarkdownToPdfRoute: MarkdownToPdfRoute,
+  MarkdownToWordRoute: MarkdownToWordRoute,
   MediaSocialDownloaderRoute: MediaSocialDownloaderRoute,
   MediaVideoToMp3Route: MediaVideoToMp3Route,
   PdfAnnotateRoute: PdfAnnotateRoute,
@@ -516,8 +598,10 @@ const rootRouteChildren: RootRouteChildren = {
   PdfSplitRoute: PdfSplitRoute,
   PdfToExcelRoute: PdfToExcelRoute,
   PdfToImageRoute: PdfToImageRoute,
+  PdfToMarkdownRoute: PdfToMarkdownRoute,
   PdfToWordRoute: PdfToWordRoute,
   PowerpointToPdfRoute: PowerpointToPdfRoute,
+  WordToMarkdownRoute: WordToMarkdownRoute,
   WordToPdfRoute: WordToPdfRoute,
 }
 export const routeTree = rootRouteImport

@@ -33,7 +33,8 @@ const SECTIONS: ReadonlyArray<{
     title: "Document tools",
     label: "Document",
     japanese: "文書",
-    description: "Convert Word documents, spreadsheets, and presentations to PDF.",
+    description:
+      "Convert Markdown, Word documents, spreadsheets, and presentations between formats.",
   },
   {
     id: "media",
@@ -73,6 +74,10 @@ const JAPANESE_TITLES: Record<string, string> = {
   "excel-to-pdf": "ExcelからPDFへ",
   "word-to-pdf": "WordからPDFへ",
   "powerpoint-to-pdf": "PowerPointからPDFへ",
+  "markdown-to-word": "MarkdownからWordへ",
+  "markdown-to-pdf": "MarkdownからPDFへ",
+  "word-to-markdown": "WordからMarkdownへ",
+  "pdf-to-markdown": "PDFからMarkdownへ",
   "video-to-mp3": "音声の抽出",
   "social-media-downloader": "動画のダウンロード",
 }
