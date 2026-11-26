@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router"
 import { ArrowUpRightIcon, SearchIcon } from "lucide-react"
-import { type PointerEvent, useState } from "react"
+import { useState } from "react"
 
 import { Input } from "@/components/ui/input"
 import { cn } from "@/libs/utils/cn"
@@ -83,21 +83,6 @@ const JAPANESE_TITLES: Record<string, string> = {
   "social-media-downloader": "動画のダウンロード",
 }
 
-function aimPictogram(event: PointerEvent<HTMLAnchorElement>) {
-  if (
-    event.pointerType === "touch" ||
-    !matchMedia("(hover: hover) and (prefers-reduced-motion: no-preference)").matches
-  ) {
-    return
-  }
-
-  const { currentTarget, clientX, clientY } = event
-  const { left, top, width, height } = currentTarget.getBoundingClientRect()
-
-  currentTarget.style.setProperty("--card-aim-x", String(2 * ((clientX - left) / width) - 1))
-  currentTarget.style.setProperty("--card-aim-y", String(2 * ((clientY - top) / height) - 1))
-}
-
 function ToolCard({
   tool,
   japanese,
@@ -150,11 +135,6 @@ function ToolCard({
       reloadDocument={tool.to === ISOLATED_OCR_PATH}
       aria-label={tool.title}
       className="tool-card-link rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-      onPointerMove={aimPictogram}
-      onPointerLeave={({ currentTarget }) => {
-        currentTarget.style.removeProperty("--card-aim-x")
-        currentTarget.style.removeProperty("--card-aim-y")
-      }}
     >
       {card}
     </Link>

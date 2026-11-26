@@ -302,6 +302,7 @@ not have one.
 - Zustand (`store.ts`, one per feature) holds client-only state such as the
   selected file and result object URLs, not request status or form values.
 - Route components stay thin and delegate to `src/features/`.
+- Make motion express what the control or tool does. For new or changed animations, follow the [Yohaku motion standard](.agents/ARCHITECTURE.md#motion-and-pictograms).
 - Ship each new public tool with its registry entry, pictogram, and themed
   share preview. Follow the [new tool checklist](.agents/ARCHITECTURE.md#when-adding-a-tool).
 

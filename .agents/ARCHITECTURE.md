@@ -115,8 +115,16 @@ empty/selected/pending/success/error states, and inspect the capture.
 6. Group tools by their primary input: PDF-input tools belong in PDF, while
    tools starting from Word, Excel, PowerPoint, or Markdown belong in Documents.
    Image-to-PDF belongs in Image.
-7. For a public tool, follow [Search and share previews](#search-and-share-previews).
+7. For a public tool, follow [Motion and pictograms](#motion-and-pictograms) and [Search and share previews](#search-and-share-previews).
 8. Add tests under `tests/` and run the verification commands above.
+
+### Motion and pictograms
+
+- Give each interaction one readable action. For a tool-card pictogram, animate the tool's verb: Compress squeezes inward, Merge brings pages together, and QR Scan sweeps a line over a stationary code. Reuse easing across cards, not the same bounce or spin for unrelated tools.
+- Keep the card and SVG viewport fixed. Animate the parts that tell the story and group shapes that belong together, such as a play glyph and its frame. Keep accents secondary; avoid whole-icon 3D tilt, zoom, or parallax that softens edges or makes parts drift out of alignment.
+- Prefer eased CSS `transform` and `opacity` transitions for hover and focus. Make the exit settle from the current pose, even when interrupted. Don't read layout or write styles on every pointer move for decorative motion.
+- Gate hover motion on hover-capable input, mirror it on keyboard focus, and keep a static, readable pose with `prefers-reduced-motion`. Motion must not carry information that is missing at rest.
+- Review the rendered motion in a browser: move the pointer across neighboring cards and leave before the transition finishes. Check that the action reads clearly, edges stay crisp, and nothing jumps or clips. Also verify keyboard focus and reduced motion; a still screenshot alone does not verify motion.
 
 ### Search and share previews
 

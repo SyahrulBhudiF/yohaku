@@ -1,203 +1,238 @@
-@property --card-aim-x {
+@property --pic-swap-progress {
   syntax: "<number>";
-  inherits: true;
+  inherits: false;
   initial-value: 0;
 }
 
-@property --card-aim-y {
+@property --pic-scan-progress {
   syntax: "<number>";
-  inherits: true;
+  inherits: false;
   initial-value: 0;
 }
 
-@property --pic-activity {
-  syntax: "<number>";
-  inherits: true;
-  initial-value: 0;
+.tool-card-link .tool-pictogram {
+  pointer-events: none;
 }
 
 .pic-flourish,
-.pic-spark {
+.pic-spark,
+.pic-scan,
+.pic-reveal,
+.pic-trace {
   opacity: 0;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .tool-card-link {
-    transition:
-      --card-aim-x 280ms cubic-bezier(0.15, 0.75, 0.25, 1),
-      --card-aim-y 280ms cubic-bezier(0.15, 0.75, 0.25, 1);
-  }
-
   .tool-card-link .tool-pictogram {
-    /* Interpolate the pose itself, so leaving midway reverses from the current pose. */
-    --pic-progress: calc(var(--pic-activity) * clamp(0.18, 0.56 + var(--card-aim-x) * 0.6, 1));
-    --pic-follow-x: calc(var(--pic-activity) * var(--card-aim-x));
-    --pic-follow-y: calc(var(--pic-activity) * var(--card-aim-y));
-    overflow: visible;
-    pointer-events: none;
-    transform: perspective(260px)
-      translate(calc(var(--pic-follow-x) * 5px), calc(var(--pic-follow-y) * 7px))
-      rotateX(calc(var(--pic-follow-y) * -16deg)) rotateY(calc(var(--pic-follow-x) * 19deg))
-      scale(calc(1 + var(--pic-activity) * 0.1));
-    transition: --pic-activity 460ms cubic-bezier(0.2, 0.75, 0.25, 1);
+    --pic-active: 0;
+    --pic-ease: cubic-bezier(0.22, 0.78, 0.3, 1);
   }
 
   .tool-card-link:focus-visible .tool-pictogram {
-    --pic-activity: 1;
-    --pic-progress: var(--pic-activity);
+    --pic-active: 1;
   }
 
   @media (hover: hover) {
     .tool-card-link:hover .tool-pictogram {
-      --pic-activity: 1;
+      --pic-active: 1;
     }
   }
 
-  .tool-card-link :is(.pictogram-part, .pic-flourish, .pic-spark) {
+  /* Keep the SVG viewport fixed; only the parts involved in the action move. */
+  :where(.tool-card-link) .pictogram-part {
     transform-box: fill-box;
     transform-origin: center;
-  }
-
-  :where(.tool-card-link) .pictogram-part {
-    --pic-x: initial;
-    --pic-y: initial;
-    --pic-angle: initial;
-    --pic-scale: initial;
-    --pic-scale-y: initial;
-    --pic-opacity: initial;
     transform: translate(
-        calc(var(--pic-progress) * var(--pic-x, 0px) + var(--pic-follow-x) * 3px),
-        calc(var(--pic-progress) * var(--pic-y, 0px) + var(--pic-follow-y) * 3px)
+        calc(var(--pic-active) * var(--pic-x, 0px)),
+        calc(var(--pic-active) * var(--pic-y, 0px))
       )
-      rotate(calc(var(--pic-progress) * var(--pic-angle, 0deg) + var(--pic-follow-x) * 4deg))
       scale(
-        calc(1 + var(--pic-progress) * (var(--pic-scale, 1) - 1)),
-        calc(1 + var(--pic-progress) * (var(--pic-scale-y, var(--pic-scale, 1)) - 1))
+        calc(1 + var(--pic-active) * (var(--pic-scale, 1) - 1)),
+        calc(1 + var(--pic-active) * (var(--pic-scale-y, var(--pic-scale, 1)) - 1))
       );
-    opacity: calc(1 + var(--pic-progress) * (var(--pic-opacity, 1) - 1));
+    opacity: calc(1 + var(--pic-active) * (var(--pic-opacity, 1) - 1));
+    transition:
+      transform var(--pic-duration, 360ms) var(--pic-ease),
+      opacity var(--pic-duration, 360ms) var(--pic-ease);
+    transition-delay: calc(var(--pic-active) * var(--pic-delay, 0ms));
   }
 
   .tool-card-link .pic-flourish {
-    opacity: calc(var(--pic-activity) * 0.85);
-    transform: translate(calc(var(--pic-follow-x) * -9px), calc(var(--pic-follow-y) * -10px))
-      rotate(calc(var(--pic-follow-x) * 52deg + var(--pic-progress) * 14deg))
-      scale(calc(0.65 + var(--pic-activity) * 0.38));
+    opacity: calc(var(--pic-active) * 0.7);
+    transition: opacity 320ms var(--pic-ease);
   }
 
-  .tool-card-link .pic-spark {
-    --pic-spark-side: -1;
-    opacity: calc(var(--pic-progress) * 0.9);
+  .tool-card-link .pic-reveal {
+    opacity: var(--pic-active);
+    transition: opacity 210ms var(--pic-ease);
+    transition-delay: calc(var(--pic-active) * var(--pic-reveal-delay, 160ms));
+  }
+
+  .tool-card-link .pic-imprint {
+    transform: translateY(calc(-3px * var(--pic-active)));
+    transition: transform 330ms var(--pic-ease);
+    transition-delay: calc(var(--pic-active) * 155ms);
+  }
+
+  .tool-card-link .pic-scan {
+    opacity: var(--pic-active);
+    transition: opacity 100ms linear;
+  }
+
+  .tool-card-link .pic-scan-line {
+    --pic-scan-progress: var(--pic-active);
+    transform: translateY(calc(var(--pic-scan-progress) * 66px));
+    opacity: clamp(0, sin(calc(var(--pic-scan-progress) * 180deg)) * 1.6, 1);
+    /* Fade out in place before resetting the scan on exit. */
+    transition: --pic-scan-progress calc(var(--pic-active) * 640ms) ease-in-out
+      calc((1 - var(--pic-active)) * 100ms);
+  }
+
+  .tool-card-link .pic-trace {
+    opacity: var(--pic-active);
+    stroke-dasharray: 1;
+    stroke-dashoffset: calc(1 - var(--pic-active));
+    transition:
+      stroke-dashoffset 420ms ease-in-out,
+      opacity 180ms var(--pic-ease);
+  }
+
+  .tool-card-link .pic-unlock {
+    transform-origin: left bottom;
+    transform: rotate(calc(var(--pic-active) * -24deg));
+  }
+
+  .tool-card-link .pic-swap {
+    --pic-swap-progress: var(--pic-active);
+    --pic-swap-arc: sin(calc(var(--pic-swap-progress) * 180deg));
     transform: translate(
-        calc(var(--pic-spark-side) * var(--pic-progress) * 9px + var(--pic-follow-x) * 10px),
-        calc(var(--pic-spark-side) * var(--pic-progress) * 8px + var(--pic-follow-y) * 12px)
+      calc(var(--pic-swap-direction, 1) * var(--pic-swap-progress) * 41px),
+      calc(
+        var(--pic-swap-direction, 1) *
+          (var(--pic-swap-progress) * 23px - var(--pic-swap-arc) * 34px)
       )
-      rotate(calc(var(--pic-progress) * 35deg)) scale(calc(0.25 + var(--pic-progress) * 0.95));
-  }
-
-  .tool-card-link .pic-spark-far {
-    --pic-spark-side: 1;
+    );
+    transition: --pic-swap-progress 520ms var(--pic-ease);
   }
 }
 
 .pic-right {
-  --pic-x: 9px;
+  --pic-x: 6px;
 }
 
 .pic-left {
-  --pic-x: -9px;
+  --pic-x: -6px;
 }
 
 .pic-up {
-  --pic-y: -9px;
+  --pic-y: -6px;
 }
 
 .pic-down {
-  --pic-y: 9px;
+  --pic-y: 6px;
 }
 
-.pic-tilt {
-  --pic-angle: -10deg;
+.pic-output {
+  --pic-x: 5px;
+  --pic-y: 3px;
+  --pic-delay: 95ms;
 }
 
-.pic-tilt-back {
-  --pic-angle: 9deg;
+.pic-convert-output {
+  --pic-x: 9px;
+  --pic-delay: 95ms;
+  --pic-reveal-delay: 220ms;
 }
 
-.pic-split {
-  --pic-x: 7px;
+.pic-transfer {
+  --pic-x: 6px;
+  --pic-duration: 260ms;
+}
+
+.pic-press {
+  --pic-duration: 240ms;
 }
 
 .pic-squeeze {
-  --pic-scale: 0.64;
+  --pic-scale: 0.68;
+  --pic-delay: 50ms;
+  --pic-duration: 280ms;
 }
 
 .pic-fold {
-  --pic-scale-y: 0.58;
+  --pic-scale-y: 0.65;
+  --pic-delay: 45ms;
+  --pic-duration: 300ms;
 }
 
 .pic-stretch {
-  --pic-scale: 1.22;
-}
-
-.pic-pop {
-  --pic-y: -11px;
-  --pic-scale: 1.18;
+  --pic-scale: 1.24;
+  --pic-delay: 35ms;
 }
 
 .pic-insert {
-  --pic-x: 22px;
-  --pic-y: -6px;
-  --pic-scale: 0.8;
+  --pic-x: 21px;
+  --pic-y: -11px;
+  --pic-scale: 0.78;
+  --pic-delay: 45ms;
 }
 
 .pic-clear {
-  --pic-y: 7px;
-  --pic-scale: 1.12;
   --pic-opacity: 0;
+  --pic-x: 7px;
+  --pic-duration: 400ms;
 }
 
 .pic-stack {
   --pic-x: 22px;
-  --pic-y: 15px;
+  --pic-y: 14px;
 }
 
-.pic-stack-front {
-  --pic-x: -2px;
-  --pic-scale: 1.05;
+.pic-stack-middle {
+  --pic-x: 11px;
+  --pic-y: 7px;
+  --pic-delay: 85ms;
 }
 
-.pic-download {
+.pic-batch-back {
+  --pic-x: 21px;
+  --pic-y: 17px;
+  --pic-scale: 0.7;
+}
+
+.pic-batch-front {
+  --pic-scale: 0.64;
+  --pic-delay: 90ms;
+}
+
+.pic-extract-page {
+  --pic-x: 10px;
   --pic-y: 5px;
+  --pic-delay: 70ms;
 }
 
-.pic-swap {
-  --pic-swap-direction: 1;
+.pic-split-page {
+  --pic-x: 4px;
+  --pic-delay: 75ms;
 }
 
 .pic-swap-back {
   --pic-swap-direction: -1;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .tool-card-link .pic-swap {
-    --pic-swap-arc: sin(calc(var(--pic-progress) * 180deg));
-    transform: translate(
-        calc(var(--pic-swap-direction) * var(--pic-progress) * 41px),
-        calc(var(--pic-swap-direction) * (var(--pic-progress) * 23px - var(--pic-swap-arc) * 24px))
-      )
-      rotate(calc(var(--pic-swap-direction) * var(--pic-swap-arc) * 22deg));
-  }
+.pic-stamp {
+  --pic-y: 3px;
+  --pic-scale: 0.94;
+  --pic-duration: 230ms;
+}
 
-  .tool-card-link .pic-draw {
-    stroke-dasharray: 1;
-    stroke-dashoffset: calc(var(--pic-activity) - var(--pic-progress));
-  }
+.pic-write {
+  --pic-x: 6px;
+  --pic-y: -1px;
+  --pic-duration: 420ms;
+}
 
-  .tool-card-link .pic-write {
-    transform: translate(
-        calc(-30px * (var(--pic-activity) - var(--pic-progress))),
-        calc(var(--pic-activity) * 9px)
-      )
-      rotate(calc(var(--pic-follow-y) * 14deg - var(--pic-activity) * 12deg));
-  }
+.pic-download {
+  --pic-y: 4px;
+  --pic-duration: 255ms;
 }
