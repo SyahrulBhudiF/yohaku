@@ -7,6 +7,9 @@ import { PdfSignPage } from "./pdf-sign-page"
 
 export function PdfSignPreview({ model }: { model: ReturnType<typeof useSignPdf> }) {
   const scrollRef = useRef<HTMLElement>(null)
+  // TanStack Virtual returns stable functions that React Compiler cannot memoize;
+  // this component is not memoized, so the instance is safe to keep locally.
+  // oxlint-disable-next-line react/incompatible-library
   const virtualizer = useVirtualizer({
     count: model.file?.pageCount ?? 0,
     getScrollElement: () => scrollRef.current,
@@ -60,6 +63,8 @@ export function PdfSignPreview({ model }: { model: ReturnType<typeof useSignPdf>
         ref={scrollRef}
         className="h-[70vh] overflow-auto rounded-xl bg-surface-container p-3"
         aria-label="PDF pages"
+        // Keyboard users need focus on the scrollable page list to scroll it.
+        // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={0}
       >
         <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
