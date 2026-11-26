@@ -533,6 +533,45 @@ const pictograms: Record<string, ReactNode> = {
       />
     </>
   ),
+  "video-to-gif": (
+    <>
+      <rect x="12" y="20" width="48" height="39" fill={sage} className="pictogram-part pic-tilt" />
+      <path d="m30 29 17 10-17 10Z" fill={paper} />
+      <g className="pictogram-part pic-pop">
+        <rect x="47" y="45" width="38" height="36" fill={ink} stroke={paper} strokeWidth="3" />
+        <path d="M55 56h20M55 63h14M55 70h17" stroke={sand} strokeWidth="3" />
+        <path d="M68 50h12v8" fill="none" stroke={sage} strokeWidth="3" />
+      </g>
+      <path
+        d="M20 72h18m-6-6 6 6-6 6"
+        fill="none"
+        stroke={sand}
+        strokeWidth="3"
+        className={shiftRight}
+      />
+    </>
+  ),
+  "qr-code": (
+    <>
+      <g className="pictogram-part pic-tilt">
+        <rect x="15" y="15" width="28" height="28" fill={ink} />
+        <rect x="21" y="21" width="16" height="16" fill={paper} />
+        <rect x="25" y="25" width="8" height="8" fill={sage} />
+        <rect x="53" y="15" width="28" height="28" fill={sand} />
+        <rect x="59" y="21" width="16" height="16" fill={paper} />
+        <rect x="63" y="25" width="8" height="8" fill={ink} />
+        <rect x="15" y="53" width="28" height="28" fill={sage} />
+        <rect x="21" y="59" width="16" height="16" fill={paper} />
+        <rect x="25" y="63" width="8" height="8" fill={ink} />
+      </g>
+      <path
+        d="M53 55h8v8h-8zm14 0h14v8H67zm-8 13h8v13h-8zm14-1h8v14h-8z"
+        fill={ink}
+        className="pictogram-part pic-pop"
+      />
+      <path d="M47 10v8m-4-4h8" stroke={sand} strokeWidth="2" className="pic-spark" />
+    </>
+  ),
   "social-media-downloader": (
     <>
       <rect x="16" y="16" width="47" height="43" fill={sage} />

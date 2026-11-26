@@ -34,16 +34,25 @@ export interface ToolDefinition {
     | "/pdf/to-markdown"
     | "/powerpoint/to-pdf"
     | "/media/video-to-mp3"
+    | "/media/video-to-gif"
     | "/media/social-downloader"
+    | "/qr-code"
     | null
 }
 
 /** Add new tools here. `to: null` renders a "coming soon" card. */
 export const TOOLS: ReadonlyArray<ToolDefinition> = [
   {
+    id: "qr-code",
+    title: "QR code generator & reader",
+    description: "Create downloadable QR codes or read a QR code from an image.",
+    category: "image",
+    to: "/qr-code",
+  },
+  {
     id: "image-convert",
     title: "Convert image",
-    description: "Switch between PNG, JPEG, WebP, AVIF, GIF and TIFF, or trace to SVG.",
+    description: "Convert HEIC, JPEG, PNG, WebP, AVIF, GIF and TIFF, or trace to SVG.",
     category: "image",
     to: "/image/convert",
   },
@@ -71,7 +80,7 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
   {
     id: "image-to-pdf",
     title: "Image to PDF",
-    description: "Combine images into one PDF, or make one PDF per image.",
+    description: "Convert HEIC and other images into one PDF, or make one PDF per image.",
     category: "image",
     to: "/image/to-pdf",
   },
@@ -215,6 +224,13 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     description: "Extract audio from a video and save it as an MP3 file.",
     category: "media",
     to: "/media/video-to-mp3",
+  },
+  {
+    id: "video-to-gif",
+    title: "Video to GIF",
+    description: "Turn a short video clip into an animated GIF in your browser.",
+    category: "media",
+    to: "/media/video-to-gif",
   },
   {
     id: "social-media-downloader",

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as QrCodeRouteImport } from './routes/qr-code'
 import { Route as ExcelToPdfRouteImport } from './routes/excel/to-pdf'
 import { Route as ImageBatchCompressRouteImport } from './routes/image/batch-compress'
 import { Route as ImageCompressRouteImport } from './routes/image/compress'
@@ -20,6 +21,7 @@ import { Route as ImageToPdfRouteImport } from './routes/image/to-pdf'
 import { Route as MarkdownToPdfRouteImport } from './routes/markdown/to-pdf'
 import { Route as MarkdownToWordRouteImport } from './routes/markdown/to-word'
 import { Route as MediaSocialDownloaderRouteImport } from './routes/media/social-downloader'
+import { Route as MediaVideoToGifRouteImport } from './routes/media/video-to-gif'
 import { Route as MediaVideoToMp3RouteImport } from './routes/media/video-to-mp3'
 import { Route as PdfAnnotateRouteImport } from './routes/pdf/annotate'
 import { Route as PdfCompressRouteImport } from './routes/pdf/compress'
@@ -40,6 +42,11 @@ import { Route as WordToPdfRouteImport } from './routes/word/to-pdf'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QrCodeRoute = QrCodeRouteImport.update({
+  id: '/qr-code',
+  path: '/qr-code',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExcelToPdfRoute = ExcelToPdfRouteImport.update({
@@ -90,6 +97,11 @@ const MarkdownToWordRoute = MarkdownToWordRouteImport.update({
 const MediaSocialDownloaderRoute = MediaSocialDownloaderRouteImport.update({
   id: '/media/social-downloader',
   path: '/media/social-downloader',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MediaVideoToGifRoute = MediaVideoToGifRouteImport.update({
+  id: '/media/video-to-gif',
+  path: '/media/video-to-gif',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MediaVideoToMp3Route = MediaVideoToMp3RouteImport.update({
@@ -175,6 +187,7 @@ const WordToPdfRoute = WordToPdfRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/qr-code': typeof QrCodeRoute
   '/excel/to-pdf': typeof ExcelToPdfRoute
   '/image/batch-compress': typeof ImageBatchCompressRoute
   '/image/compress': typeof ImageCompressRoute
@@ -185,6 +198,7 @@ export interface FileRoutesByFullPath {
   '/markdown/to-pdf': typeof MarkdownToPdfRoute
   '/markdown/to-word': typeof MarkdownToWordRoute
   '/media/social-downloader': typeof MediaSocialDownloaderRoute
+  '/media/video-to-gif': typeof MediaVideoToGifRoute
   '/media/video-to-mp3': typeof MediaVideoToMp3Route
   '/pdf/annotate': typeof PdfAnnotateRoute
   '/pdf/compress': typeof PdfCompressRoute
@@ -204,6 +218,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/qr-code': typeof QrCodeRoute
   '/excel/to-pdf': typeof ExcelToPdfRoute
   '/image/batch-compress': typeof ImageBatchCompressRoute
   '/image/compress': typeof ImageCompressRoute
@@ -214,6 +229,7 @@ export interface FileRoutesByTo {
   '/markdown/to-pdf': typeof MarkdownToPdfRoute
   '/markdown/to-word': typeof MarkdownToWordRoute
   '/media/social-downloader': typeof MediaSocialDownloaderRoute
+  '/media/video-to-gif': typeof MediaVideoToGifRoute
   '/media/video-to-mp3': typeof MediaVideoToMp3Route
   '/pdf/annotate': typeof PdfAnnotateRoute
   '/pdf/compress': typeof PdfCompressRoute
@@ -234,6 +250,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/qr-code': typeof QrCodeRoute
   '/excel/to-pdf': typeof ExcelToPdfRoute
   '/image/batch-compress': typeof ImageBatchCompressRoute
   '/image/compress': typeof ImageCompressRoute
@@ -244,6 +261,7 @@ export interface FileRoutesById {
   '/markdown/to-pdf': typeof MarkdownToPdfRoute
   '/markdown/to-word': typeof MarkdownToWordRoute
   '/media/social-downloader': typeof MediaSocialDownloaderRoute
+  '/media/video-to-gif': typeof MediaVideoToGifRoute
   '/media/video-to-mp3': typeof MediaVideoToMp3Route
   '/pdf/annotate': typeof PdfAnnotateRoute
   '/pdf/compress': typeof PdfCompressRoute
@@ -265,6 +283,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/qr-code'
     | '/excel/to-pdf'
     | '/image/batch-compress'
     | '/image/compress'
@@ -275,6 +294,7 @@ export interface FileRouteTypes {
     | '/markdown/to-pdf'
     | '/markdown/to-word'
     | '/media/social-downloader'
+    | '/media/video-to-gif'
     | '/media/video-to-mp3'
     | '/pdf/annotate'
     | '/pdf/compress'
@@ -294,6 +314,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/qr-code'
     | '/excel/to-pdf'
     | '/image/batch-compress'
     | '/image/compress'
@@ -304,6 +325,7 @@ export interface FileRouteTypes {
     | '/markdown/to-pdf'
     | '/markdown/to-word'
     | '/media/social-downloader'
+    | '/media/video-to-gif'
     | '/media/video-to-mp3'
     | '/pdf/annotate'
     | '/pdf/compress'
@@ -323,6 +345,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/qr-code'
     | '/excel/to-pdf'
     | '/image/batch-compress'
     | '/image/compress'
@@ -333,6 +356,7 @@ export interface FileRouteTypes {
     | '/markdown/to-pdf'
     | '/markdown/to-word'
     | '/media/social-downloader'
+    | '/media/video-to-gif'
     | '/media/video-to-mp3'
     | '/pdf/annotate'
     | '/pdf/compress'
@@ -353,6 +377,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  QrCodeRoute: typeof QrCodeRoute
   ExcelToPdfRoute: typeof ExcelToPdfRoute
   ImageBatchCompressRoute: typeof ImageBatchCompressRoute
   ImageCompressRoute: typeof ImageCompressRoute
@@ -363,6 +388,7 @@ export interface RootRouteChildren {
   MarkdownToPdfRoute: typeof MarkdownToPdfRoute
   MarkdownToWordRoute: typeof MarkdownToWordRoute
   MediaSocialDownloaderRoute: typeof MediaSocialDownloaderRoute
+  MediaVideoToGifRoute: typeof MediaVideoToGifRoute
   MediaVideoToMp3Route: typeof MediaVideoToMp3Route
   PdfAnnotateRoute: typeof PdfAnnotateRoute
   PdfCompressRoute: typeof PdfCompressRoute
@@ -388,6 +414,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/qr-code': {
+      id: '/qr-code'
+      path: '/qr-code'
+      fullPath: '/qr-code'
+      preLoaderRoute: typeof QrCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/excel/to-pdf': {
@@ -458,6 +491,13 @@ declare module '@tanstack/react-router' {
       path: '/media/social-downloader'
       fullPath: '/media/social-downloader'
       preLoaderRoute: typeof MediaSocialDownloaderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/media/video-to-gif': {
+      id: '/media/video-to-gif'
+      path: '/media/video-to-gif'
+      fullPath: '/media/video-to-gif'
+      preLoaderRoute: typeof MediaVideoToGifRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/media/video-to-mp3': {
@@ -577,6 +617,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  QrCodeRoute: QrCodeRoute,
   ExcelToPdfRoute: ExcelToPdfRoute,
   ImageBatchCompressRoute: ImageBatchCompressRoute,
   ImageCompressRoute: ImageCompressRoute,
@@ -587,6 +628,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarkdownToPdfRoute: MarkdownToPdfRoute,
   MarkdownToWordRoute: MarkdownToWordRoute,
   MediaSocialDownloaderRoute: MediaSocialDownloaderRoute,
+  MediaVideoToGifRoute: MediaVideoToGifRoute,
   MediaVideoToMp3Route: MediaVideoToMp3Route,
   PdfAnnotateRoute: PdfAnnotateRoute,
   PdfCompressRoute: PdfCompressRoute,

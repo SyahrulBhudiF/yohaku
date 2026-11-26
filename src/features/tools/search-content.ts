@@ -6,20 +6,28 @@ const CONTENT: Record<
   ToolPath,
   { title: string; description: string; guide: string; related: readonly ToolPath[] }
 > = {
-  "/image/convert": {
-    title: "Image Converter Online — JPG, PNG, WebP & More",
+  "/qr-code": {
+    title: "QR Code Generator & Scanner — Create or Read QR Codes",
     description:
-      "Convert images between JPG, PNG, WebP, AVIF, GIF and TIFF, or trace an image to SVG. Files stay in your browser.",
+      "Create a QR code from text or a URL and download it as PNG or SVG, or scan a QR code from an image. Processing stays in your browser.",
     guide:
-      "Choose an image, select the output format and download the converted file. Use JPG for photos, PNG when you need transparency, or WebP for web delivery. The SVG option traces shapes and works best with simple artwork.",
+      "Enter a URL or text to create a downloadable QR code, or choose an image to read its QR code. Copy the decoded content or save your code as a PNG or SVG. This tool does not create a live camera scanner.",
+    related: ["/image/convert", "/image/compress"],
+  },
+  "/image/convert": {
+    title: "Image Converter — Convert HEIC to JPG, PNG, WebP & More",
+    description:
+      "Convert HEIC and HEIF photos to JPG, or change images between JPG, PNG, WebP, AVIF, GIF and TIFF. Trace an image to SVG. Files stay in your browser.",
+    guide:
+      "Choose a HEIC, HEIF or other supported image, select JPG or another output format, and download the converted file. Use JPG for photos, PNG when you need transparency, or WebP for web delivery. The SVG option traces shapes and works best with simple artwork.",
     related: ["/image/compress", "/image/resize"],
   },
   "/image/compress": {
-    title: "Compress Images Online — JPG, PNG & WebP",
+    title: "Compress Images Online — HEIC, JPG, PNG & WebP",
     description:
-      "Reduce JPG, PNG, WebP, AVIF, GIF or TIFF file size in your browser. Adjust compression, compare before and after sizes, and download without uploading.",
+      "Compress HEIC, HEIF, JPG, PNG, WebP, AVIF, GIF or TIFF images in your browser. Adjust compression, compare before and after sizes, and download without uploading.",
     guide:
-      "Choose an image and keep its original format or pick a new one. Lower the quality for a smaller JPG or WebP, then compare the result with the original. PNG compression is lossless, so an already optimized PNG may not shrink further.",
+      "Choose a HEIC, HEIF or other image and pick a format and quality. HEIC and HEIF inputs are exported as JPEG when keeping the original format. Compare the result with the original. PNG compression is lossless, so an already optimized PNG may not shrink further.",
     related: ["/image/batch-compress", "/image/resize"],
   },
   "/image/batch-compress": {
@@ -39,11 +47,11 @@ const CONTENT: Record<
     related: ["/image/compress", "/image/convert"],
   },
   "/image/to-pdf": {
-    title: "Image to PDF Converter — Combine JPG and PNG Files",
+    title: "Image to PDF Converter — Convert HEIC, JPG & PNG Photos",
     description:
-      "Turn JPG, PNG and other images into a single PDF, or make a separate PDF per image. Reorder pictures before exporting.",
+      "Turn HEIC, JPG, PNG and other images into a single PDF, or make a separate PDF per image. Reorder pictures before exporting.",
     guide:
-      "Add your photos or scans and drag them into the order you want. Choose one combined PDF for a multipage document, or export each picture as its own PDF. The conversion does not make text in a scan selectable.",
+      "Add HEIC, JPG, PNG or other supported photos and scans, then drag them into the order you want. Choose one combined PDF for a multipage document, or export each picture as its own PDF. The conversion does not make text in a scan selectable.",
     related: ["/pdf/merge", "/pdf/to-image"],
   },
   "/image/remove-background": {
@@ -205,6 +213,14 @@ const CONTENT: Record<
     guide:
       "Choose an MP4, MOV, WebM or another supported video with an audio track and convert it. The result is a 192 kbps MP3 with no video. Use the social downloader instead if you are starting with a supported public URL rather than a file.",
     related: ["/media/social-downloader"],
+  },
+  "/media/video-to-gif": {
+    title: "Video to GIF Converter — Make an Animated GIF from a Clip",
+    description:
+      "Convert a short video clip into an animated GIF. Choose the clip range, frame rate and output width; processing stays on your device.",
+    guide:
+      "Choose a local video, set the start and end time, and pick a frame rate and output width. Keep clips short for smaller GIFs. Source video files are not uploaded.",
+    related: ["/media/video-to-mp3", "/image/compress"],
   },
   "/media/social-downloader": {
     title: "YouTube, Instagram & Facebook Video Downloader",

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://yohaku.ryuko.my.id/</loc></url>
+  <url><loc>https://yohaku.ryuko.my.id/qr-code</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/image/convert</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/image/compress</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/image/batch-compress</loc></url>
@@ -26,5 +27,6 @@
   <url><loc>https://yohaku.ryuko.my.id/pdf/to-markdown</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/powerpoint/to-pdf</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/media/video-to-mp3</loc></url>
+  <url><loc>https://yohaku.ryuko.my.id/media/video-to-gif</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/media/social-downloader</loc></url>
 </urlset>
