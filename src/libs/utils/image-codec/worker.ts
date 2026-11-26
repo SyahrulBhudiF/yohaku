@@ -10,6 +10,8 @@ import { warmImageCodec } from "./preload"
 import type {
   EncodeRequest,
   EncodeResponse,
+  FaviconRequest,
+  FaviconResponse,
   MeasureRequest,
   MeasureResponse,
   ResizeRequest,
@@ -20,6 +22,7 @@ import type {
   WorkerResponse,
 } from "./protocol"
 import { isAnimatedWebp, transcodeWebpAnimation } from "./webp-animation"
+import { fitImageOnSquare } from "@/libs/utils/favicon"
 import { fitImageDataWithin, flattenOnWhite, resizeImageData } from "@/libs/utils/image-resize"
 
 interface WorkerScope {
@@ -268,6 +271,58 @@ const measure = async (request: MeasureRequest): Promise<MeasureResponse> => {
   }
 }
 
+const favicons = async (request: FaviconRequest): Promise<FaviconResponse> => {
+  const source = detectImageInputFormat(request.bytes)
+
+  if (source === null) {
+    return {
+      type: "favicon",
+      id: request.id,
+      ok: false,
+      message: "The file is not a readable image.",
+    }
+  }
+
+  await warm("png")
+
+  let image: ImageData | null
+
+  try {
+    image = await decodeImage(request.bytes, source)
+  } catch {
+    return { type: "favicon", id: request.id, ok: false, message: "Could not read this image." }
+  }
+
+  if (image === null) {
+    return {
+      type: "favicon",
+      id: request.id,
+      ok: false,
+      message: `Could not decode ${source}.`,
+    }
+  }
+
+  try {
+    const icons: Array<{ size: number; data: Uint8Array<ArrayBuffer> }> = []
+
+    for (const size of request.sizes) {
+      icons.push({
+        size,
+        data: await encodeImage(fitImageOnSquare(image, size), "png", 100),
+      })
+    }
+
+    return { type: "favicon", id: request.id, ok: true, icons }
+  } catch {
+    return {
+      type: "favicon",
+      id: request.id,
+      ok: false,
+      message: "Could not create the icon files.",
+    }
+  }
+}
+
 scope.onmessage = (event) => {
   const request = event.data
 
@@ -303,6 +358,21 @@ scope.onmessage = (event) => {
 
   if (request.type === "measure") {
     void measure(request).then((response) => scope.postMessage(response))
+
+    return
+  }
+
+  if (request.type === "favicon") {
+    void favicons(request).then((response) => {
+      if (response.ok) {
+        scope.postMessage(
+          response,
+          response.icons.map((icon) => icon.data.buffer),
+        )
+      } else {
+        scope.postMessage(response)
+      }
+    })
 
     return
   }

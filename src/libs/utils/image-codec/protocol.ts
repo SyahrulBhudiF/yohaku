@@ -41,11 +41,19 @@ export interface MeasureRequest {
   readonly bytes: Uint8Array
 }
 
+export interface FaviconRequest {
+  readonly type: "favicon"
+  readonly id: number
+  readonly bytes: Uint8Array
+  readonly sizes: ReadonlyArray<number>
+}
+
 export type WorkerRequest =
   | TranscodeRequest
   | EncodeRequest
   | ResizeRequest
   | MeasureRequest
+  | FaviconRequest
   | PreloadRequest
 
 export type TranscodeResponse =
@@ -110,4 +118,26 @@ export type MeasureResponse =
       readonly message: string
     }
 
-export type WorkerResponse = TranscodeResponse | EncodeResponse | ResizeResponse | MeasureResponse
+export type FaviconResponse =
+  | {
+      readonly type: "favicon"
+      readonly id: number
+      readonly ok: true
+      readonly icons: ReadonlyArray<{
+        readonly size: number
+        readonly data: Uint8Array<ArrayBuffer>
+      }>
+    }
+  | {
+      readonly type: "favicon"
+      readonly id: number
+      readonly ok: false
+      readonly message: string
+    }
+
+export type WorkerResponse =
+  | TranscodeResponse
+  | EncodeResponse
+  | ResizeResponse
+  | MeasureResponse
+  | FaviconResponse

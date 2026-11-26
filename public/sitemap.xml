@@ -6,6 +6,9 @@
   <url><loc>https://yohaku.ryuko.my.id/image/compress</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/image/batch-compress</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/image/resize</loc></url>
+  <url><loc>https://yohaku.ryuko.my.id/image/favicon</loc></url>
+  <url><loc>https://yohaku.ryuko.my.id/image/watermark</loc></url>
+  <url><loc>https://yohaku.ryuko.my.id/image/remove-metadata</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/image/to-pdf</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/image/remove-background</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/pdf/merge</loc></url>

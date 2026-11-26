@@ -3,6 +3,7 @@ export { detectImageFormat, detectImageInputFormat } from "./detect"
 export { encodeImage } from "./encode"
 export {
   encodeInWorker,
+  faviconsInWorker,
   imageWorkerLimit,
   measureInWorker,
   preloadImageCodec,

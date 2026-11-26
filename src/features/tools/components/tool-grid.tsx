@@ -19,7 +19,8 @@ const SECTIONS: ReadonlyArray<{
     title: "Image tools",
     label: "Image",
     japanese: "画像",
-    description: "Convert, compress, cut out, vectorize, and turn images into PDFs.",
+    description:
+      "Convert, compress, resize, watermark, clean metadata, create icons, and turn images into PDFs.",
   },
   {
     id: "pdf",
@@ -56,9 +57,14 @@ const CATEGORY_ITEMS: ReadonlyArray<{
 ]
 
 const JAPANESE_TITLES: Record<string, string> = {
+  "qr-code": "QRコード作成・読取",
   "image-convert": "画像の変換",
   "image-compress": "画像の圧縮",
   "image-batch-compress": "画像の一括圧縮",
+  "image-resize": "画像のリサイズ",
+  "favicon-generator": "ファビコン作成",
+  "image-watermark": "画像の透かし",
+  "image-metadata-cleaner": "メタデータ削除",
   "image-to-pdf": "画像からPDFへ",
   "image-remove-background": "背景除去",
   "pdf-merge": "PDFの結合",
@@ -80,6 +86,7 @@ const JAPANESE_TITLES: Record<string, string> = {
   "word-to-markdown": "WordからMarkdownへ",
   "pdf-to-markdown": "PDFからMarkdownへ",
   "video-to-mp3": "音声の抽出",
+  "video-to-gif": "動画からGIFへ",
   "social-media-downloader": "動画のダウンロード",
 }
 

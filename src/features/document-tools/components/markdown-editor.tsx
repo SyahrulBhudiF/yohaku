@@ -1,6 +1,6 @@
 import { FileUpIcon } from "lucide-react"
 
-import { buttonVariants } from "@/components/ui/button"
+import { Dropzone } from "@/components/dropzone"
 
 export function MarkdownEditor({
   value,
@@ -19,24 +19,16 @@ export function MarkdownEditor({
         <label htmlFor="markdown-source" className="text-sm font-medium">
           Markdown source
         </label>
-        <label className="inline-flex">
-          <input
-            className="sr-only"
-            type="file"
-            accept=".md,.markdown,text/markdown,text/plain"
-            disabled={disabled}
-            onChange={(event) => {
-              onFile(event.target.files?.[0])
-              event.target.value = ""
-            }}
-          />
-          <span className="sr-only">Open a Markdown file</span>
-          <span className={buttonVariants({ variant: "secondary" })} aria-hidden="true">
-            <FileUpIcon />
-            Open .md file
-          </span>
-        </label>
       </div>
+      <Dropzone
+        icon={FileUpIcon}
+        accept=".md,.markdown,text/markdown,text/plain"
+        compact
+        disabled={disabled}
+        label="Open a Markdown file"
+        hint="MD or Markdown · replaces the editor content"
+        onFiles={(files) => onFile(files[0])}
+      />
       <textarea
         id="markdown-source"
         aria-label="Markdown source"

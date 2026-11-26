@@ -11,6 +11,7 @@ import {
   detectImageInputFormat,
   encodeImage,
   encodeInWorker,
+  faviconsInWorker,
   measureInWorker,
   measureHeic,
   resizeInWorker,
@@ -19,6 +20,7 @@ import {
 import { transcodeGif } from "@/libs/utils/image-codec/gif"
 import { optimizePng } from "@/libs/utils/image-codec/oxipng"
 import { isAnimatedWebp, transcodeWebpAnimation } from "@/libs/utils/image-codec/webp-animation"
+import { fitImageOnSquare } from "@/libs/utils/favicon"
 import {
   fitImageDataWithin,
   flattenOnWhite,
@@ -39,6 +41,11 @@ export interface ResizedImage extends ProcessedImage {
 export interface MeasuredImage {
   readonly width: number
   readonly height: number
+}
+
+export interface FaviconImage {
+  readonly size: number
+  readonly data: Uint8Array<ArrayBuffer>
 }
 
 const detectInputFormat = Effect.fn("ImageProcessor.detectInputFormat")(function* (
@@ -182,6 +189,18 @@ const measure = Effect.fn("ImageProcessor.measure")(function* (input: Uint8Array
   return { width: image.width, height: image.height }
 })
 
+const favicons = Effect.fn("ImageProcessor.favicons")(function* (
+  input: Uint8Array,
+  sizes: ReadonlyArray<number>,
+) {
+  const source = yield* detectInputFormat(input)
+  const image = yield* decode(input, source)
+
+  return yield* Effect.forEach(sizes, (size) =>
+    Effect.map(encode(fitImageOnSquare(image, size), "png", 100), (data) => ({ size, data })),
+  )
+})
+
 const resizeInWorkerEffect = Effect.fn("ImageProcessor.resizeInWorker")(function* (
   input: Uint8Array,
   options: ResizeOptions,
@@ -256,11 +275,31 @@ const measureInWorkerEffect = Effect.fn("ImageProcessor.measureInWorker")(functi
   return { width: response.width, height: response.height }
 })
 
+const faviconsInWorkerEffect = Effect.fn("ImageProcessor.faviconsInWorker")(function* (
+  input: Uint8Array,
+  sizes: ReadonlyArray<number>,
+) {
+  const response = yield* Effect.tryPromise({
+    try: () => faviconsInWorker(input, sizes),
+    catch: () => new ImageProcessingError({ message: "Could not process this image." }),
+  })
+
+  if (!response.ok) {
+    return yield* new ImageProcessingError({ message: response.message })
+  }
+
+  return response.icons
+})
+
 export class ImageProcessor extends Context.Service<
   ImageProcessor,
   {
     readonly detectFormat: (input: Uint8Array) => Effect.Effect<ImageFormat, ImageProcessingError>
     readonly measure: (input: Uint8Array) => Effect.Effect<MeasuredImage, ImageProcessingError>
+    readonly favicons: (
+      input: Uint8Array,
+      sizes: ReadonlyArray<number>,
+    ) => Effect.Effect<ReadonlyArray<FaviconImage>, ImageProcessingError>
     readonly transcode: (
       input: Uint8Array,
       format: ImageFormat,
@@ -286,7 +325,7 @@ export class ImageProcessor extends Context.Service<
   /** Runs the codecs on the calling thread. Used by tests and non-worker hosts. */
   static readonly layer = Layer.succeed(
     ImageProcessor,
-    ImageProcessor.of({ detectFormat, measure, transcode, encode, resize }),
+    ImageProcessor.of({ detectFormat, measure, favicons, transcode, encode, resize }),
   )
 
   /** Runs the codecs in a Web Worker so encoding never blocks the UI. */
@@ -295,6 +334,7 @@ export class ImageProcessor extends Context.Service<
     ImageProcessor.of({
       detectFormat,
       measure: measureInWorkerEffect,
+      favicons: faviconsInWorkerEffect,
       transcode: transcodeInWorkerEffect,
       encode: encodeInWorkerEffect,
       resize: resizeInWorkerEffect,

@@ -1,13 +1,12 @@
 import { ImagePlusIcon } from "lucide-react"
-import { useRef } from "react"
 
+import { Dropzone } from "@/components/dropzone"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import type { useSignPdf } from "../use-sign-pdf"
 import { useSignatureDrawing } from "../use-signature-drawing"
 
 export function SignaturePanel({ model }: { model: ReturnType<typeof useSignPdf> }) {
-  const upload = useRef<HTMLInputElement>(null)
   const { canvas, drawn, draw, stop, clear, save } = useSignatureDrawing(
     (blob) => void model.addSignature(blob),
   )
@@ -36,19 +35,16 @@ export function SignaturePanel({ model }: { model: ReturnType<typeof useSignPdf>
           Save drawing
         </Button>
       </div>
-      <Button variant="outline" onClick={() => upload.current?.click()}>
-        <ImagePlusIcon /> Upload signature image
-      </Button>
-      <input
-        ref={upload}
-        type="file"
+      <Dropzone
+        icon={ImagePlusIcon}
         accept="image/png,image/jpeg,image/webp"
-        hidden
-        onChange={(event) => {
-          const image = event.target.files?.[0]
+        compact
+        label="Upload signature image"
+        hint="PNG, JPEG or WebP"
+        onFiles={(files) => {
+          const image = files[0]
 
           if (image) void model.addSignature(image)
-          event.target.value = ""
         }}
       />
       {model.signatures.length > 0 && (

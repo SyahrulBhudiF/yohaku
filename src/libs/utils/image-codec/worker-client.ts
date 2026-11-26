@@ -4,6 +4,8 @@ import type { ResizeOptions } from "@/libs/utils/image-resize"
 import type {
   EncodeRequest,
   EncodeResponse,
+  FaviconRequest,
+  FaviconResponse,
   MeasureRequest,
   MeasureResponse,
   ResizeRequest,
@@ -16,7 +18,7 @@ import type {
 
 type Resolve = (response: WorkerResponse) => void
 type Reject = (error: Error) => void
-type JobRequest = TranscodeRequest | EncodeRequest | ResizeRequest | MeasureRequest
+type JobRequest = TranscodeRequest | EncodeRequest | ResizeRequest | MeasureRequest | FaviconRequest
 
 interface QueuedJob {
   readonly request: JobRequest
@@ -284,6 +286,32 @@ export const measureInWorker = (bytes: Uint8Array): Promise<MeasureResponse> =>
       [bytes.buffer],
       (response) => {
         if (response.type === "measure") {
+          resolve(response)
+        } else {
+          reject(
+            new ImageProcessingError({
+              message: "The image codec worker returned an unexpected response.",
+            }),
+          )
+        }
+      },
+      reject,
+    )
+  })
+
+export const faviconsInWorker = (
+  bytes: Uint8Array,
+  sizes: ReadonlyArray<number>,
+): Promise<FaviconResponse> =>
+  new Promise((resolve, reject) => {
+    const id = nextId++
+    const request: JobRequest = { type: "favicon", id, bytes, sizes }
+
+    post(
+      request,
+      [bytes.buffer],
+      (response) => {
+        if (response.type === "favicon") {
           resolve(response)
         } else {
           reject(

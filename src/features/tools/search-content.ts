@@ -46,6 +46,30 @@ const CONTENT: Record<
       "Open an image and set its width and height. Use the crop controls to frame a portion of the picture, or rotate and flip it before export. Resizing changes pixel dimensions; use image compression when you need a smaller file at the same dimensions.",
     related: ["/image/compress", "/image/convert"],
   },
+  "/image/favicon": {
+    title: "Favicon Generator — Create favicon.ico & App Icons",
+    description:
+      "Turn one PNG, JPEG, WebP or AVIF image into favicon.ico, 16–512 px PNG icons, a web manifest, and a ZIP. Runs in your browser without uploading.",
+    guide:
+      "Choose square artwork, ideally with a transparent background, and generate the package. Download the ZIP and upload favicon.ico, the PNG icons, and site.webmanifest to your site root. Paste the included HTML snippet into the head of your page.",
+    related: ["/image/resize", "/image/convert"],
+  },
+  "/image/watermark": {
+    title: "Image Watermark — Add Text or Logo Watermarks Online",
+    description:
+      "Add a text or logo watermark to PNG, JPEG or WebP images. Set position, opacity, rotation and tiled mode, then download in your browser.",
+    guide:
+      "Choose a PNG, JPEG or WebP image, then add text or upload a logo. Pick one of nine positions or tile the mark across the image. Adjust opacity, rotation and size before exporting. Transparent PNG logos work best; nothing is uploaded.",
+    related: ["/image/resize", "/image/convert"],
+  },
+  "/image/remove-metadata": {
+    title: "Remove Photo Metadata — Strip EXIF & GPS from JPG/PNG",
+    description:
+      "Remove EXIF, GPS, camera, and text metadata from JPEG and PNG images without re-encoding. See what was removed; pixels stay untouched.",
+    guide:
+      "Choose a JPEG or PNG photo, run the cleaner, and review the metadata that was removed. Download the cleaned copy and share it safely. The tool removes metadata segments only; it does not resize, recompress, or change the image pixels.",
+    related: ["/image/compress", "/image/convert"],
+  },
   "/image/to-pdf": {
     title: "Image to PDF Converter — Convert HEIC, JPG & PNG Photos",
     description:

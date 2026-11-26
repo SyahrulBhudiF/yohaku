@@ -138,6 +138,62 @@ const pictograms: Record<string, ReactNode> = {
       />
     </>
   ),
+  "favicon-generator": (
+    <>
+      <rect x="10" y="14" width="76" height="64" rx="5" fill={sage} />
+      <path d="M10 26h76" stroke={paper} strokeWidth="2" />
+      <circle cx="17" cy="20" r="1.8" fill={paper} />
+      <circle cx="23" cy="20" r="1.8" fill={paper} />
+      <circle cx="29" cy="20" r="1.8" fill={paper} />
+      <g className="pictogram-part pic-app-icon">
+        <rect x="33" y="34" width="30" height="30" rx="4" fill={sand} />
+        <circle cx="43" cy="44" r="4" fill={paper} />
+        <path d="M37 58 47 47l6 6 4-4 6 9Z" fill={ink} />
+      </g>
+      <g className="pic-reveal" fill={paper}>
+        <rect x="68" y="38" width="6" height="6" />
+        <rect x="68" y="48" width="8" height="8" />
+        <rect x="68" y="60" width="10" height="10" />
+      </g>
+      <path
+        d="M48 69v9m-4-4 4 4 4-4"
+        fill="none"
+        stroke={ink}
+        strokeWidth="2.5"
+        className="pictogram-part pic-download"
+      />
+    </>
+  ),
+  "image-watermark": (
+    <>
+      <rect x="12" y="14" width="72" height="68" fill={sage} />
+      <circle cx="30" cy="30" r="6" fill={paper} />
+      <path d="M16 72 38 46l12 14 8-9 14 21Z" fill={ink} />
+      <g className="pictogram-part pic-stamp">
+        <g transform="rotate(-18 48 48)">
+          <rect x="14" y="38" width="68" height="20" fill={sand} opacity=".92" />
+          <path d="M24 48h48" stroke={ink} strokeWidth="2.5" />
+        </g>
+      </g>
+      <g className="pic-reveal" fill="none" stroke={sand} strokeWidth="2" strokeLinecap="round">
+        <path d="M74 20v8m-4-4h8" />
+      </g>
+    </>
+  ),
+  "image-metadata-cleaner": (
+    <>
+      <rect x="12" y="14" width="72" height="68" fill={sage} />
+      <circle cx="30" cy="30" r="6" fill={paper} />
+      <path d="M16 72 38 46l12 14 8-9 14 21Z" fill={ink} />
+      <g className="pictogram-part pic-clear">
+        <rect x="52" y="20" width="26" height="16" fill={sand} />
+        <path d="M57 25h16M57 30h10" stroke={ink} strokeWidth="2" />
+      </g>
+      <g className="pic-reveal" fill="none" stroke={sand} strokeWidth="4" strokeLinecap="round">
+        <path d="m62 58 7 7 14-16" />
+      </g>
+    </>
+  ),
   "image-to-pdf": (
     <>
       <g>

@@ -8,7 +8,7 @@ import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import { MAX_IMAGE_BYTES } from "@/libs/schemas/image"
 import { removeImageBackground, validateRemoveBackgroundFile } from "../process"
 import { useRemoveBackgroundStore } from "../store"
-import { Dropzone } from "./dropzone"
+import { Dropzone } from "@/components/dropzone"
 import { Checkerboard, ImageFileCard, ImageResultCard } from "./image-result-parts"
 
 export function RemoveBackgroundPage() {

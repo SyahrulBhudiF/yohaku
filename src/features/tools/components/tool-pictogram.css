@@ -236,3 +236,9 @@
   --pic-y: 4px;
   --pic-duration: 255ms;
 }
+
+.pic-app-icon {
+  --pic-scale: 1.12;
+  --pic-delay: 40ms;
+  --pic-duration: 300ms;
+}

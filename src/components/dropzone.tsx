@@ -1,4 +1,4 @@
-import { UploadIcon } from "lucide-react"
+import { type LucideIcon, UploadIcon } from "lucide-react"
 import { useRef, useState } from "react"
 
 import { MAX_IMAGE_BYTES } from "@/libs/schemas/image"
@@ -12,6 +12,8 @@ interface DropzoneProps {
   readonly label?: string
   readonly hint?: string
   readonly accept?: string
+  readonly icon?: LucideIcon
+  readonly className?: string
 }
 
 export function Dropzone({
@@ -22,6 +24,8 @@ export function Dropzone({
   label,
   hint,
   accept: acceptedTypes = "image/*,.heic,.heif,image/heic,image/heif",
+  icon: Icon = UploadIcon,
+  className,
 }: DropzoneProps) {
   const input = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
@@ -61,6 +65,7 @@ export function Dropzone({
         "flex w-full items-center rounded-xl border-2 border-dashed border-outline bg-surface-container-low text-left transition-colors outline-none hover:bg-surface-container focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
         compact ? "gap-3 px-4 py-3" : "flex-col gap-3 px-6 py-16 text-center",
         dragging && "border-primary bg-primary-container",
+        className,
       )}
     >
       <span
@@ -69,7 +74,7 @@ export function Dropzone({
           compact ? "size-10" : "size-14",
         )}
       >
-        <UploadIcon className={compact ? "size-5" : "size-6"} />
+        <Icon className={compact ? "size-5" : "size-6"} />
       </span>
       <span className="flex flex-col gap-0.5">
         <span className={cn("font-medium", compact ? "text-sm" : "text-base")}>

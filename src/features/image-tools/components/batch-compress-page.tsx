@@ -28,7 +28,7 @@ import { compressImages } from "../batch-process"
 import { useBatchCompressStore } from "../batch-store"
 import { prepareImageFiles } from "../process"
 import { BatchImageGrid } from "./batch-image-grid"
-import { Dropzone } from "./dropzone"
+import { Dropzone } from "@/components/dropzone"
 
 const formatLabel = (format: BatchImageFormValues["format"]) =>
   format === "original" ? "Keep original" : format.toUpperCase()

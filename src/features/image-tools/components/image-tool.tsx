@@ -22,7 +22,7 @@ import { isPreviewableImageMime } from "@/libs/utils/image-preview"
 import { processImageTool, type ImageToolMode } from "../process"
 import type { ImageToolStore } from "../store"
 import { useImagePreview } from "../use-image-preview"
-import { Dropzone } from "./dropzone"
+import { Dropzone } from "@/components/dropzone"
 
 interface ImageToolProps {
   readonly mode: ImageToolMode

@@ -3,11 +3,12 @@ import { useMutation } from "@tanstack/react-query"
 import { Schema } from "effect"
 import { CheckIcon, CopyIcon, DownloadIcon, QrCodeIcon, ScanLineIcon } from "lucide-react"
 
+import { Dropzone } from "@/components/dropzone"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import {
+  MAX_QR_IMAGE_BYTES,
   MAX_QR_TEXT_CHARS,
   QR_CODE_FORMATS,
   QrCodeFormSchema,
@@ -166,22 +167,17 @@ export function QrCodePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <label htmlFor="qr-image" className="text-sm font-medium">
-              Image file
-            </label>
-            <Input
-              id="qr-image"
-              type="file"
-              accept="image/*"
+            <Dropzone
               disabled={scan.isPending}
-              onChange={(event) => {
-                const file = event.currentTarget.files?.[0]
+              {...(scan.isPending ? { label: "Reading image…" } : {})}
+              hint={`PNG, JPEG, WebP, AVIF, HEIC, GIF or TIFF, up to ${MAX_QR_IMAGE_BYTES / 1024 / 1024} MB`}
+              onFiles={(files) => {
+                const file = files[0]
 
                 if (file) {
+                  scan.reset()
                   scan.mutate(file)
                 }
-
-                event.currentTarget.value = ""
               }}
             />
             <p className="text-xs text-muted-foreground">

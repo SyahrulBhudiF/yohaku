@@ -26,7 +26,7 @@ import { preloadImageCodec } from "@/libs/utils/image-codec"
 import { formatBytes } from "@/libs/utils/format"
 import { prepareImageFiles, processImagesToPdf } from "../process"
 import { useImageToPdfStore, type ImagePdfFileEntry } from "../store"
-import { Dropzone } from "./dropzone"
+import { Dropzone } from "@/components/dropzone"
 import { ImageGrid } from "./image-grid"
 
 const MODE_LABEL: Record<ImagePdfMode, string> = {

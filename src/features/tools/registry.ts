@@ -13,6 +13,9 @@ export interface ToolDefinition {
     | "/image/compress"
     | "/image/batch-compress"
     | "/image/resize"
+    | "/image/favicon"
+    | "/image/watermark"
+    | "/image/remove-metadata"
     | "/image/to-pdf"
     | "/image/remove-background"
     | "/pdf/merge"
@@ -76,6 +79,27 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     description: "Change dimensions, crop, rotate, or flip an image without losing quality.",
     category: "image",
     to: "/image/resize",
+  },
+  {
+    id: "favicon-generator",
+    title: "Favicon & app icon generator",
+    description: "Create favicon.ico, PNG app icons, a manifest, and a ZIP from one image.",
+    category: "image",
+    to: "/image/favicon",
+  },
+  {
+    id: "image-watermark",
+    title: "Image watermark",
+    description: "Add text or a logo watermark, with position, opacity, rotation, and tiling.",
+    category: "image",
+    to: "/image/watermark",
+  },
+  {
+    id: "image-metadata-cleaner",
+    title: "Photo metadata cleaner",
+    description: "Remove EXIF, GPS, and text metadata from JPEG and PNG images.",
+    category: "image",
+    to: "/image/remove-metadata",
   },
   {
     id: "image-to-pdf",

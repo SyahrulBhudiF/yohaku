@@ -15,9 +15,12 @@ import { Route as ExcelToPdfRouteImport } from './routes/excel/to-pdf'
 import { Route as ImageBatchCompressRouteImport } from './routes/image/batch-compress'
 import { Route as ImageCompressRouteImport } from './routes/image/compress'
 import { Route as ImageConvertRouteImport } from './routes/image/convert'
+import { Route as ImageFaviconRouteImport } from './routes/image/favicon'
 import { Route as ImageRemoveBackgroundRouteImport } from './routes/image/remove-background'
+import { Route as ImageRemoveMetadataRouteImport } from './routes/image/remove-metadata'
 import { Route as ImageResizeRouteImport } from './routes/image/resize'
 import { Route as ImageToPdfRouteImport } from './routes/image/to-pdf'
+import { Route as ImageWatermarkRouteImport } from './routes/image/watermark'
 import { Route as MarkdownToPdfRouteImport } from './routes/markdown/to-pdf'
 import { Route as MarkdownToWordRouteImport } from './routes/markdown/to-word'
 import { Route as MediaSocialDownloaderRouteImport } from './routes/media/social-downloader'
@@ -69,9 +72,19 @@ const ImageConvertRoute = ImageConvertRouteImport.update({
   path: '/image/convert',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ImageFaviconRoute = ImageFaviconRouteImport.update({
+  id: '/image/favicon',
+  path: '/image/favicon',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ImageRemoveBackgroundRoute = ImageRemoveBackgroundRouteImport.update({
   id: '/image/remove-background',
   path: '/image/remove-background',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImageRemoveMetadataRoute = ImageRemoveMetadataRouteImport.update({
+  id: '/image/remove-metadata',
+  path: '/image/remove-metadata',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImageResizeRoute = ImageResizeRouteImport.update({
@@ -82,6 +95,11 @@ const ImageResizeRoute = ImageResizeRouteImport.update({
 const ImageToPdfRoute = ImageToPdfRouteImport.update({
   id: '/image/to-pdf',
   path: '/image/to-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImageWatermarkRoute = ImageWatermarkRouteImport.update({
+  id: '/image/watermark',
+  path: '/image/watermark',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MarkdownToPdfRoute = MarkdownToPdfRouteImport.update({
@@ -192,9 +210,12 @@ export interface FileRoutesByFullPath {
   '/image/batch-compress': typeof ImageBatchCompressRoute
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
+  '/image/favicon': typeof ImageFaviconRoute
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
+  '/image/remove-metadata': typeof ImageRemoveMetadataRoute
   '/image/resize': typeof ImageResizeRoute
   '/image/to-pdf': typeof ImageToPdfRoute
+  '/image/watermark': typeof ImageWatermarkRoute
   '/markdown/to-pdf': typeof MarkdownToPdfRoute
   '/markdown/to-word': typeof MarkdownToWordRoute
   '/media/social-downloader': typeof MediaSocialDownloaderRoute
@@ -223,9 +244,12 @@ export interface FileRoutesByTo {
   '/image/batch-compress': typeof ImageBatchCompressRoute
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
+  '/image/favicon': typeof ImageFaviconRoute
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
+  '/image/remove-metadata': typeof ImageRemoveMetadataRoute
   '/image/resize': typeof ImageResizeRoute
   '/image/to-pdf': typeof ImageToPdfRoute
+  '/image/watermark': typeof ImageWatermarkRoute
   '/markdown/to-pdf': typeof MarkdownToPdfRoute
   '/markdown/to-word': typeof MarkdownToWordRoute
   '/media/social-downloader': typeof MediaSocialDownloaderRoute
@@ -255,9 +279,12 @@ export interface FileRoutesById {
   '/image/batch-compress': typeof ImageBatchCompressRoute
   '/image/compress': typeof ImageCompressRoute
   '/image/convert': typeof ImageConvertRoute
+  '/image/favicon': typeof ImageFaviconRoute
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
+  '/image/remove-metadata': typeof ImageRemoveMetadataRoute
   '/image/resize': typeof ImageResizeRoute
   '/image/to-pdf': typeof ImageToPdfRoute
+  '/image/watermark': typeof ImageWatermarkRoute
   '/markdown/to-pdf': typeof MarkdownToPdfRoute
   '/markdown/to-word': typeof MarkdownToWordRoute
   '/media/social-downloader': typeof MediaSocialDownloaderRoute
@@ -288,9 +315,12 @@ export interface FileRouteTypes {
     | '/image/batch-compress'
     | '/image/compress'
     | '/image/convert'
+    | '/image/favicon'
     | '/image/remove-background'
+    | '/image/remove-metadata'
     | '/image/resize'
     | '/image/to-pdf'
+    | '/image/watermark'
     | '/markdown/to-pdf'
     | '/markdown/to-word'
     | '/media/social-downloader'
@@ -319,9 +349,12 @@ export interface FileRouteTypes {
     | '/image/batch-compress'
     | '/image/compress'
     | '/image/convert'
+    | '/image/favicon'
     | '/image/remove-background'
+    | '/image/remove-metadata'
     | '/image/resize'
     | '/image/to-pdf'
+    | '/image/watermark'
     | '/markdown/to-pdf'
     | '/markdown/to-word'
     | '/media/social-downloader'
@@ -350,9 +383,12 @@ export interface FileRouteTypes {
     | '/image/batch-compress'
     | '/image/compress'
     | '/image/convert'
+    | '/image/favicon'
     | '/image/remove-background'
+    | '/image/remove-metadata'
     | '/image/resize'
     | '/image/to-pdf'
+    | '/image/watermark'
     | '/markdown/to-pdf'
     | '/markdown/to-word'
     | '/media/social-downloader'
@@ -382,9 +418,12 @@ export interface RootRouteChildren {
   ImageBatchCompressRoute: typeof ImageBatchCompressRoute
   ImageCompressRoute: typeof ImageCompressRoute
   ImageConvertRoute: typeof ImageConvertRoute
+  ImageFaviconRoute: typeof ImageFaviconRoute
   ImageRemoveBackgroundRoute: typeof ImageRemoveBackgroundRoute
+  ImageRemoveMetadataRoute: typeof ImageRemoveMetadataRoute
   ImageResizeRoute: typeof ImageResizeRoute
   ImageToPdfRoute: typeof ImageToPdfRoute
+  ImageWatermarkRoute: typeof ImageWatermarkRoute
   MarkdownToPdfRoute: typeof MarkdownToPdfRoute
   MarkdownToWordRoute: typeof MarkdownToWordRoute
   MediaSocialDownloaderRoute: typeof MediaSocialDownloaderRoute
@@ -451,11 +490,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ImageConvertRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/image/favicon': {
+      id: '/image/favicon'
+      path: '/image/favicon'
+      fullPath: '/image/favicon'
+      preLoaderRoute: typeof ImageFaviconRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/image/remove-background': {
       id: '/image/remove-background'
       path: '/image/remove-background'
       fullPath: '/image/remove-background'
       preLoaderRoute: typeof ImageRemoveBackgroundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/image/remove-metadata': {
+      id: '/image/remove-metadata'
+      path: '/image/remove-metadata'
+      fullPath: '/image/remove-metadata'
+      preLoaderRoute: typeof ImageRemoveMetadataRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/image/resize': {
@@ -470,6 +523,13 @@ declare module '@tanstack/react-router' {
       path: '/image/to-pdf'
       fullPath: '/image/to-pdf'
       preLoaderRoute: typeof ImageToPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/image/watermark': {
+      id: '/image/watermark'
+      path: '/image/watermark'
+      fullPath: '/image/watermark'
+      preLoaderRoute: typeof ImageWatermarkRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/markdown/to-pdf': {
@@ -622,9 +682,12 @@ const rootRouteChildren: RootRouteChildren = {
   ImageBatchCompressRoute: ImageBatchCompressRoute,
   ImageCompressRoute: ImageCompressRoute,
   ImageConvertRoute: ImageConvertRoute,
+  ImageFaviconRoute: ImageFaviconRoute,
   ImageRemoveBackgroundRoute: ImageRemoveBackgroundRoute,
+  ImageRemoveMetadataRoute: ImageRemoveMetadataRoute,
   ImageResizeRoute: ImageResizeRoute,
   ImageToPdfRoute: ImageToPdfRoute,
+  ImageWatermarkRoute: ImageWatermarkRoute,
   MarkdownToPdfRoute: MarkdownToPdfRoute,
   MarkdownToWordRoute: MarkdownToWordRoute,
   MediaSocialDownloaderRoute: MediaSocialDownloaderRoute,
