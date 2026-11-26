@@ -143,7 +143,31 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try { var theme = localStorage.getItem("yohaku-theme"); } catch (e) {} document.documentElement.dataset.theme = theme === "light" || theme === "dark" ? theme : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");`,
+            __html: `try {
+  var stored = localStorage.getItem("yohaku-theme");
+  var theme = stored;
+  var chosen = false;
+
+  if (stored === "light" || stored === "dark") {
+    chosen = true;
+  } else if (stored) {
+    try {
+      var parsed = JSON.parse(stored);
+      if (parsed && parsed.state) {
+        theme = parsed.state.theme;
+        chosen = parsed.state.chosen === true;
+      }
+    } catch (e) {}
+  }
+
+  if (!chosen) {
+    theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  document.documentElement.dataset.theme = theme === "light" || theme === "dark" ? theme : "light";
+} catch (e) {
+  document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}`,
           }}
         />
         <HeadContent />

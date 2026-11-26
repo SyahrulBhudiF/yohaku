@@ -1,49 +1,85 @@
 import { MoonIcon, SunIcon } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect } from "react"
+import { flushSync } from "react-dom"
 
 import { Button } from "@/components/ui/button"
+import { useThemeStore } from "@/libs/stores/theme"
+
+interface ThemeViewTransition {
+  readonly finished: Promise<void>
+}
+
+type ThemeTransitionDocument = Document & {
+  startViewTransition?: (update: () => void | Promise<void>) => ThemeViewTransition
+}
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(false)
-  const chosen = useRef(false)
+  const theme = useThemeStore((state) => state.theme)
+  const setTheme = useThemeStore((state) => state.setTheme)
+  const syncTheme = useThemeStore((state) => state.syncTheme)
+  const dark = theme === "dark"
 
   // architecture: external synchronization (theme DOM)
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)")
-    const sync = () => setDark(document.documentElement.dataset.theme === "dark")
 
+    // Migrate the raw value written by the previous theme toggle to the
+    // persisted store shape, so an existing choice survives the upgrade.
     try {
       const stored = localStorage.getItem("yohaku-theme")
 
-      chosen.current = stored === "light" || stored === "dark"
+      if (stored === "light" || stored === "dark") {
+        localStorage.setItem(
+          "yohaku-theme",
+          JSON.stringify({ state: { theme: stored, chosen: true }, version: 0 }),
+        )
+      }
     } catch {
       // Storage can be unavailable in private browsing.
     }
 
     const followSystem = (event: MediaQueryListEvent) => {
-      if (chosen.current) return
+      if (useThemeStore.getState().chosen) return
 
       document.documentElement.dataset.theme = event.matches ? "dark" : "light"
-      sync()
+      syncTheme()
     }
 
-    sync()
+    void useThemeStore.persist
+      .rehydrate()
+      .then(() => {
+        const state = useThemeStore.getState()
+
+        if (state.chosen) document.documentElement.dataset.theme = state.theme
+
+        syncTheme()
+      })
+      .catch(() => syncTheme())
+
     media.addEventListener("change", followSystem)
 
     return () => media.removeEventListener("change", followSystem)
-  }, [])
+  }, [syncTheme])
 
   function handleToggleTheme() {
-    const theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark"
+    const next = theme === "dark" ? "light" : "dark"
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const startViewTransition = (document as ThemeTransitionDocument).startViewTransition
 
-    chosen.current = true
-    document.documentElement.dataset.theme = theme
-    setDark(theme === "dark")
+    if (reduceMotion || !startViewTransition) {
+      setTheme(next)
+
+      return
+    }
 
     try {
-      localStorage.setItem("yohaku-theme", theme)
+      const transition = startViewTransition.call(document, () => {
+        flushSync(() => setTheme(next))
+      })
+
+      void transition.finished.catch(() => undefined)
     } catch {
-      // The selected theme still applies for this visit.
+      setTheme(next)
     }
   }
 
