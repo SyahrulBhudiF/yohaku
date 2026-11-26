@@ -16,6 +16,7 @@ export const SocialMediaUrlFormSchema = Schema.Struct({
 export type SocialMediaUrlFormValues = typeof SocialMediaUrlFormSchema.Type
 
 export const SocialMediaFormatSchema = Schema.Struct({
+  itag: Schema.optional(Schema.NullOr(Schema.Finite)),
   url: Schema.String,
   mime_type: Schema.optional(Schema.NullOr(Schema.String)),
   container: Schema.optional(Schema.NullOr(Schema.String)),
@@ -62,6 +63,8 @@ export const SocialMediaDownloadRequestSchema = Schema.Struct({
   platform: SocialMediaPlatformSchema,
   fileName: Schema.String,
   headers: Schema.Array(Schema.Struct({ name: Schema.String, value: Schema.String })),
+  videoId: Schema.optional(Schema.String),
+  itag: Schema.optional(Schema.Finite),
 })
 
 export type SocialMediaPlatform = typeof SocialMediaPlatformSchema.Type

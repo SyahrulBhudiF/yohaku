@@ -25,6 +25,7 @@ import {
 export interface ResolvedSocialMedia {
   readonly info: SocialMediaInfo
   readonly platform: SocialMediaPlatform
+  readonly videoId: string | null
   readonly videoFormat: SocialMediaFormat | null
   readonly audioFormat: SocialMediaFormat | null
   readonly mergedVideo: MergedVideo | null
@@ -45,6 +46,7 @@ export interface SocialMediaDownloadRequest {
   readonly platform: SocialMediaPlatform
   readonly fileName: string
   readonly mode: "video" | "mp3"
+  readonly videoId?: string
   readonly saveHandle?: BrowserFileHandle
   readonly merge?: {
     readonly video: SocialMediaFormat
@@ -139,6 +141,42 @@ const resolveInWorker = (url: string) =>
     getResolverWorker().postMessage({ id, url })
   })
 
+const shouldRetryResolve = (cause: unknown) => {
+  const detail = typeof cause === "string" ? cause : ""
+
+  if (
+    /bot-check|http 403|http 429|timed out|timeout|network|failed to fetch|request failed|worker/i.test(
+      detail,
+    )
+  ) {
+    return true
+  }
+
+  return !/unsupported url|no extractor|only individual video|not a public video|age-restricted|geo-blocked|private|gone|not found|image-only|no video|no playable formats|formatnotfound|does not expose|unavailable/i.test(
+    detail,
+  )
+}
+
+// Each attempt is a new Worker request, so a transient YouTube bot check can
+// land on a different egress IP and succeed without asking the user to retry.
+const resolveWithRetry = async (url: string) => {
+  let last: unknown = "worker"
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await resolveInWorker(url)
+    } catch (cause) {
+      last = cause
+
+      if (attempt === 2 || !shouldRetryResolve(cause)) throw cause
+
+      await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)))
+    }
+  }
+
+  throw last
+}
+
 const PLATFORM_NAMES: Record<SocialMediaPlatform, string> = {
   youtube: "YouTube",
   instagram: "Instagram",
@@ -200,7 +238,7 @@ export const resolveSocialMedia = (
     }
 
     const raw = yield* Effect.tryPromise({
-      try: () => resolveInWorker(parsed.url),
+      try: () => resolveWithRetry(parsed.url),
       catch: (cause) => mapResolveFailure(cause, parsed.platform),
     })
     const info = decodeSocialMediaInfo(raw)
@@ -221,13 +259,23 @@ export const resolveSocialMedia = (
       })
     }
 
-    return { info, platform: parsed.platform, videoFormat, audioFormat, mergedVideo }
+    const videoId = parsed.platform === "youtube" ? new URL(parsed.url).searchParams.get("v") : null
+
+    return {
+      info,
+      platform: parsed.platform,
+      videoId,
+      videoFormat,
+      audioFormat,
+      mergedVideo,
+    }
   })
 
 const downloadFormatResponse = (
   format: SocialMediaFormat,
   platform: SocialMediaPlatform,
   fileName: string,
+  videoId?: string,
 ) =>
   fetch("/api/media/download", {
     method: "POST",
@@ -237,6 +285,8 @@ const downloadFormatResponse = (
       platform,
       fileName,
       headers: (format.http_headers ?? []).map(([name, value]) => ({ name, value })),
+      ...(videoId ? { videoId } : {}),
+      ...(format.itag != null ? { itag: format.itag } : {}),
     }),
   })
 
@@ -372,7 +422,7 @@ const downloadMergedVideo = (
   Effect.gen(function* () {
     const { video, audio, container } = request.merge
     const videoResponse = yield* Effect.tryPromise({
-      try: () => downloadFormatResponse(video, request.platform, request.fileName),
+      try: () => downloadFormatResponse(video, request.platform, request.fileName, request.videoId),
       catch: () =>
         new SocialMediaDownloaderError({
           message: "Could not connect to the media download service. Try again in a moment.",
@@ -403,7 +453,7 @@ const downloadMergedVideo = (
     }
 
     const audioResponse = yield* Effect.tryPromise({
-      try: () => downloadFormatResponse(audio, request.platform, request.fileName),
+      try: () => downloadFormatResponse(audio, request.platform, request.fileName, request.videoId),
       catch: () =>
         new SocialMediaDownloaderError({
           message: "Could not connect to the media download service. Try again in a moment.",
@@ -499,7 +549,8 @@ export const downloadSocialMedia = (
     }
 
     const response = yield* Effect.tryPromise({
-      try: () => downloadFormatResponse(request.format, request.platform, request.fileName),
+      try: () =>
+        downloadFormatResponse(request.format, request.platform, request.fileName, request.videoId),
       catch: () =>
         new SocialMediaDownloaderError({
           message: "Could not connect to the media download service. Try again in a moment.",

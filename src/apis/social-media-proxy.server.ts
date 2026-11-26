@@ -48,9 +48,57 @@ const MAX_REDIRECTS = 4
 const UPSTREAM_TIMEOUT_MS = 30_000
 const REQUEST_BODY_TIMEOUT_MS = 10_000
 const UPSTREAM_BODY_IDLE_TIMEOUT_MS = 30_000
+const MEDIA_RANGE_CHUNK_BYTES = 8 * 1024 * 1024
+
+// YouTube binds googlevideo URLs to the IP that requested the player response.
+// A Worker request can use a different egress IP from the request that resolved
+// the video, so a stale URL answers 403. Re-resolve inside the download request
+// and use the fresh URL there, where the player and media requests share the
+// same outbound context.
+const YOUTUBE_IOS_CLIENT = {
+  name: "IOS",
+  version: "20.10.4",
+  nameId: 5,
+  userAgent: "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X)",
+  context: {
+    deviceMake: "Apple",
+    deviceModel: "iPhone16,2",
+    osName: "iPhone",
+    osVersion: "18.3.2.22D82",
+  },
+} as const
+
+// IOS returns adaptive streams but not the progressive itag 18. Android is the
+// fallback for progressive formats.
+const YOUTUBE_ANDROID_CLIENT = {
+  name: "ANDROID",
+  version: "20.10.38",
+  nameId: 3,
+  userAgent: "com.google.android.youtube/20.10.38 (Linux; U; Android 14) gzip",
+  context: {
+    androidSdkVersion: 34,
+    osName: "Android",
+    osVersion: "14",
+  },
+} as const
+
+const YOUTUBE_PLAYER_CLIENTS = [YOUTUBE_IOS_CLIENT, YOUTUBE_ANDROID_CLIENT] as const
 
 type Fetcher = (url: string, init: RequestInit) => Promise<Response>
 type ProxyKind = "control" | "download"
+
+interface YoutubePlayerFormat {
+  readonly itag?: number
+  readonly url?: string
+  readonly signatureCipher?: string
+}
+
+interface YoutubePlayerResponse {
+  readonly streamingData?: {
+    readonly formats?: ReadonlyArray<YoutubePlayerFormat>
+    readonly adaptiveFormats?: ReadonlyArray<YoutubePlayerFormat>
+  }
+}
 
 export const mediaProxyResponse = (message: string, status: number) =>
   new Response(message, {
@@ -379,6 +427,405 @@ const contentDisposition = (fileName: string) => {
   return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`
 }
 
+const parseContentRangeTotal = (value: string | null) => {
+  const match = value?.match(/^bytes \d+-\d+\/(\d+)$/)
+
+  return match?.[1] ? Number(match[1]) : null
+}
+
+/**
+ * Ask YouTube for a fresh direct URL for one format. The returned URL is bound
+ * to the egress IP of this request, so the media fetch must happen in the same
+ * request. The browser resolver remains the source of truth for metadata.
+ */
+const fetchYoutubeFormatUrl = async (
+  videoId: string,
+  itag: number,
+  client: (typeof YOUTUBE_PLAYER_CLIENTS)[number],
+  fetcher: Fetcher,
+): Promise<string | null> => {
+  const endpoint = "https://www.youtube.com/youtubei/v1/player"
+  const body = JSON.stringify({
+    videoId,
+    context: {
+      client: {
+        clientName: client.name,
+        clientVersion: client.version,
+        hl: "en",
+        gl: "US",
+        ...client.context,
+      },
+    },
+    contentCheckOk: true,
+    racyCheckOk: true,
+  })
+  const headers = new Headers({
+    "content-type": "application/json",
+    "user-agent": client.userAgent,
+    "x-youtube-client-name": String(client.nameId),
+    "x-youtube-client-version": client.version,
+    origin: "https://www.youtube.com",
+    referer: "https://www.youtube.com/",
+  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
+
+  try {
+    const upstream = await fetchAllowedTarget(
+      new URL(endpoint),
+      {
+        method: "POST",
+        headers,
+        body,
+        signal: controller.signal,
+      },
+      fetcher,
+    )
+
+    if (!upstream) return null
+
+    const declaredLength = Number(upstream.headers.get("content-length") ?? 0)
+
+    if (!upstream.ok || declaredLength > MAX_SOCIAL_MEDIA_CONTROL_BYTES) {
+      await upstream.body?.cancel()
+
+      return null
+    }
+
+    const payload = (await upstream.json()) as YoutubePlayerResponse
+    const formats = [
+      ...(payload.streamingData?.formats ?? []),
+      ...(payload.streamingData?.adaptiveFormats ?? []),
+    ]
+    const format = formats.find((candidate) => candidate.itag === itag)
+
+    if (!format?.url || format.signatureCipher) return null
+
+    const target = parseUpstreamUrl(format.url)
+
+    return target ? target.toString() : null
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+const resolveFreshYoutubeUrl = async (
+  videoId: string,
+  itag: number,
+  fetcher: Fetcher,
+): Promise<string | null> => {
+  if (!/^[A-Za-z0-9_-]{11}$/.test(videoId) || !Number.isInteger(itag) || itag <= 0) {
+    return null
+  }
+
+  for (const client of YOUTUBE_PLAYER_CLIENTS) {
+    const url = await fetchYoutubeFormatUrl(videoId, itag, client, fetcher)
+
+    if (url) return url
+  }
+
+  return null
+}
+
+const fetchDownloadRange = async (
+  target: URL,
+  headers: Headers,
+  fetcher: Fetcher,
+  signal: AbortSignal,
+  start = 0,
+  end = MEDIA_RANGE_CHUNK_BYTES - 1,
+) => {
+  const rangeHeaders = new Headers(headers)
+
+  rangeHeaders.set("range", `bytes=${start}-${end}`)
+
+  const headerTimeout = new AbortController()
+  const timeoutId = setTimeout(() => headerTimeout.abort(), UPSTREAM_TIMEOUT_MS)
+
+  try {
+    return await fetchAllowedTarget(
+      target,
+      {
+        method: "GET",
+        headers: rangeHeaders,
+        signal: AbortSignal.any([signal, headerTimeout.signal]),
+      },
+      fetcher,
+    )
+  } catch (cause) {
+    if (headerTimeout.signal.aborted) return null
+
+    // eslint-disable-next-line no-console -- Workers Logs capture upstream failures.
+    console.error("media proxy download request failed", cause)
+
+    return null
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+/**
+ * Stream a complete media file as bounded ranges. googlevideo rejects a full
+ * GET (and an open-ended range) with 403 for these URLs, while a bounded range
+ * is served. The first bounded range is already open when this stream starts.
+ */
+const rangedMediaBody = (
+  url: string,
+  headers: Headers,
+  fetcher: Fetcher,
+  total: number,
+  initialReader: ReadableStreamDefaultReader<Uint8Array>,
+  signal: AbortSignal,
+) => {
+  let finished = false
+  let reader: ReadableStreamDefaultReader<Uint8Array> | null = initialReader
+  let idleTimer: ReturnType<typeof setTimeout> | null = null
+  let offset = 0
+  let received = 0
+
+  const clearIdleTimer = () => {
+    if (idleTimer !== null) {
+      clearTimeout(idleTimer)
+      idleTimer = null
+    }
+  }
+
+  const fail = (
+    controller: ReadableStreamDefaultController<Uint8Array>,
+    message: string,
+    name = "NetworkError",
+  ) => {
+    if (finished) return
+
+    finished = true
+    clearIdleTimer()
+    const current = reader
+
+    reader = null
+    void current?.cancel().catch(() => undefined)
+    controller.error(new DOMException(message, name))
+  }
+
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      if (finished) return
+
+      try {
+        while (!finished) {
+          if (offset >= total) {
+            finished = true
+            clearIdleTimer()
+            controller.close()
+
+            return
+          }
+
+          if (!reader) {
+            const end = Math.min(offset + MEDIA_RANGE_CHUNK_BYTES - 1, total - 1)
+            const upstream = await fetchDownloadRange(
+              new URL(url),
+              headers,
+              fetcher,
+              signal,
+              offset,
+              end,
+            )
+
+            if (!upstream) {
+              fail(controller, "The platform redirect was blocked.")
+
+              return
+            }
+
+            if (upstream.status !== 206) {
+              await upstream.body?.cancel()
+              fail(controller, `The platform returned ${upstream.status} for this media.`)
+
+              return
+            }
+
+            reader = upstream.body?.getReader() ?? null
+
+            if (!reader) {
+              fail(controller, "The platform did not return a media stream.")
+
+              return
+            }
+          }
+
+          const current = reader
+
+          idleTimer = setTimeout(() => {
+            if (finished) return
+
+            finished = true
+            clearIdleTimer()
+            void current?.cancel().catch(() => undefined)
+            controller.error(
+              new DOMException("The upstream media stopped responding.", "TimeoutError"),
+            )
+          }, UPSTREAM_BODY_IDLE_TIMEOUT_MS)
+
+          const chunk = await current.read()
+
+          clearIdleTimer()
+
+          if (finished) return
+
+          if (chunk.done) {
+            reader = null
+
+            continue
+          }
+
+          received += chunk.value.byteLength
+
+          if (received > total) {
+            fail(controller, "The upstream media exceeded its declared size.")
+
+            return
+          }
+
+          offset += chunk.value.byteLength
+          controller.enqueue(chunk.value)
+
+          return
+        }
+      } catch (cause) {
+        fail(controller, cause instanceof Error ? cause.message : "The media download failed.")
+      }
+    },
+    cancel(reason) {
+      finished = true
+      clearIdleTimer()
+      const current = reader
+
+      reader = null
+      void current?.cancel(reason).catch(() => undefined)
+    },
+  })
+}
+
+const proxyDownload = async (
+  request: Request,
+  target: URL,
+  fetcher: Fetcher,
+  platform: SocialMediaPlatform | undefined,
+  fileName: string | undefined,
+  suppliedHeaders: Headers | undefined,
+  videoId: string | undefined,
+  itag: number | undefined,
+) => {
+  const headers = requestHeaders(suppliedHeaders ?? new Headers(), platform)
+  let currentTarget = target
+  let upstream = await fetchDownloadRange(currentTarget, headers, fetcher, request.signal)
+
+  if (!upstream) return response("The platform request could not be completed.", 502)
+
+  if ((upstream.status === 403 || upstream.status === 404) && videoId && itag !== undefined) {
+    await upstream.body?.cancel()
+
+    // Each player request mints a URL for this request's egress IP. If the
+    // first retry still gets a different IP, try one more time.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const freshUrl = await resolveFreshYoutubeUrl(videoId, itag, fetcher)
+      const freshTarget = freshUrl ? parseUpstreamUrl(freshUrl) : null
+
+      if (!freshTarget) break
+
+      currentTarget = freshTarget
+      upstream = await fetchDownloadRange(currentTarget, headers, fetcher, request.signal)
+
+      if (!upstream || upstream.ok) break
+
+      await upstream.body?.cancel()
+    }
+  }
+
+  if (!upstream) return response("The platform request could not be completed.", 502)
+
+  if (!upstream.ok) {
+    await upstream.body?.cancel()
+
+    return response(
+      upstream.status === 403 || upstream.status === 404
+        ? "The platform denied this media download."
+        : "The platform could not provide this media right now.",
+      upstream.status === 403 || upstream.status === 404 ? upstream.status : 502,
+    )
+  }
+
+  const finalUrl = upstream.url || currentTarget.toString()
+  const contentType = upstream.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase()
+  const safeContentType =
+    contentType?.startsWith("video/") ||
+    contentType?.startsWith("audio/") ||
+    contentType === "application/octet-stream" ||
+    contentType === "binary/octet-stream"
+      ? contentType
+      : "application/octet-stream"
+  const responseHeaders = new Headers({
+    "Accept-Ranges": "bytes",
+    "Cache-Control": "no-store",
+    "Content-Disposition": contentDisposition(safeFileName(fileName ?? "video.mp4")),
+    "Content-Type": safeContentType,
+    "Cross-Origin-Resource-Policy": "same-origin",
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff",
+    "X-Yohaku-Final-Url": finalUrl,
+  })
+
+  if (upstream.status === 200) {
+    const totalBytes = Number(upstream.headers.get("content-length") ?? 0)
+
+    if (totalBytes > MAX_SOCIAL_MEDIA_DOWNLOAD_BYTES) {
+      await upstream.body?.cancel()
+
+      return response("This video is larger than the supported download limit.", 413)
+    }
+
+    if (totalBytes > 0) responseHeaders.set("content-length", String(totalBytes))
+
+    return new Response(bodyWithLimit(upstream.body, MAX_SOCIAL_MEDIA_DOWNLOAD_BYTES), {
+      status: 200,
+      headers: responseHeaders,
+    })
+  }
+
+  if (upstream.status !== 206) {
+    await upstream.body?.cancel()
+
+    return response("The platform did not return a media stream.", 502)
+  }
+
+  const total = parseContentRangeTotal(upstream.headers.get("content-range"))
+
+  if (total === null) {
+    await upstream.body?.cancel()
+
+    return response("The platform did not return a complete media stream.", 502)
+  }
+
+  if (total > MAX_SOCIAL_MEDIA_DOWNLOAD_BYTES) {
+    await upstream.body?.cancel()
+
+    return response("This video is larger than the supported download limit.", 413)
+  }
+
+  const initialReader = upstream.body?.getReader() ?? null
+
+  if (!initialReader) return response("The platform did not return a media stream.", 502)
+
+  responseHeaders.set("content-length", String(total))
+
+  return new Response(
+    rangedMediaBody(finalUrl, headers, fetcher, total, initialReader, request.signal),
+    { status: 200, headers: responseHeaders },
+  )
+}
+
 const proxy = async (
   request: Request,
   target: URL,
@@ -387,28 +834,40 @@ const proxy = async (
   platform?: SocialMediaPlatform,
   fileName?: string,
   suppliedHeaders?: Headers,
+  videoId?: string,
+  itag?: number,
 ) => {
+  if (kind === "download") {
+    return proxyDownload(
+      request,
+      target,
+      fetcher,
+      platform,
+      fileName,
+      suppliedHeaders,
+      videoId,
+      itag,
+    )
+  }
+
   const requestContentLength = Number(request.headers.get("content-length") ?? 0)
 
-  if (kind === "control" && requestContentLength > MAX_SOCIAL_MEDIA_CONTROL_REQUEST_BYTES) {
+  if (requestContentLength > MAX_SOCIAL_MEDIA_CONTROL_REQUEST_BYTES) {
     return response("The platform request was too large.", 413)
   }
 
-  if (kind === "control" && requestContentLength > 0 && request.method !== "POST") {
+  if (requestContentLength > 0 && request.method !== "POST") {
     return response("The platform request is invalid.", 400)
   }
 
-  const upstreamMethod = kind === "control" ? request.method : "GET"
+  const upstreamMethod = request.method
   const body =
-    kind === "control" && upstreamMethod === "POST"
+    upstreamMethod === "POST"
       ? await readRequestBody(request, MAX_SOCIAL_MEDIA_CONTROL_REQUEST_BYTES)
       : undefined
 
   if (body === null) return response("The platform request was too large.", 413)
-  const headers = requestHeaders(
-    kind === "control" ? request.headers : (suppliedHeaders ?? new Headers()),
-    platform ?? (kind === "control" ? inferPlatform(target) : undefined),
-  )
+  const headers = requestHeaders(request.headers, platform ?? inferPlatform(target))
   let upstream: Response | null
   const headerTimeout = new AbortController()
   const timeoutId = setTimeout(() => headerTimeout.abort(), UPSTREAM_TIMEOUT_MS)
@@ -440,8 +899,7 @@ const proxy = async (
 
   if (!upstream) return response("The platform redirect was blocked or exceeded the limit.", 502)
 
-  const limit =
-    kind === "control" ? MAX_SOCIAL_MEDIA_CONTROL_BYTES : MAX_SOCIAL_MEDIA_DOWNLOAD_BYTES
+  const limit = MAX_SOCIAL_MEDIA_CONTROL_BYTES
   const declaredLength = Number(upstream.headers.get("content-length") ?? 0)
   const contentRange = upstream.headers.get("content-range")
   const totalFromRange = contentRange?.match(/\/(\d+)$/)?.[1]
@@ -450,12 +908,7 @@ const proxy = async (
   if (totalBytes > limit) {
     await upstream.body?.cancel()
 
-    return response(
-      kind === "control"
-        ? "The platform response was larger than the supported limit."
-        : "This video is larger than the supported download limit.",
-      413,
-    )
+    return response("The platform response was larger than the supported limit.", 413)
   }
 
   const responseHeaders = new Headers({
@@ -470,35 +923,11 @@ const proxy = async (
 
   if (etag) responseHeaders.set("etag", etag)
 
-  if (kind === "download") {
-    const contentType = upstream.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase()
-    const safeContentType =
-      contentType?.startsWith("video/") ||
-      contentType?.startsWith("audio/") ||
-      contentType === "application/octet-stream" ||
-      contentType === "binary/octet-stream"
-        ? contentType
-        : "application/octet-stream"
-
-    responseHeaders.set("content-type", safeContentType)
-
-    for (const name of ["accept-ranges", "content-length", "content-range"] as const) {
-      const value = upstream.headers.get(name)
-
-      if (value) responseHeaders.set(name, value)
-    }
-
-    responseHeaders.set(
-      "Content-Disposition",
-      contentDisposition(safeFileName(fileName ?? "video.mp4")),
-    )
-  } else {
-    // The resolver reads bytes and never inspects the type. Serving upstream
-    // HTML under this origin would render third-party scripts here.
-    responseHeaders.set("Content-Type", "text/plain; charset=utf-8")
-    responseHeaders.set("Content-Disposition", "attachment")
-    responseHeaders.set("Content-Security-Policy", "sandbox")
-  }
+  // The resolver reads bytes and never inspects the type. Serving upstream
+  // HTML under this origin would render third-party scripts here.
+  responseHeaders.set("Content-Type", "text/plain; charset=utf-8")
+  responseHeaders.set("Content-Disposition", "attachment")
+  responseHeaders.set("Content-Security-Policy", "sandbox")
 
   return new Response(bodyWithLimit(upstream.body, limit), {
     status: upstream.status,
@@ -556,5 +985,7 @@ export const handleMediaDownloadProxy = async (request: Request, fetcher: Fetche
     download.platform,
     download.fileName,
     formatHeaders,
+    download.videoId,
+    download.itag,
   )
 }

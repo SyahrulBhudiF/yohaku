@@ -102,6 +102,7 @@ export function useSocialMediaDownloader() {
       platform: resolved.platform,
       fileName,
       mode,
+      ...(resolved.videoId ? { videoId: resolved.videoId } : {}),
       ...(merge ? { merge } : {}),
       ...(saveHandle ? { saveHandle } : {}),
     }

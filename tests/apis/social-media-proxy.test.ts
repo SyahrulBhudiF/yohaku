@@ -269,4 +269,155 @@ describe("social media proxy", () => {
 
     expect(response.status).toBe(413)
   })
+
+  it("re-resolves a YouTube format inside the download request when the stale URL is denied", async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = []
+    const fetcher = async (url: string, init: RequestInit) => {
+      calls.push({ url, init })
+
+      if (init.method === "POST") {
+        return new Response(
+          JSON.stringify({
+            streamingData: {
+              adaptiveFormats: [
+                { itag: 137, url: "https://rr.googlevideo.com/videoplayback?id=fresh" },
+              ],
+            },
+          }),
+          { headers: { "content-type": "application/json" } },
+        )
+      }
+
+      if (url.includes("stale")) return new Response("denied", { status: 403 })
+
+      return new Response(new Uint8Array([1, 2, 3, 4]), {
+        status: 206,
+        headers: {
+          "content-range": "bytes 0-3/4",
+          "content-type": "video/mp4",
+        },
+      })
+    }
+    const request = new Request(`${origin}/api/media/download`, {
+      method: "POST",
+      headers: { origin, "content-type": "application/json" },
+      body: JSON.stringify({
+        url: "https://rr.googlevideo.com/videoplayback?id=stale",
+        platform: "youtube",
+        fileName: "video.mp4",
+        headers: [],
+        videoId: "w5wNu69O2KA",
+        itag: 137,
+      }),
+    })
+
+    const response = await handleMediaDownloadProxy(request, fetcher)
+
+    expect(response.status).toBe(200)
+    expect(Array.from(new Uint8Array(await response.arrayBuffer()))).toEqual([1, 2, 3, 4])
+    expect(new Headers(calls[0]?.init.headers).get("range")).toBe("bytes=0-8388607")
+    expect(calls[1]?.url).toContain("/youtubei/v1/player")
+    expect(calls[1]?.init.method).toBe("POST")
+    expect(new Headers(calls[1]?.init.headers).has("x-youtube-client-name")).toBe(true)
+    expect(JSON.parse(calls[1]?.init.body as string)).toMatchObject({
+      videoId: "w5wNu69O2KA",
+    })
+    expect(calls[2]?.url).toBe("https://rr.googlevideo.com/videoplayback?id=fresh")
+    expect(new Headers(calls[2]?.init.headers).get("range")).toBe("bytes=0-8388607")
+  })
+
+  it("does not ask YouTube for a fresh URL when the video id is invalid", async () => {
+    const fetcher = vi.fn<(url: string, init: RequestInit) => Promise<Response>>(
+      async () => new Response("denied", { status: 403 }),
+    )
+    const request = new Request(`${origin}/api/media/download`, {
+      method: "POST",
+      headers: { origin, "content-type": "application/json" },
+      body: JSON.stringify({
+        url: "https://rr.googlevideo.com/videoplayback?id=stale",
+        platform: "youtube",
+        fileName: "video.mp4",
+        headers: [],
+        videoId: "not-a-video-id",
+        itag: 137,
+      }),
+    })
+
+    const response = await handleMediaDownloadProxy(request, fetcher)
+
+    expect(response.status).toBe(403)
+    expect(fetcher).toHaveBeenCalledTimes(1)
+  })
+
+  it("streams the rest of a media file with bounded ranges", async () => {
+    const total = 8 * 1024 * 1024 + 1
+    const calls: Array<string | null> = []
+    const fetcher = async (_url: string, init: RequestInit) => {
+      const range = new Headers(init.headers).get("range")
+
+      calls.push(range)
+
+      if (range === "bytes=0-8388607") {
+        return new Response(new Uint8Array(8 * 1024 * 1024), {
+          status: 206,
+          headers: {
+            "content-range": `bytes 0-8388607/${total}`,
+            "content-type": "video/mp4",
+          },
+        })
+      }
+
+      return new Response(new Uint8Array([9]), {
+        status: 206,
+        headers: {
+          "content-range": `bytes 8388608-8388608/${total}`,
+          "content-type": "video/mp4",
+        },
+      })
+    }
+    const request = new Request(`${origin}/api/media/download`, {
+      method: "POST",
+      headers: { origin, "content-type": "application/json" },
+      body: JSON.stringify({
+        url: "https://rr.googlevideo.com/videoplayback?id=1",
+        platform: "youtube",
+        fileName: "video.mp4",
+        headers: [],
+      }),
+    })
+
+    const response = await handleMediaDownloadProxy(request, fetcher)
+    const body = new Uint8Array(await response.arrayBuffer())
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get("content-length")).toBe(String(total))
+    expect(body.byteLength).toBe(total)
+    expect(body[total - 1]).toBe(9)
+    expect(calls).toEqual(["bytes=0-8388607", "bytes=8388608-8388608"])
+  })
+
+  it("rejects a ranged media response whose total exceeds the stream limit", async () => {
+    const fetcher = async () =>
+      new Response(new Uint8Array([1]), {
+        status: 206,
+        headers: {
+          "content-range": `bytes 0-0/${MAX_SOCIAL_MEDIA_DOWNLOAD_BYTES + 1}`,
+          "content-type": "video/mp4",
+        },
+      })
+    const request = new Request(`${origin}/api/media/download`, {
+      method: "POST",
+      headers: { origin, "content-type": "application/json" },
+      body: JSON.stringify({
+        url: "https://rr.googlevideo.com/videoplayback?id=1",
+        platform: "youtube",
+        fileName: "large.mp4",
+        headers: [],
+      }),
+    })
+
+    const response = await handleMediaDownloadProxy(request, fetcher)
+
+    expect(response.status).toBe(413)
+  })
 })
