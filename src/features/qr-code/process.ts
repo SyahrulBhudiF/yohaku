@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect"
+import { Effect, Result, Schema } from "effect"
 
 import { QrCodeProcessingError } from "@/infrastructure/errors/qr"
 import { runEffect } from "@/infrastructure/runtime"
@@ -11,6 +11,8 @@ import {
   type QrCodeFormValues,
   ScannedQrCodeSchema,
 } from "@/libs/schemas/qr"
+import { detectImageInputFormat } from "@/libs/utils/image-codec"
+import { readFileHeader } from "@/libs/utils/image-decode"
 
 const generateQrCodeProgram = (input: QrCodeFormValues) =>
   Effect.gen(function* () {
@@ -94,7 +96,7 @@ const scanErrorMessage = (cause: unknown) => {
     case "too-large":
       return `Images can be up to ${MAX_QR_IMAGE_PIXELS / 1_000_000} megapixels.`
     case "unreadable":
-      return "This image could not be read. Try a valid PNG, JPEG, or WebP image."
+      return "This image could not be read. Try a valid PNG, JPEG, WebP, AVIF, or GIF image."
     case "no-code":
       return "No QR code was found. Try a clearer image with the full code visible."
     default:
@@ -112,6 +114,29 @@ const scanQrCodeProgram = (file: File) =>
 
     if (file.type && !file.type.startsWith("image/")) {
       return yield* new QrCodeProcessingError({ message: "Choose an image file to scan." })
+    }
+
+    const header = yield* Effect.tryPromise({
+      try: () => readFileHeader(file, 16),
+      catch: () => new QrCodeProcessingError({ message: "Could not read this image." }),
+    }).pipe(Effect.result)
+
+    if (Result.isFailure(header)) {
+      return yield* header.failure
+    }
+
+    const format = detectImageInputFormat(header.success)
+
+    if (
+      format !== "png" &&
+      format !== "jpeg" &&
+      format !== "webp" &&
+      format !== "avif" &&
+      format !== "gif"
+    ) {
+      return yield* new QrCodeProcessingError({
+        message: "Choose a PNG, JPEG, WebP, AVIF, or GIF image.",
+      })
     }
 
     const decoded = yield* Effect.tryPromise({

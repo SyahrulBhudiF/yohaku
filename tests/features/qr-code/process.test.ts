@@ -67,6 +67,12 @@ describe("QR code feature process", () => {
 
     await expect(scanQrCodeImage(unsupported)).rejects.toThrow("Choose an image file")
 
+    const tiff = new File([new Uint8Array([0x49, 0x49, 0x2a, 0x00])], "scan.tiff", {
+      type: "image/tiff",
+    })
+
+    await expect(scanQrCodeImage(tiff)).rejects.toThrow("PNG, JPEG, WebP, AVIF, or GIF")
+
     class MockWorker {
       onmessage: ((event: { data: { ok: false; code: "unreadable" } }) => void) | null = null
       onerror: (() => void) | null = null
@@ -79,7 +85,11 @@ describe("QR code feature process", () => {
     }
 
     vi.stubGlobal("Worker", MockWorker)
-    const malformed = new File(["not really a png"], "broken.png", { type: "image/png" })
+    const malformed = new File(
+      [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3])],
+      "broken.png",
+      { type: "image/png" },
+    )
 
     await expect(scanQrCodeImage(malformed)).rejects.toThrow("could not be read")
     vi.unstubAllGlobals()

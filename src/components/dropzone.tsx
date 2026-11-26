@@ -23,7 +23,8 @@ export function Dropzone({
   disabled = false,
   label,
   hint,
-  accept: acceptedTypes = "image/*,.heic,.heif,image/heic,image/heif",
+  accept:
+    acceptedTypes = "image/png,image/jpeg,image/webp,image/avif,image/gif,image/tiff,image/heic,image/heif,.png,.jpg,.jpeg,.webp,.avif,.gif,.tif,.tiff,.heic,.heif",
   icon: Icon = UploadIcon,
   className,
 }: DropzoneProps) {

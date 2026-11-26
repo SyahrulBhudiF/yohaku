@@ -163,14 +163,15 @@ export function QrCodePage() {
               Read a QR code
             </CardTitle>
             <CardDescription>
-              Select a PNG, JPEG, or other browser-readable image (up to 20 MB).
+              Select a PNG, JPEG, WebP, AVIF, or GIF image (up to 20 MB).
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <Dropzone
+              accept="image/png,image/jpeg,image/webp,image/avif,image/gif,.png,.jpg,.jpeg,.webp,.avif,.gif"
               disabled={scan.isPending}
               {...(scan.isPending ? { label: "Reading image…" } : {})}
-              hint={`PNG, JPEG, WebP, AVIF, HEIC, GIF or TIFF, up to ${MAX_QR_IMAGE_BYTES / 1024 / 1024} MB`}
+              hint={`PNG, JPEG, WebP, AVIF or GIF · up to ${MAX_QR_IMAGE_BYTES / 1024 / 1024} MB`}
               onFiles={(files) => {
                 const file = files[0]
 
