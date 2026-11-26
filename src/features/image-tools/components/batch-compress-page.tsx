@@ -18,7 +18,6 @@ import { ToolPageHeader } from "@/features/tools/components/tool-page-header"
 import {
   BatchImageFormSchema,
   IMAGE_FORMATS,
-  MAX_IMAGE_BYTES,
   MAX_IMAGE_FILES,
   MAX_IMAGE_TOTAL_BYTES,
   type BatchImageFormValues,
@@ -129,7 +128,7 @@ export function BatchCompressPage() {
           multiple
           disabled={addFilesMutation.isPending}
           onFiles={handleFiles}
-          hint={`Up to ${MAX_IMAGE_FILES} images · ${MAX_IMAGE_TOTAL_BYTES / 1024 / 1024} MB total · ${MAX_IMAGE_BYTES / 1024 / 1024} MB each`}
+          hint={`PNG, JPEG, WebP, AVIF, HEIC, GIF or TIFF · up to ${MAX_IMAGE_FILES} images · ${MAX_IMAGE_TOTAL_BYTES / 1024 / 1024} MB total`}
         />
       ) : (
         <Dropzone
@@ -138,7 +137,7 @@ export function BatchCompressPage() {
           disabled={compress.isPending || addFilesMutation.isPending}
           onFiles={handleFiles}
           label={addFilesMutation.isPending ? "Reading images…" : "Add more images"}
-          hint={`Up to ${MAX_IMAGE_FILES} images · ${MAX_IMAGE_TOTAL_BYTES / 1024 / 1024} MB total`}
+          hint={`PNG, JPEG, WebP, AVIF, HEIC, GIF or TIFF · up to ${MAX_IMAGE_FILES} images · ${MAX_IMAGE_TOTAL_BYTES / 1024 / 1024} MB total`}
         />
       )}
 

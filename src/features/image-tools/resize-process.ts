@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { Effect, Result } from "effect"
 
 import { FileTooLargeError, ImageProcessingError } from "@/infrastructure/errors/image"
 import { runEffect } from "@/infrastructure/runtime"
@@ -11,8 +11,8 @@ import {
   type ImageFormat,
   type ImageResizeFormat,
 } from "@/libs/schemas/image"
-import { decodeImage, detectImageFormat, preloadImageCodec } from "@/libs/utils/image-codec"
-import { readImageSize } from "@/libs/utils/image-decode"
+import { detectImageInputFormat, preloadImageCodec } from "@/libs/utils/image-codec"
+import { readFileHeader, readImageSize } from "@/libs/utils/image-decode"
 import type { ResizeOptions } from "@/libs/utils/image-resize"
 
 export interface ResizeFileInfo {
@@ -28,50 +28,89 @@ export type PrepareResizeFileResult =
 
 const fileBaseName = (name: string) => name.replace(/\.[^./\\]+$/, "") || "image"
 
+const readError = () => new ImageProcessingError({ message: "Could not read this image." })
+
 /** Reads dimensions and the source format before the resize form is shown. */
-export const prepareResizeFile = async (file: File): Promise<PrepareResizeFileResult> => {
-  if (file.size === 0) {
-    return { ok: false, message: "This image is empty." }
-  }
-
-  if (file.size > MAX_IMAGE_BYTES) {
-    return {
-      ok: false,
-      message: `Images can be at most ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`,
+const prepareResizeFileProgram = (
+  file: File,
+): Effect.Effect<PrepareResizeFileResult, never, ImageProcessor> =>
+  Effect.gen(function* () {
+    if (file.size === 0) {
+      return { ok: false, message: "This image is empty." }
     }
-  }
 
-  const header = new Uint8Array(await file.slice(0, 64).arrayBuffer())
-  const format = detectImageFormat(header)
+    if (file.size > MAX_IMAGE_BYTES) {
+      return {
+        ok: false,
+        message: `Images can be at most ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`,
+      }
+    }
 
-  if (format === null) {
-    return { ok: false, message: "Choose a readable PNG, JPEG, WebP, AVIF, GIF, or TIFF." }
-  }
+    const header = yield* Effect.tryPromise({
+      try: () => readFileHeader(file, 64),
+      catch: readError,
+    }).pipe(Effect.result)
 
-  let size: { readonly width: number; readonly height: number }
-
-  try {
-    size = await readImageSize(file)
-  } catch {
-    const bytes = new Uint8Array(await file.arrayBuffer())
-    const image = await decodeImage(bytes, format)
-
-    if (!image) {
+    if (Result.isFailure(header)) {
       return { ok: false, message: "Could not read this image." }
     }
 
-    size = { width: image.width, height: image.height }
-  }
+    const source = detectImageInputFormat(header.success)
 
-  if (size.width * size.height > MAX_IMAGE_PIXELS) {
-    return {
-      ok: false,
-      message: `Use an image under ${MAX_IMAGE_PIXELS / 1_000_000} megapixels.`,
+    if (source === null) {
+      return { ok: false, message: "Choose a readable PNG, JPEG, WebP, AVIF, HEIC, GIF, or TIFF." }
     }
-  }
 
-  return { ok: true, info: { file, width: size.width, height: size.height, format } }
-}
+    const measured = yield* Effect.tryPromise({
+      try: () => readImageSize(file),
+      catch: readError,
+    }).pipe(Effect.result)
+    let size: { readonly width: number; readonly height: number }
+
+    if (Result.isSuccess(measured)) {
+      size = measured.success
+    } else {
+      const bytes = yield* Effect.tryPromise({
+        try: () => file.arrayBuffer(),
+        catch: readError,
+      }).pipe(Effect.result)
+
+      if (Result.isFailure(bytes)) {
+        return { ok: false, message: "Could not read this image." }
+      }
+
+      const processor = yield* ImageProcessor
+      const measuredInWorker = yield* processor
+        .measure(new Uint8Array(bytes.success))
+        .pipe(Effect.result)
+
+      if (Result.isFailure(measuredInWorker)) {
+        return { ok: false, message: measuredInWorker.failure.message }
+      }
+
+      size = measuredInWorker.success
+    }
+
+    if (size.width * size.height > MAX_IMAGE_PIXELS) {
+      return {
+        ok: false,
+        message: `Use an image under ${MAX_IMAGE_PIXELS / 1_000_000} megapixels.`,
+      }
+    }
+
+    return {
+      ok: true,
+      info: {
+        file,
+        width: size.width,
+        height: size.height,
+        format: source === "heic" ? "jpeg" : source,
+      },
+    }
+  })
+
+export const prepareResizeFile = (file: File): Promise<PrepareResizeFileResult> =>
+  runEffect(prepareResizeFileProgram(file))
 
 export interface ResizeImageInput {
   readonly file: File
@@ -111,13 +150,14 @@ const program = (input: ResizeImageInput) =>
         catch: () => new ImageProcessingError({ message: "Could not read this image." }),
       }),
     )
-    const source = detectImageFormat(bytes)
+    const source = detectImageInputFormat(bytes)
 
     if (source === null) {
       return yield* new ImageProcessingError({ message: "The file is not a readable image." })
     }
 
-    const format = input.format === "original" ? source : input.format
+    const format =
+      input.format === "original" ? (source === "heic" ? "jpeg" : source) : input.format
 
     preloadImageCodec(format)
 

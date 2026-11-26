@@ -39,6 +39,7 @@ import { useResizeStore } from "../store"
 import { Dropzone } from "./dropzone"
 import { ImageCropEditor } from "./image-crop-editor"
 import { Checkerboard, ImageFileCard, ImageResultCard } from "./image-result-parts"
+import { useImagePreview } from "../use-image-preview"
 
 const MODE_LABEL: Record<ImageResizeMode, string> = {
   fit: "Fit inside",
@@ -76,6 +77,8 @@ const FORMATS: ReadonlyArray<ImageResizeFormat> = ["original", ...IMAGE_FORMATS]
 
 export function ResizePage() {
   const { file, previewUrl, result, setFile, setResult, clearResult, reset } = useResizeStore()
+  const preview = useImagePreview(file, previewUrl)
+  const currentPreviewUrl = preview.url
   const [source, setSource] = useState<ResizeFileInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
   const selection = useRef(0)
@@ -252,7 +255,7 @@ export function ResizePage() {
         <>
           <ImageFileCard
             file={file}
-            previewUrl={previewUrl}
+            previewUrl={currentPreviewUrl}
             disabled={resize.isPending}
             onRemove={handleRemove}
             showPreview={false}
@@ -266,7 +269,7 @@ export function ResizePage() {
               void form.handleSubmit()
             }}
           >
-            {source && previewUrl && (
+            {source && currentPreviewUrl && (
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm font-medium">Crop</span>
@@ -275,7 +278,7 @@ export function ResizePage() {
                 <form.Field name="crop">
                   {(field) => (
                     <ImageCropEditor
-                      src={previewUrl}
+                      src={currentPreviewUrl}
                       sourceWidth={source.width}
                       sourceHeight={source.height}
                       crop={field.state.value}

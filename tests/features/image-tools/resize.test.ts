@@ -1,10 +1,31 @@
 import { assert, describe, it } from "@effect/vitest"
 import { beforeAll } from "vitest"
 
-import { resizeImage } from "@/features/image-tools/resize-process"
+import { prepareResizeFile, resizeImage } from "@/features/image-tools/resize-process"
 import { initImageCodecs, makePng } from "../../support/image-codecs"
 
 beforeAll(initImageCodecs, 60_000)
+
+describe("prepareResizeFile", () => {
+  it("reads the source dimensions and format", async () => {
+    const file = new File([await makePng(120, 80)], "photo.png", { type: "image/png" })
+    const result = await prepareResizeFile(file)
+
+    assert.isTrue(result.ok)
+
+    if (!result.ok) return
+
+    assert.strictEqual(result.info.width, 120)
+    assert.strictEqual(result.info.height, 80)
+    assert.strictEqual(result.info.format, "png")
+  })
+
+  it("rejects an empty file before reading it", async () => {
+    const result = await prepareResizeFile(new File([], "empty.png", { type: "image/png" }))
+
+    assert.deepEqual(result, { ok: false, message: "This image is empty." })
+  })
+})
 
 describe("resizeImage", () => {
   it("resizes a PNG and reports the output dimensions", async () => {

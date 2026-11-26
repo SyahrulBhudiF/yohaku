@@ -1,9 +1,9 @@
-import type { ImageFormat } from "@/libs/schemas/image"
+import type { ImageFormat, ImageInputFormat } from "@/libs/schemas/image"
 
 const ascii = (bytes: Uint8Array, start: number, length: number) =>
   String.fromCharCode(...bytes.subarray(start, start + length))
 
-export const detectImageFormat = (input: Uint8Array): ImageFormat | null => {
+export const detectImageInputFormat = (input: Uint8Array): ImageInputFormat | null => {
   const startsWith = (signature: readonly number[], offset = 0) =>
     signature.every((byte, index) => input[offset + index] === byte)
 
@@ -20,17 +20,43 @@ export const detectImageFormat = (input: Uint8Array): ImageFormat | null => {
   }
 
   if (input.length >= 12 && ascii(input, 4, 4) === "ftyp") {
-    // AVIF may use `mif1`/`msf1` as the major brand and list `avif`/`avis`
-    // among its compatible brands, so scan the whole `ftyp` box.
+    // AVIF and HEIF can use a generic major brand, so scan compatible brands
+    // too and prefer AVIF when both formats are declared.
     const boxSize = ((input[0]! << 24) | (input[1]! << 16) | (input[2]! << 8) | input[3]!) >>> 0
     const end = Math.min(boxSize, input.length)
+    let isAvif = false
+    let isHeif = false
 
     for (let offset = 8; offset + 4 <= end; offset += 4) {
       const brand = ascii(input, offset, 4)
 
       if (brand === "avif" || brand === "avis") {
-        return "avif"
+        isAvif = true
+      } else if (
+        [
+          "heic",
+          "heif",
+          "heix",
+          "heim",
+          "heis",
+          "hevc",
+          "hevx",
+          "hevm",
+          "hevs",
+          "mif1",
+          "msf1",
+        ].includes(brand)
+      ) {
+        isHeif = true
       }
+    }
+
+    if (isAvif) {
+      return "avif"
+    }
+
+    if (isHeif) {
+      return "heic"
     }
   }
 
@@ -43,4 +69,10 @@ export const detectImageFormat = (input: Uint8Array): ImageFormat | null => {
   }
 
   return null
+}
+
+export const detectImageFormat = (input: Uint8Array): ImageFormat | null => {
+  const format = detectImageInputFormat(input)
+
+  return format === "heic" ? null : format
 }

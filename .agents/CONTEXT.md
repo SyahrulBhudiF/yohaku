@@ -69,7 +69,10 @@ Markdown, and downloads public YouTube, Instagram, or Facebook videos.
 9. **Six image formats.** PNG, JPEG, WebP and AVIF use `@jsquash`; GIF uses
    `gifenc`/`gifuct-js`; animated WebP uses `wasm-webp`; TIFF uses `utif`.
    Animated GIFs and WebPs keep their frames when converting to GIF or WebP;
-   still formats use the first frame. PNG and TIFF are lossless.
+   still formats use the first frame. PNG and TIFF are lossless. HEIC/HEIF is
+   input-only, decoded in the worker by MIT `@stacksjs/ts-heic` with MIT
+   `heif-js` as the wider-profile fallback. Previews use the embedded thumbnail
+   and resize dimensions come from metadata, avoiding full-image decodes.
 10. **Tooling is TS Go.** `@effect/tsgo` provides the Effect diagnostics and an
     oxlint preset. Do not add ESLint or typescript-eslint.
 11. **Cloudflare is deployed with Alchemy.** `alchemy.run.ts` declares

@@ -67,6 +67,31 @@ const makeOrientedJpeg = async (width: number, height: number, orientation: numb
 }
 
 describe("ImageProcessor", () => {
+  it.effect("measures dimensions without encoding", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* ImageProcessor
+        const input = yield* Effect.promise(() => makePng(120, 80))
+        const size = yield* processor.measure(input)
+
+        assert.deepStrictEqual(size, { width: 120, height: 80 })
+      }),
+    ),
+  )
+
+  it.effect("downscales a transcode to the requested maximum side", () =>
+    run(
+      Effect.gen(function* () {
+        const processor = yield* ImageProcessor
+        const input = yield* Effect.promise(() => makePng(120, 80))
+        const output = yield* processor.transcode(input, "jpeg", 80, 60)
+        const size = yield* processor.measure(output.data)
+
+        assert.deepStrictEqual(size, { width: 60, height: 40 })
+      }),
+    ),
+  )
+
   it.effect("converts a png to webp and detects the result", () =>
     run(
       Effect.gen(function* () {

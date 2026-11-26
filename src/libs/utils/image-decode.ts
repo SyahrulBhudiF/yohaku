@@ -9,6 +9,12 @@ export interface ImageSize {
   readonly height: number
 }
 
+export const readFileHeader = (file: Blob, length: number): Promise<Uint8Array> =>
+  file
+    .slice(0, length)
+    .arrayBuffer()
+    .then((buffer) => new Uint8Array(buffer))
+
 const makeCanvas = (width: number, height: number) => {
   if (typeof OffscreenCanvas !== "undefined") {
     return new OffscreenCanvas(width, height)

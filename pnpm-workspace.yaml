@@ -7,6 +7,7 @@ allowBuilds:
   msw: false
   workerd: true
   protobufjs: false
+  "@stacksjs/ts-heic": false
 
 patchedDependencies:
   "@paddleocr/paddleocr-js@0.4.2": patches/@paddleocr__paddleocr-js@0.4.2.patch

@@ -66,4 +66,23 @@ describe("processImage", () => {
     )
     assert.deepEqual(result.errors, ["notes.txt is not a readable image."])
   })
+
+  it("accepts HEIC input by its ISO-BMFF brand", async () => {
+    const header = new Uint8Array(12)
+    const view = new DataView(header.buffer)
+
+    view.setUint32(0, header.length)
+    header.set(new TextEncoder().encode("ftyp"), 4)
+    header.set(new TextEncoder().encode("heic"), 8)
+
+    const file = new File([header], "photo.heic", { type: "image/heic" })
+    const result = await prepareImageFiles({
+      files: [file],
+      existingFileCount: 0,
+      existingTotalBytes: 0,
+    })
+
+    assert.deepEqual(result.accepted, [file])
+    assert.deepEqual(result.errors, [])
+  })
 })

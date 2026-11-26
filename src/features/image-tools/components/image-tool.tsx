@@ -21,6 +21,7 @@ import { formatBytes } from "@/libs/utils/format"
 import { isPreviewableImageMime } from "@/libs/utils/image-preview"
 import { processImageTool, type ImageToolMode } from "../process"
 import type { ImageToolStore } from "../store"
+import { useImagePreview } from "../use-image-preview"
 import { Dropzone } from "./dropzone"
 
 interface ImageToolProps {
@@ -87,6 +88,7 @@ export function ImageTool({
   actionLabel,
 }: ImageToolProps) {
   const { file, previewUrl, result, setFile, setResult, clearResult } = useStore()
+  const preview = useImagePreview(file, previewUrl)
   const mutation = useMutation({
     mutationFn: (input: {
       readonly file: File
@@ -166,13 +168,19 @@ export function ImageTool({
             <CardDescription>{formatBytes(file.size)}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
-            {previewUrl && (
+            {preview.url ? (
               <img
-                src={previewUrl}
+                src={preview.url}
                 alt="Selected file preview"
                 className="max-h-72 w-full rounded-md bg-surface-container object-contain"
               />
-            )}
+            ) : preview.isPending ? (
+              <p className="text-sm text-muted-foreground">Preparing HEIC preview…</p>
+            ) : preview.error ? (
+              <p className="text-sm text-muted-foreground">
+                Preview unavailable; conversion still works.
+              </p>
+            ) : null}
 
             <form
               id="image-tool-form"

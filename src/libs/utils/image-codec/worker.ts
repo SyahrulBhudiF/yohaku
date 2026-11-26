@@ -1,8 +1,8 @@
 import type { ImageFormat } from "@/libs/schemas/image"
 import type { AnimatedFormat } from "./animation"
 import { animationErrorMessage } from "./animation"
-import { decodeImage } from "./decode"
-import { detectImageFormat } from "./detect"
+import { decodeHeicPreview, decodeImage, measureHeic } from "./decode"
+import { detectImageInputFormat } from "./detect"
 import { encodeImage } from "./encode"
 import { transcodeGif } from "./gif"
 import { optimizePng } from "./oxipng"
@@ -10,6 +10,8 @@ import { warmImageCodec } from "./preload"
 import type {
   EncodeRequest,
   EncodeResponse,
+  MeasureRequest,
+  MeasureResponse,
   ResizeRequest,
   ResizeResponse,
   TranscodeRequest,
@@ -18,7 +20,7 @@ import type {
   WorkerResponse,
 } from "./protocol"
 import { isAnimatedWebp, transcodeWebpAnimation } from "./webp-animation"
-import { flattenOnWhite, resizeImageData } from "@/libs/utils/image-resize"
+import { fitImageDataWithin, flattenOnWhite, resizeImageData } from "@/libs/utils/image-resize"
 
 interface WorkerScope {
   onmessage: ((event: MessageEvent<WorkerRequest>) => void) | null
@@ -43,7 +45,7 @@ const warm = (format: ImageFormat) => {
 }
 
 const transcode = async (request: TranscodeRequest): Promise<TranscodeResponse> => {
-  const source = detectImageFormat(request.bytes)
+  const source = detectImageInputFormat(request.bytes)
 
   if (source === null) {
     return {
@@ -108,7 +110,10 @@ const transcode = async (request: TranscodeRequest): Promise<TranscodeResponse> 
   let image: ImageData | null
 
   try {
-    image = await decodeImage(request.bytes, source)
+    image =
+      request.preview && source === "heic"
+        ? await decodeHeicPreview(request.bytes)
+        : await decodeImage(request.bytes, source)
   } catch {
     return { type: "transcode", id: request.id, ok: false, message: "Could not read this image." }
   }
@@ -120,6 +125,10 @@ const transcode = async (request: TranscodeRequest): Promise<TranscodeResponse> 
       ok: false,
       message: `Could not decode ${source}.`,
     }
+  }
+
+  if (request.maxSide) {
+    image = fitImageDataWithin(image, request.maxSide)
   }
 
   try {
@@ -137,7 +146,7 @@ const transcode = async (request: TranscodeRequest): Promise<TranscodeResponse> 
 }
 
 const resize = async (request: ResizeRequest): Promise<ResizeResponse> => {
-  const source = detectImageFormat(request.bytes)
+  const source = detectImageInputFormat(request.bytes)
 
   if (source === null) {
     return {
@@ -213,6 +222,52 @@ const encode = async (request: EncodeRequest): Promise<EncodeResponse> => {
   }
 }
 
+const measure = async (request: MeasureRequest): Promise<MeasureResponse> => {
+  const source = detectImageInputFormat(request.bytes)
+
+  if (source === null) {
+    return {
+      type: "measure",
+      id: request.id,
+      ok: false,
+      message: "The file is not a readable image.",
+    }
+  }
+
+  if (source === "heic") {
+    try {
+      const size = await measureHeic(request.bytes)
+
+      return { type: "measure", id: request.id, ok: true, ...size }
+    } catch {
+      // Fall back to a full decode for containers the metadata parser rejects.
+    }
+  }
+
+  try {
+    const image = await decodeImage(request.bytes, source)
+
+    if (image === null) {
+      return {
+        type: "measure",
+        id: request.id,
+        ok: false,
+        message: `Could not decode ${source}.`,
+      }
+    }
+
+    return {
+      type: "measure",
+      id: request.id,
+      ok: true,
+      width: image.width,
+      height: image.height,
+    }
+  } catch {
+    return { type: "measure", id: request.id, ok: false, message: "Could not read this image." }
+  }
+}
+
 scope.onmessage = (event) => {
   const request = event.data
 
@@ -242,6 +297,12 @@ scope.onmessage = (event) => {
         scope.postMessage(response)
       }
     })
+
+    return
+  }
+
+  if (request.type === "measure") {
+    void measure(request).then((response) => scope.postMessage(response))
 
     return
   }

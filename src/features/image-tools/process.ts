@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { Effect, Result } from "effect"
 
 import { FileTooLargeError, ImageProcessingError } from "@/infrastructure/errors/image"
 import { PdfProcessingError } from "@/infrastructure/errors/pdf"
@@ -6,8 +6,8 @@ import { runEffect } from "@/infrastructure/runtime"
 import { ImageProcessor } from "@/infrastructure/services/image-processor"
 import { PdfProcessor } from "@/infrastructure/services/pdf-processor"
 import { removeBackground } from "@/libs/utils/background-removal"
-import { readImageSize } from "@/libs/utils/image-decode"
-import { detectImageFormat } from "@/libs/utils/image-codec"
+import { readFileHeader, readImageSize } from "@/libs/utils/image-decode"
+import { detectImageFormat, detectImageInputFormat } from "@/libs/utils/image-codec"
 import { vectorizeImage } from "@/libs/utils/image-vectorizer"
 import { createZipWriter } from "@/libs/utils/zip"
 import type { PdfImageInput } from "@/libs/utils/pdf/images-to-pdf"
@@ -46,27 +46,44 @@ export interface ProcessImageOutput {
 const fileBaseName = (name: string) => name.replace(/\.[^./\\]+$/, "") || "image"
 const REMOVE_BACKGROUND_FORMATS = new Set(["png", "jpeg", "webp"])
 
-export const validateRemoveBackgroundFile = async (
+export type ValidateRemoveBackgroundResult =
+  | { readonly ok: true; readonly file: File }
+  | { readonly ok: false; readonly message: string }
+
+const readHeaderEffect = (file: File, length: number) =>
+  Effect.tryPromise({
+    try: () => readFileHeader(file, length),
+    catch: () => new ImageProcessingError({ message: `Could not read ${file.name}.` }),
+  })
+
+const validateRemoveBackgroundProgram = (
   file: File,
-): Promise<
-  { readonly ok: true; readonly file: File } | { readonly ok: false; readonly message: string }
-> => {
-  if (file.size > MAX_IMAGE_BYTES) {
-    return {
-      ok: false,
-      message: `Images can be at most ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`,
+): Effect.Effect<ValidateRemoveBackgroundResult> =>
+  Effect.gen(function* () {
+    if (file.size > MAX_IMAGE_BYTES) {
+      return {
+        ok: false,
+        message: `Images can be at most ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`,
+      }
     }
-  }
 
-  const header = new Uint8Array(await file.slice(0, 16).arrayBuffer())
-  const format = detectImageFormat(header)
+    const header = yield* readHeaderEffect(file, 16).pipe(Effect.result)
 
-  if (!format || !REMOVE_BACKGROUND_FORMATS.has(format)) {
-    return { ok: false, message: "Use a PNG, JPEG, or WebP image." }
-  }
+    if (Result.isFailure(header)) {
+      return { ok: false, message: "Could not read this image." }
+    }
 
-  return { ok: true, file }
-}
+    const format = detectImageFormat(header.success)
+
+    if (!format || !REMOVE_BACKGROUND_FORMATS.has(format)) {
+      return { ok: false, message: "Use a PNG, JPEG, or WebP image." }
+    }
+
+    return { ok: true, file }
+  })
+
+export const validateRemoveBackgroundFile = (file: File): Promise<ValidateRemoveBackgroundResult> =>
+  runEffect(validateRemoveBackgroundProgram(file))
 
 export interface PrepareImageFilesInput {
   readonly files: ReadonlyArray<File>
@@ -80,42 +97,51 @@ export interface PreparedImageFiles {
 }
 
 /** Validates a batch of images for the image-to-PDF tool. */
-export const prepareImageFiles = async (
+const prepareImageFilesProgram = (
   input: PrepareImageFilesInput,
-): Promise<PreparedImageFiles> => {
-  const accepted: Array<File> = []
-  const errors: Array<string> = []
-  let total = input.existingTotalBytes
+): Effect.Effect<PreparedImageFiles> =>
+  Effect.gen(function* () {
+    const accepted: Array<File> = []
+    const errors: Array<string> = []
+    let total = input.existingTotalBytes
 
-  for (const file of input.files) {
-    if (input.existingFileCount + accepted.length >= MAX_IMAGE_FILES) {
-      errors.push(`You can combine at most ${MAX_IMAGE_FILES} images at once.`)
-      break
+    for (const file of input.files) {
+      if (input.existingFileCount + accepted.length >= MAX_IMAGE_FILES) {
+        errors.push(`You can combine at most ${MAX_IMAGE_FILES} images at once.`)
+        break
+      }
+
+      if (file.size > MAX_IMAGE_BYTES) {
+        errors.push(`${file.name} is larger than ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`)
+        continue
+      }
+
+      if (total + file.size > MAX_IMAGE_TOTAL_BYTES) {
+        errors.push(`The combined images can be at most ${MAX_IMAGE_TOTAL_BYTES / 1024 / 1024} MB.`)
+        continue
+      }
+
+      const header = yield* readHeaderEffect(file, 64).pipe(Effect.result)
+
+      if (Result.isFailure(header)) {
+        errors.push(`Could not read ${file.name}.`)
+        continue
+      }
+
+      if (detectImageInputFormat(header.success) === null) {
+        errors.push(`${file.name} is not a readable image.`)
+        continue
+      }
+
+      accepted.push(file)
+      total += file.size
     }
 
-    if (file.size > MAX_IMAGE_BYTES) {
-      errors.push(`${file.name} is larger than ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`)
-      continue
-    }
+    return { accepted, errors }
+  })
 
-    if (total + file.size > MAX_IMAGE_TOTAL_BYTES) {
-      errors.push(`The combined images can be at most ${MAX_IMAGE_TOTAL_BYTES / 1024 / 1024} MB.`)
-      continue
-    }
-
-    const header = new Uint8Array(await file.slice(0, 64).arrayBuffer())
-
-    if (detectImageFormat(header) === null) {
-      errors.push(`${file.name} is not a readable image.`)
-      continue
-    }
-
-    accepted.push(file)
-    total += file.size
-  }
-
-  return { accepted, errors }
-}
+export const prepareImageFiles = (input: PrepareImageFilesInput): Promise<PreparedImageFiles> =>
+  runEffect(prepareImageFilesProgram(input))
 
 const program = (input: ProcessImageInput) =>
   Effect.gen(function* () {
@@ -133,8 +159,11 @@ const program = (input: ProcessImageInput) =>
         catch: () => new ImageProcessingError({ message: "Could not read this image." }),
       }),
     )
-    const source = detectImageFormat(bytes)
-    const format = input.format ?? source ?? (yield* processor.detectFormat(bytes))
+    const source = detectImageInputFormat(bytes)
+    const format =
+      input.format ??
+      (source === "heic" ? "jpeg" : source) ??
+      (yield* processor.detectFormat(bytes))
 
     const output = yield* processor.transcode(bytes, format, input.quality)
     // Re-encoding an already optimized file can inflate it, especially a
@@ -144,6 +173,7 @@ const program = (input: ProcessImageInput) =>
     const keepOriginal =
       input.mode === "compress" &&
       source !== null &&
+      source !== "heic" &&
       output.format === source &&
       output.data.byteLength >= input.file.size
     const data = keepOriginal
@@ -172,6 +202,28 @@ export const processImageEffect = (input: ProcessImageInput) => program(input)
 export const processImage = (input: ProcessImageInput): Promise<ProcessImageOutput> =>
   runEffect(program(input))
 
+const previewProgram = (file: File) =>
+  Effect.gen(function* () {
+    const bytes = new Uint8Array(
+      yield* Effect.tryPromise({
+        try: () => file.arrayBuffer(),
+        catch: () => new ImageProcessingError({ message: "Could not read this image." }),
+      }),
+    )
+
+    if (detectImageInputFormat(bytes) !== "heic") {
+      return null
+    }
+
+    const processor = yield* ImageProcessor
+    const output = yield* processor.transcode(bytes, "jpeg", 85, 512, true)
+
+    return new Blob([output.data], { type: "image/jpeg" })
+  })
+
+export const createImagePreview = (file: File): Promise<Blob | null> =>
+  runEffect(previewProgram(file))
+
 export interface ProcessImageToolInput {
   readonly mode: ImageToolMode
   readonly file: File
@@ -179,25 +231,38 @@ export interface ProcessImageToolInput {
   readonly quality: number
 }
 
-/** Keeps the SVG branch out of the view while preserving the image contract. */
-export const processImageTool = (input: ProcessImageToolInput): Promise<ProcessImageOutput> => {
+const processImageToolProgram = (input: ProcessImageToolInput) => {
   if (input.format === "svg") {
-    return vectorizeImageToSvg({ file: input.file, preset: "high" }).then((output) => ({
-      blob: output.blob,
-      fileName: output.fileName,
-      mimeType: output.mimeType,
-      originalBytes: output.inputBytes,
-      resultBytes: output.bytes,
-    }))
+    return Effect.gen(function* () {
+      const output = yield* Effect.tryPromise({
+        try: () => vectorizeImageToSvg({ file: input.file, preset: "high" }),
+        catch: (cause) =>
+          cause instanceof ImageProcessingError
+            ? cause
+            : new ImageProcessingError({ message: "Could not convert this image to SVG." }),
+      })
+
+      return {
+        blob: output.blob,
+        fileName: output.fileName,
+        mimeType: output.mimeType,
+        originalBytes: output.inputBytes,
+        resultBytes: output.bytes,
+      }
+    })
   }
 
-  return processImage({
+  return program({
     mode: input.mode,
     file: input.file,
     format: input.format === "original" ? undefined : input.format,
     quality: input.quality,
   })
 }
+
+/** Keeps the SVG branch out of the view while preserving the image contract. */
+export const processImageTool = (input: ProcessImageToolInput): Promise<ProcessImageOutput> =>
+  runEffect(processImageToolProgram(input))
 
 export interface ImageToPdfInput {
   readonly files: ReadonlyArray<ImagePdfFileEntry>
@@ -269,7 +334,7 @@ const imageToPdfProgram = (input: ImageToPdfInput) =>
             catch: () => new PdfProcessingError({ message: `Could not read ${entry.name}.` }),
           }),
         )
-        const source = detectImageFormat(bytes)
+        const source = detectImageInputFormat(bytes)
 
         if (source === null) {
           return yield* new PdfProcessingError({
@@ -287,13 +352,14 @@ const imageToPdfProgram = (input: ImageToPdfInput) =>
           return { data: bytes, format: "jpeg" as const }
         }
 
+        const outputFormat = source === "jpeg" || source === "heic" ? "jpeg" : "png"
         const output = yield* processor.transcode(
           bytes,
-          source === "jpeg" ? "jpeg" : "png",
-          source === "jpeg" ? input.quality : 100,
+          outputFormat,
+          outputFormat === "jpeg" ? input.quality : 100,
         )
 
-        return { data: output.data, format: source === "jpeg" ? "jpeg" : "png" }
+        return { data: output.data, format: outputFormat }
       })
 
     const firstBase = imageBaseName(input.files[0]!.name)

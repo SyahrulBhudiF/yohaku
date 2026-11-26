@@ -3,9 +3,11 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { formatBytes } from "@/libs/utils/format"
+import { useImagePreview } from "../use-image-preview"
 import type { BatchImageEntry, BatchCompressResult } from "../batch-store"
 
 function Thumbnail({ entry }: { readonly entry: BatchImageEntry }) {
+  const preview = useImagePreview(entry.file, entry.previewUrl)
   const [failed, setFailed] = useState(false)
 
   if (failed) {
@@ -18,7 +20,7 @@ function Thumbnail({ entry }: { readonly entry: BatchImageEntry }) {
 
   return (
     <img
-      src={entry.previewUrl}
+      src={preview.url ?? undefined}
       alt={entry.name}
       className="h-full w-full object-contain"
       onError={() => setFailed(true)}

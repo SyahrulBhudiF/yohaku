@@ -21,7 +21,7 @@ export function Dropzone({
   disabled = false,
   label,
   hint,
-  accept: acceptedTypes = "image/*",
+  accept: acceptedTypes = "image/*,.heic,.heif,image/heic,image/heif",
 }: DropzoneProps) {
   const input = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
@@ -80,7 +80,7 @@ export function Dropzone({
         </span>
         <span className="text-sm text-muted-foreground">
           {hint ??
-            `PNG, JPEG, WebP, AVIF, GIF or TIFF, up to ${MAX_IMAGE_BYTES / 1024 / 1024} MB${multiple ? " each" : ""}`}
+            `PNG, JPEG, WebP, AVIF, HEIC, GIF or TIFF, up to ${MAX_IMAGE_BYTES / 1024 / 1024} MB${multiple ? " each" : ""}`}
         </span>
       </span>
       <input

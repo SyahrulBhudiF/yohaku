@@ -145,7 +145,7 @@ export function ImageToPdfPage() {
           disabled={createPdf.isPending || addFilesMutation.isPending}
           onFiles={handleFiles}
           label={addFilesMutation.isPending ? "Reading images…" : "Add more images"}
-          hint={`PNG, JPEG, WebP, AVIF, GIF or TIFF · up to ${MAX_IMAGE_BYTES / 1024 / 1024} MB each`}
+          hint={`PNG, JPEG, WebP, AVIF, HEIC, GIF or TIFF · up to ${MAX_IMAGE_BYTES / 1024 / 1024} MB each`}
         />
       )}
 

@@ -7,6 +7,8 @@ export interface TranscodeRequest {
   readonly bytes: Uint8Array
   readonly format: ImageFormat
   readonly quality: number
+  readonly maxSide?: number
+  readonly preview?: boolean
 }
 
 export interface EncodeRequest {
@@ -33,7 +35,18 @@ export interface PreloadRequest {
   readonly format: ImageFormat
 }
 
-export type WorkerRequest = TranscodeRequest | EncodeRequest | ResizeRequest | PreloadRequest
+export interface MeasureRequest {
+  readonly type: "measure"
+  readonly id: number
+  readonly bytes: Uint8Array
+}
+
+export type WorkerRequest =
+  | TranscodeRequest
+  | EncodeRequest
+  | ResizeRequest
+  | MeasureRequest
+  | PreloadRequest
 
 export type TranscodeResponse =
   | {
@@ -82,4 +95,19 @@ export type ResizeResponse =
       readonly message: string
     }
 
-export type WorkerResponse = TranscodeResponse | EncodeResponse | ResizeResponse
+export type MeasureResponse =
+  | {
+      readonly type: "measure"
+      readonly id: number
+      readonly ok: true
+      readonly width: number
+      readonly height: number
+    }
+  | {
+      readonly type: "measure"
+      readonly id: number
+      readonly ok: false
+      readonly message: string
+    }
+
+export type WorkerResponse = TranscodeResponse | EncodeResponse | ResizeResponse | MeasureResponse

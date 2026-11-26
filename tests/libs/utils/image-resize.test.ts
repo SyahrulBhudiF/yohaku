@@ -5,6 +5,7 @@ import {
   clampCropRect,
   computeResizeGeometry,
   cropRectForAspect,
+  fitImageDataWithin,
   flattenOnWhite,
   moveCropRect,
   resizeCropRect,
@@ -166,6 +167,22 @@ describe("resizeImageData", () => {
 
     expect(Array.from(output.data.slice(0, 4))).toEqual([0, 0, 255, 255])
     expect(Array.from(output.data.slice(4, 8))).toEqual([255, 0, 0, 255])
+  })
+})
+
+describe("fitImageDataWithin", () => {
+  it("returns the same image when it already fits", () => {
+    const source = image(10, 8, new Array(10 * 8 * 4).fill(0))
+
+    expect(fitImageDataWithin(source, 10)).toBe(source)
+  })
+
+  it("downscales the longest side and preserves the aspect ratio", () => {
+    const landscape = fitImageDataWithin(image(4, 2, new Array(4 * 2 * 4).fill(0)), 2)
+    const portrait = fitImageDataWithin(image(2, 4, new Array(2 * 4 * 4).fill(0)), 2)
+
+    expect([landscape.width, landscape.height]).toEqual([2, 1])
+    expect([portrait.width, portrait.height]).toEqual([1, 2])
   })
 })
 

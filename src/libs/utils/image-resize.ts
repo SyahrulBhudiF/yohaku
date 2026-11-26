@@ -333,6 +333,27 @@ export const resizeImageData = (source: ImageData, options: ResizeOptions): Imag
   return output
 }
 
+/** Downscales an image so neither side exceeds `maxSide`; returns the input when it fits. */
+export const fitImageDataWithin = (image: ImageData, maxSide: number): ImageData => {
+  const longest = Math.max(image.width, image.height)
+
+  if (longest <= maxSide) {
+    return image
+  }
+
+  const scale = maxSide / longest
+
+  return resizeImageData(image, {
+    width: Math.max(1, Math.round(image.width * scale)),
+    height: Math.max(1, Math.round(image.height * scale)),
+    mode: "stretch",
+    crop: { x: 0, y: 0, width: 1, height: 1 },
+    rotate: 0,
+    flipX: false,
+    flipY: false,
+  })
+}
+
 /** JPEG has no alpha channel; composite transparent pixels onto white first. */
 export const flattenOnWhite = (image: ImageData) => {
   const data = image.data

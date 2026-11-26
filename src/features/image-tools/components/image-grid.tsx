@@ -25,9 +25,11 @@ import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/libs/utils/cn"
 import { formatBytes } from "@/libs/utils/format"
+import { useImagePreview } from "../use-image-preview"
 import type { ImagePdfFileEntry } from "../store"
 
 function ImageThumbnail({ entry }: { readonly entry: ImagePdfFileEntry }) {
+  const preview = useImagePreview(entry.file, entry.previewUrl)
   const [failed, setFailed] = useState(false)
 
   if (failed) {
@@ -40,7 +42,7 @@ function ImageThumbnail({ entry }: { readonly entry: ImagePdfFileEntry }) {
 
   return (
     <img
-      src={entry.previewUrl}
+      src={preview.url ?? undefined}
       alt={entry.name}
       className="h-full w-full object-contain"
       onError={() => setFailed(true)}

@@ -161,6 +161,11 @@ export class MyService extends Context.Service<
   WebPs keep their frames when the output is GIF or WebP; still outputs use the
   first frame. PNG and TIFF are lossless; quality drives JPEG, WebP, AVIF
   and the GIF palette size.
+- HEIC/HEIF is input-only and decoded in the image worker by the MIT
+  `@stacksjs/ts-heic` decoder, with MIT `heif-js` as the fallback for wider
+  profiles. Keeping the original format exports JPEG. Previews use the embedded
+  thumbnail when present, and resize dimensions come from container metadata;
+  neither path decodes the full image.
 - Import codecs lazily (`await import("@jsquash/webp/encode")`) so each format
   loads only when used, and warm the selected encoder with
   `preloadImageCodec()` before the user submits. Keep `optimizeDeps.exclude`

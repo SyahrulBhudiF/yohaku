@@ -1,21 +1,30 @@
-import { Context, Effect, Layer } from "effect"
+import { Context, Effect, Layer, Result } from "effect"
 
 import { ImageProcessingError } from "@/infrastructure/errors/image"
 import type { ImageFormat } from "@/libs/schemas/image"
+import type { ImageInputFormat } from "@/libs/schemas/image"
 import type { AnimatedFormat } from "@/libs/utils/image-codec/animation"
 import { animationErrorMessage } from "@/libs/utils/image-codec/animation"
 import {
   decodeImage,
-  detectImageFormat,
+  decodeHeicPreview,
+  detectImageInputFormat,
   encodeImage,
   encodeInWorker,
+  measureInWorker,
+  measureHeic,
   resizeInWorker,
   transcodeInWorker,
 } from "@/libs/utils/image-codec"
 import { transcodeGif } from "@/libs/utils/image-codec/gif"
 import { optimizePng } from "@/libs/utils/image-codec/oxipng"
 import { isAnimatedWebp, transcodeWebpAnimation } from "@/libs/utils/image-codec/webp-animation"
-import { flattenOnWhite, resizeImageData, type ResizeOptions } from "@/libs/utils/image-resize"
+import {
+  fitImageDataWithin,
+  flattenOnWhite,
+  resizeImageData,
+  type ResizeOptions,
+} from "@/libs/utils/image-resize"
 
 export interface ProcessedImage {
   readonly data: Uint8Array<ArrayBuffer>
@@ -27,8 +36,15 @@ export interface ResizedImage extends ProcessedImage {
   readonly height: number
 }
 
-const detectFormat = Effect.fn("ImageProcessor.detectFormat")(function* (input: Uint8Array) {
-  const detected = detectImageFormat(input)
+export interface MeasuredImage {
+  readonly width: number
+  readonly height: number
+}
+
+const detectInputFormat = Effect.fn("ImageProcessor.detectInputFormat")(function* (
+  input: Uint8Array,
+) {
+  const detected = detectImageInputFormat(input)
 
   if (detected === null) {
     return yield* new ImageProcessingError({ message: "The file is not a readable image." })
@@ -37,9 +53,15 @@ const detectFormat = Effect.fn("ImageProcessor.detectFormat")(function* (input: 
   return detected
 })
 
+const detectFormat = Effect.fn("ImageProcessor.detectFormat")(function* (input: Uint8Array) {
+  const detected = yield* detectInputFormat(input)
+
+  return detected === "heic" ? "jpeg" : detected
+})
+
 const decode = (
   input: Uint8Array,
-  format: ImageFormat,
+  format: ImageInputFormat,
 ): Effect.Effect<ImageData, ImageProcessingError> =>
   Effect.gen(function* () {
     const image = yield* Effect.tryPromise({
@@ -68,8 +90,10 @@ const transcode = Effect.fn("ImageProcessor.transcode")(function* (
   input: Uint8Array,
   format: ImageFormat,
   quality: number,
+  maxSide?: number,
+  preview?: boolean,
 ) {
-  const source = yield* detectFormat(input)
+  const source = yield* detectInputFormat(input)
 
   if (source === "png" && format === "png") {
     const data = yield* Effect.tryPromise({
@@ -102,7 +126,19 @@ const transcode = Effect.fn("ImageProcessor.transcode")(function* (
     return { data, format: animationTarget }
   }
 
-  const image = yield* decode(input, source)
+  const decoded =
+    preview && source === "heic"
+      ? yield* Effect.tryPromise({
+          try: () => decodeHeicPreview(input),
+          catch: () => new ImageProcessingError({ message: "Could not read this image." }),
+        })
+      : yield* decode(input, source)
+
+  if (!decoded) {
+    return yield* new ImageProcessingError({ message: `Could not decode ${source}.` })
+  }
+
+  const image = maxSide ? fitImageDataWithin(decoded, maxSide) : decoded
   const data = yield* encode(image, format, quality)
 
   return { data, format }
@@ -114,7 +150,7 @@ const resize = Effect.fn("ImageProcessor.resize")(function* (
   format: ImageFormat,
   quality: number,
 ) {
-  const source = yield* detectFormat(input)
+  const source = yield* detectInputFormat(input)
   const image = yield* decode(input, source)
   const resized = resizeImageData(image, options)
 
@@ -125,6 +161,25 @@ const resize = Effect.fn("ImageProcessor.resize")(function* (
   const data = yield* encode(resized, format, quality)
 
   return { data, format, width: resized.width, height: resized.height }
+})
+
+const measure = Effect.fn("ImageProcessor.measure")(function* (input: Uint8Array) {
+  const source = yield* detectInputFormat(input)
+
+  if (source === "heic") {
+    const measured = yield* Effect.tryPromise({
+      try: () => measureHeic(input),
+      catch: () => new ImageProcessingError({ message: "Could not read this image." }),
+    }).pipe(Effect.result)
+
+    if (Result.isSuccess(measured)) {
+      return measured.success
+    }
+  }
+
+  const image = yield* decode(input, source)
+
+  return { width: image.width, height: image.height }
 })
 
 const resizeInWorkerEffect = Effect.fn("ImageProcessor.resizeInWorker")(function* (
@@ -154,9 +209,11 @@ const transcodeInWorkerEffect = Effect.fn("ImageProcessor.transcodeInWorker")(fu
   input: Uint8Array,
   format: ImageFormat,
   quality: number,
+  maxSide?: number,
+  preview?: boolean,
 ) {
   const response = yield* Effect.tryPromise({
-    try: () => transcodeInWorker(input, format, quality),
+    try: () => transcodeInWorker(input, format, quality, maxSide, preview),
     catch: () => new ImageProcessingError({ message: "Could not process this image." }),
   })
 
@@ -184,14 +241,32 @@ const encodeInWorkerEffect = Effect.fn("ImageProcessor.encode")(function* (
   return response.data
 })
 
+const measureInWorkerEffect = Effect.fn("ImageProcessor.measureInWorker")(function* (
+  input: Uint8Array,
+) {
+  const response = yield* Effect.tryPromise({
+    try: () => measureInWorker(input),
+    catch: () => new ImageProcessingError({ message: "Could not process this image." }),
+  })
+
+  if (!response.ok) {
+    return yield* new ImageProcessingError({ message: response.message })
+  }
+
+  return { width: response.width, height: response.height }
+})
+
 export class ImageProcessor extends Context.Service<
   ImageProcessor,
   {
     readonly detectFormat: (input: Uint8Array) => Effect.Effect<ImageFormat, ImageProcessingError>
+    readonly measure: (input: Uint8Array) => Effect.Effect<MeasuredImage, ImageProcessingError>
     readonly transcode: (
       input: Uint8Array,
       format: ImageFormat,
       quality: number,
+      maxSide?: number,
+      preview?: boolean,
     ) => Effect.Effect<ProcessedImage, ImageProcessingError>
     /** Encodes RGBA pixels; the worker layer may take ownership of the buffer. */
     readonly encode: (
@@ -211,7 +286,7 @@ export class ImageProcessor extends Context.Service<
   /** Runs the codecs on the calling thread. Used by tests and non-worker hosts. */
   static readonly layer = Layer.succeed(
     ImageProcessor,
-    ImageProcessor.of({ detectFormat, transcode, encode, resize }),
+    ImageProcessor.of({ detectFormat, measure, transcode, encode, resize }),
   )
 
   /** Runs the codecs in a Web Worker so encoding never blocks the UI. */
@@ -219,6 +294,7 @@ export class ImageProcessor extends Context.Service<
     ImageProcessor,
     ImageProcessor.of({
       detectFormat,
+      measure: measureInWorkerEffect,
       transcode: transcodeInWorkerEffect,
       encode: encodeInWorkerEffect,
       resize: resizeInWorkerEffect,

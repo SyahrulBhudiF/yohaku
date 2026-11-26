@@ -8,6 +8,10 @@ export const ImageFormatSchema = Schema.Literals(["png", "jpeg", "webp", "avif",
 
 export type ImageFormat = typeof ImageFormatSchema.Type
 
+export const ImageInputFormatSchema = Schema.Union([ImageFormatSchema, Schema.Literal("heic")])
+
+export type ImageInputFormat = typeof ImageInputFormatSchema.Type
+
 export const IMAGE_FORMATS = ImageFormatSchema.literals
 
 export const QualitySchema = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 100 }))

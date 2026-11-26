@@ -4,6 +4,8 @@ import type { ResizeOptions } from "@/libs/utils/image-resize"
 import type {
   EncodeRequest,
   EncodeResponse,
+  MeasureRequest,
+  MeasureResponse,
   ResizeRequest,
   ResizeResponse,
   TranscodeRequest,
@@ -14,7 +16,7 @@ import type {
 
 type Resolve = (response: WorkerResponse) => void
 type Reject = (error: Error) => void
-type JobRequest = TranscodeRequest | EncodeRequest | ResizeRequest
+type JobRequest = TranscodeRequest | EncodeRequest | ResizeRequest | MeasureRequest
 
 interface QueuedJob {
   readonly request: JobRequest
@@ -169,10 +171,20 @@ export const transcodeInWorker = (
   bytes: Uint8Array,
   format: ImageFormat,
   quality: number,
+  maxSide?: number,
+  preview?: boolean,
 ): Promise<TranscodeResponse> =>
   new Promise((resolve, reject) => {
     const id = nextId++
-    const request: JobRequest = { type: "transcode", id, bytes, format, quality }
+    const request: JobRequest = {
+      type: "transcode",
+      id,
+      bytes,
+      format,
+      quality,
+      ...(maxSide === undefined ? {} : { maxSide }),
+      ...(preview ? { preview: true } : {}),
+    }
 
     post(
       request,
@@ -249,6 +261,29 @@ export const resizeInWorker = (
       [bytes.buffer],
       (response) => {
         if (response.type === "resize") {
+          resolve(response)
+        } else {
+          reject(
+            new ImageProcessingError({
+              message: "The image codec worker returned an unexpected response.",
+            }),
+          )
+        }
+      },
+      reject,
+    )
+  })
+
+export const measureInWorker = (bytes: Uint8Array): Promise<MeasureResponse> =>
+  new Promise((resolve, reject) => {
+    const id = nextId++
+    const request: JobRequest = { type: "measure", id, bytes }
+
+    post(
+      request,
+      [bytes.buffer],
+      (response) => {
+        if (response.type === "measure") {
           resolve(response)
         } else {
           reject(

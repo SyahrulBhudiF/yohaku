@@ -6,7 +6,7 @@ Yohaku is a browser-based toolkit for working with images, PDFs, documents, and 
 
 ## Tools
 
-- **Images:** convert and compress PNG, JPEG, WebP, AVIF, GIF, and TIFF; preserve animation when converting animated GIF/WebP to GIF or WebP; remove solid studio backgrounds; trace images to SVG.
+- **Images:** convert and compress PNG, JPEG, WebP, AVIF, GIF, and TIFF, and open HEIC/HEIF photos (exported as JPEG when keeping the original format); preserve animation when converting animated GIF/WebP to GIF or WebP; remove solid studio backgrounds; trace images to SVG.
 - **PDF:** merge, split, reorganize, protect, and sign PDFs; render pages to images; convert PDF text to Word or Excel; and create PDFs from images.
 - **Documents:** convert Word documents and Excel worksheets to PDF.
 - **Media:** download public YouTube videos, Instagram Reels, and Facebook videos, extract their audio as MP3, or convert a local video/audio file to MP3.
