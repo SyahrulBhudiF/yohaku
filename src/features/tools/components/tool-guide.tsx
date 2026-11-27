@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router"
 
-import { ISOLATED_OCR_PATH, TOOLS } from "../registry"
+import { isIsolatedOcrPath, TOOLS } from "../registry"
 import { toolSearchContent } from "../search-content"
 
 export function ToolGuide({ pathname }: { pathname: string }) {
@@ -27,7 +27,7 @@ export function ToolGuide({ pathname }: { pathname: string }) {
             <Link
               key={to}
               to={to}
-              reloadDocument={path === ISOLATED_OCR_PATH || to === ISOLATED_OCR_PATH}
+              reloadDocument={isIsolatedOcrPath(path) || isIsolatedOcrPath(to)}
               className="text-primary underline underline-offset-4"
             >
               {title}

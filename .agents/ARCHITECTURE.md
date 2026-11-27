@@ -84,10 +84,11 @@ covering the changed boundary.
 
 ## OCR document boundary
 
-PDF to Markdown uses cross-origin isolation for threaded browser inference.
-Links entering or leaving `ISOLATED_OCR_PATH` must use document navigation;
+PDF to Markdown and Image to text use cross-origin isolation for threaded
+browser inference. Links entering or leaving an isolated OCR path
+(`/pdf/to-markdown` or `/image/to-text`) must use document navigation;
 client-side navigation cannot change a document's isolation policy. Keep the
-document headers on that route, not globally: media tools embed third-party
+document headers on those routes, not globally: media tools embed third-party
 previews. Worker assets need an embedder policy in Vite and `public/_headers`.
 The OCR service falls back to one thread when the browser is not isolated.
 

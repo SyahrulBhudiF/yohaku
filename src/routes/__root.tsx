@@ -14,7 +14,7 @@ import { ArrowLeftIcon } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { ToolGuide } from "@/features/tools/components/tool-guide"
-import { ISOLATED_OCR_PATH } from "@/features/tools/registry"
+import { isIsolatedOcrPath } from "@/features/tools/registry"
 import { pageSeo } from "@/features/tools/seo"
 import appCss from "../styles.css?url"
 
@@ -84,7 +84,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function AppShell() {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
-  const leaveIsolatedDocument = pathname === ISOLATED_OCR_PATH
+  const leaveIsolatedDocument = isIsolatedOcrPath(pathname)
 
   return (
     <div className="flex min-h-dvh flex-col">

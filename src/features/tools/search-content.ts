@@ -14,6 +14,14 @@ const CONTENT: Record<
       "Enter a URL or text to create a downloadable QR code, or choose an image to read its QR code. Copy the decoded content or save your code as a PNG or SVG. This tool does not create a live camera scanner.",
     related: ["/image/convert", "/image/compress"],
   },
+  "/barcode": {
+    title: "Barcode Generator & Scanner — Code 128, EAN-13, UPC-A",
+    description:
+      "Create Code 128, EAN-13 or UPC-A barcodes and download them as PNG or SVG, or read a barcode from an image. Processing stays in your browser.",
+    guide:
+      "Choose Code 128 for text and numbers, EAN-13 for 12 retail digits, or UPC-A for 11 digits. The tool adds the check digit and lets you download a PNG or SVG. To read a barcode, choose a clear image with the full code visible; decoding happens locally.",
+    related: ["/qr-code", "/image/convert"],
+  },
   "/image/convert": {
     title: "Image Converter — Convert HEIC to JPG, PNG, WebP & More",
     description:
@@ -45,6 +53,14 @@ const CONTENT: Record<
     guide:
       "Open an image and set its width and height. Use the crop controls to frame a portion of the picture, or rotate and flip it before export. Resizing changes pixel dimensions; use image compression when you need a smaller file at the same dimensions.",
     related: ["/image/compress", "/image/convert"],
+  },
+  "/image/to-text": {
+    title: "Image to Text (OCR) — Extract Text from Screenshots",
+    description:
+      "Extract editable text from a screenshot or photo with local OCR. Copy the text or download a TXT file; your image is never uploaded.",
+    guide:
+      "Choose a clear screenshot or photo with visible text and extract it. The first use downloads recognition data; the image stays in your browser. Turn on higher accuracy for Japanese text, faint screenshots, and dense text. Complex columns may not keep their original reading order.",
+    related: ["/pdf/to-markdown", "/image/convert"],
   },
   "/image/favicon": {
     title: "Favicon Generator — Create favicon.ico & App Icons",

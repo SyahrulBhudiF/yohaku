@@ -704,6 +704,57 @@ const pictograms: Record<string, ReactNode> = {
       </g>
     </>
   ),
+  barcode: (
+    <>
+      <g className={shiftLeft}>
+        <rect x="14" y="29" width="9" height="38" fill={ink} />
+        <rect x="27" y="29" width="4" height="38" fill={ink} />
+        <rect x="35" y="29" width="7" height="38" fill={ink} />
+        <rect x="46" y="29" width="4" height="38" fill={ink} />
+        <rect x="54" y="29" width="9" height="38" fill={ink} />
+        <rect x="67" y="29" width="4" height="38" fill={ink} />
+        <rect x="75" y="29" width="7" height="38" fill={ink} />
+      </g>
+      <path d="M14 74h68" stroke={sage} strokeWidth="2" />
+      <g className="pic-scan" opacity="0">
+        <g className="pic-scan-line">
+          <path d="M10 32h76" stroke={paper} strokeWidth="4" />
+          <path d="M10 32h76" stroke={sand} strokeWidth="2" />
+        </g>
+      </g>
+    </>
+  ),
+  "image-to-text": (
+    <>
+      <g className={shiftLeft}>
+        <rect x="13" y="17" width="52" height="60" fill={sage} />
+        <rect x="19" y="24" width="40" height="34" fill={paper} />
+        <path d="M24 32h30M24 39h24M24 46h28" stroke={ink} strokeWidth="2" />
+      </g>
+      <g className={revealOutput}>
+        <rect x="53" y="41" width="30" height="38" fill={ink} stroke={paper} strokeWidth="3" />
+        <path
+          d="M60 50h16M60 57h11M60 64h14"
+          stroke={sand}
+          strokeWidth="3"
+          className="pic-imprint"
+        />
+      </g>
+      <path
+        d="M45 30h11m-4-4 4 4-4 4"
+        fill="none"
+        stroke={sand}
+        strokeWidth="3"
+        className={transfer}
+      />
+      <g className="pic-scan" opacity="0">
+        <g className="pic-scan-line">
+          <path d="M10 20h76" stroke={paper} strokeWidth="4" />
+          <path d="M10 20h76" stroke={sand} strokeWidth="2" />
+        </g>
+      </g>
+    </>
+  ),
   "social-media-downloader": (
     <>
       <rect x="16" y="16" width="47" height="43" fill={sage} />

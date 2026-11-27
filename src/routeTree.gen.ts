@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BarcodeRouteImport } from './routes/barcode'
 import { Route as QrCodeRouteImport } from './routes/qr-code'
 import { Route as ExcelToPdfRouteImport } from './routes/excel/to-pdf'
 import { Route as ImageBatchCompressRouteImport } from './routes/image/batch-compress'
@@ -20,6 +21,7 @@ import { Route as ImageRemoveBackgroundRouteImport } from './routes/image/remove
 import { Route as ImageRemoveMetadataRouteImport } from './routes/image/remove-metadata'
 import { Route as ImageResizeRouteImport } from './routes/image/resize'
 import { Route as ImageToPdfRouteImport } from './routes/image/to-pdf'
+import { Route as ImageToTextRouteImport } from './routes/image/to-text'
 import { Route as ImageWatermarkRouteImport } from './routes/image/watermark'
 import { Route as MarkdownToPdfRouteImport } from './routes/markdown/to-pdf'
 import { Route as MarkdownToWordRouteImport } from './routes/markdown/to-word'
@@ -45,6 +47,11 @@ import { Route as WordToPdfRouteImport } from './routes/word/to-pdf'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BarcodeRoute = BarcodeRouteImport.update({
+  id: '/barcode',
+  path: '/barcode',
   getParentRoute: () => rootRouteImport,
 } as any)
 const QrCodeRoute = QrCodeRouteImport.update({
@@ -95,6 +102,11 @@ const ImageResizeRoute = ImageResizeRouteImport.update({
 const ImageToPdfRoute = ImageToPdfRouteImport.update({
   id: '/image/to-pdf',
   path: '/image/to-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImageToTextRoute = ImageToTextRouteImport.update({
+  id: '/image/to-text',
+  path: '/image/to-text',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImageWatermarkRoute = ImageWatermarkRouteImport.update({
@@ -205,6 +217,7 @@ const WordToPdfRoute = WordToPdfRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/barcode': typeof BarcodeRoute
   '/qr-code': typeof QrCodeRoute
   '/excel/to-pdf': typeof ExcelToPdfRoute
   '/image/batch-compress': typeof ImageBatchCompressRoute
@@ -215,6 +228,7 @@ export interface FileRoutesByFullPath {
   '/image/remove-metadata': typeof ImageRemoveMetadataRoute
   '/image/resize': typeof ImageResizeRoute
   '/image/to-pdf': typeof ImageToPdfRoute
+  '/image/to-text': typeof ImageToTextRoute
   '/image/watermark': typeof ImageWatermarkRoute
   '/markdown/to-pdf': typeof MarkdownToPdfRoute
   '/markdown/to-word': typeof MarkdownToWordRoute
@@ -239,6 +253,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/barcode': typeof BarcodeRoute
   '/qr-code': typeof QrCodeRoute
   '/excel/to-pdf': typeof ExcelToPdfRoute
   '/image/batch-compress': typeof ImageBatchCompressRoute
@@ -249,6 +264,7 @@ export interface FileRoutesByTo {
   '/image/remove-metadata': typeof ImageRemoveMetadataRoute
   '/image/resize': typeof ImageResizeRoute
   '/image/to-pdf': typeof ImageToPdfRoute
+  '/image/to-text': typeof ImageToTextRoute
   '/image/watermark': typeof ImageWatermarkRoute
   '/markdown/to-pdf': typeof MarkdownToPdfRoute
   '/markdown/to-word': typeof MarkdownToWordRoute
@@ -274,6 +290,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/barcode': typeof BarcodeRoute
   '/qr-code': typeof QrCodeRoute
   '/excel/to-pdf': typeof ExcelToPdfRoute
   '/image/batch-compress': typeof ImageBatchCompressRoute
@@ -284,6 +301,7 @@ export interface FileRoutesById {
   '/image/remove-metadata': typeof ImageRemoveMetadataRoute
   '/image/resize': typeof ImageResizeRoute
   '/image/to-pdf': typeof ImageToPdfRoute
+  '/image/to-text': typeof ImageToTextRoute
   '/image/watermark': typeof ImageWatermarkRoute
   '/markdown/to-pdf': typeof MarkdownToPdfRoute
   '/markdown/to-word': typeof MarkdownToWordRoute
@@ -310,6 +328,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/barcode'
     | '/qr-code'
     | '/excel/to-pdf'
     | '/image/batch-compress'
@@ -320,6 +339,7 @@ export interface FileRouteTypes {
     | '/image/remove-metadata'
     | '/image/resize'
     | '/image/to-pdf'
+    | '/image/to-text'
     | '/image/watermark'
     | '/markdown/to-pdf'
     | '/markdown/to-word'
@@ -344,6 +364,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/barcode'
     | '/qr-code'
     | '/excel/to-pdf'
     | '/image/batch-compress'
@@ -354,6 +375,7 @@ export interface FileRouteTypes {
     | '/image/remove-metadata'
     | '/image/resize'
     | '/image/to-pdf'
+    | '/image/to-text'
     | '/image/watermark'
     | '/markdown/to-pdf'
     | '/markdown/to-word'
@@ -378,6 +400,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/barcode'
     | '/qr-code'
     | '/excel/to-pdf'
     | '/image/batch-compress'
@@ -388,6 +411,7 @@ export interface FileRouteTypes {
     | '/image/remove-metadata'
     | '/image/resize'
     | '/image/to-pdf'
+    | '/image/to-text'
     | '/image/watermark'
     | '/markdown/to-pdf'
     | '/markdown/to-word'
@@ -413,6 +437,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BarcodeRoute: typeof BarcodeRoute
   QrCodeRoute: typeof QrCodeRoute
   ExcelToPdfRoute: typeof ExcelToPdfRoute
   ImageBatchCompressRoute: typeof ImageBatchCompressRoute
@@ -423,6 +448,7 @@ export interface RootRouteChildren {
   ImageRemoveMetadataRoute: typeof ImageRemoveMetadataRoute
   ImageResizeRoute: typeof ImageResizeRoute
   ImageToPdfRoute: typeof ImageToPdfRoute
+  ImageToTextRoute: typeof ImageToTextRoute
   ImageWatermarkRoute: typeof ImageWatermarkRoute
   MarkdownToPdfRoute: typeof MarkdownToPdfRoute
   MarkdownToWordRoute: typeof MarkdownToWordRoute
@@ -453,6 +479,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/barcode': {
+      id: '/barcode'
+      path: '/barcode'
+      fullPath: '/barcode'
+      preLoaderRoute: typeof BarcodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/qr-code': {
@@ -523,6 +556,13 @@ declare module '@tanstack/react-router' {
       path: '/image/to-pdf'
       fullPath: '/image/to-pdf'
       preLoaderRoute: typeof ImageToPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/image/to-text': {
+      id: '/image/to-text'
+      path: '/image/to-text'
+      fullPath: '/image/to-text'
+      preLoaderRoute: typeof ImageToTextRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/image/watermark': {
@@ -677,6 +717,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BarcodeRoute: BarcodeRoute,
   QrCodeRoute: QrCodeRoute,
   ExcelToPdfRoute: ExcelToPdfRoute,
   ImageBatchCompressRoute: ImageBatchCompressRoute,
@@ -687,6 +728,7 @@ const rootRouteChildren: RootRouteChildren = {
   ImageRemoveMetadataRoute: ImageRemoveMetadataRoute,
   ImageResizeRoute: ImageResizeRoute,
   ImageToPdfRoute: ImageToPdfRoute,
+  ImageToTextRoute: ImageToTextRoute,
   ImageWatermarkRoute: ImageWatermarkRoute,
   MarkdownToPdfRoute: MarkdownToPdfRoute,
   MarkdownToWordRoute: MarkdownToWordRoute,

@@ -1,7 +1,10 @@
 export type ToolCategory = "image" | "pdf" | "document" | "media"
 
-// Enter and leave this tool with a document navigation so only OCR is isolated.
-export const ISOLATED_OCR_PATH = "/pdf/to-markdown"
+// Enter and leave these tools with a document navigation so only OCR is isolated.
+export const ISOLATED_OCR_PATHS = ["/pdf/to-markdown", "/image/to-text"] as const
+
+export const isIsolatedOcrPath = (path: string | null | undefined) =>
+  path !== null && path !== undefined && (ISOLATED_OCR_PATHS as readonly string[]).includes(path)
 
 export interface ToolDefinition {
   readonly id: string
@@ -40,6 +43,8 @@ export interface ToolDefinition {
     | "/media/video-to-gif"
     | "/media/social-downloader"
     | "/qr-code"
+    | "/barcode"
+    | "/image/to-text"
     | null
 }
 
@@ -51,6 +56,13 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     description: "Create downloadable QR codes or read a QR code from an image.",
     category: "image",
     to: "/qr-code",
+  },
+  {
+    id: "barcode",
+    title: "Barcode generator & reader",
+    description: "Create Code 128, EAN-13 or UPC-A barcodes, or read one from an image.",
+    category: "image",
+    to: "/barcode",
   },
   {
     id: "image-convert",
@@ -79,6 +91,13 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     description: "Change dimensions, crop, rotate, or flip an image without losing quality.",
     category: "image",
     to: "/image/resize",
+  },
+  {
+    id: "image-to-text",
+    title: "Image to text (OCR)",
+    description: "Extract editable text from a screenshot or photo with local OCR.",
+    category: "image",
+    to: "/image/to-text",
   },
   {
     id: "favicon-generator",
@@ -233,7 +252,7 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     title: "PDF to Markdown",
     description: "Convert PDF pages to Markdown, including scanned pages with local OCR.",
     category: "pdf",
-    to: ISOLATED_OCR_PATH,
+    to: "/pdf/to-markdown",
   },
   {
     id: "powerpoint-to-pdf",

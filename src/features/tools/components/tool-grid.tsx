@@ -4,7 +4,7 @@ import { useState } from "react"
 
 import { Input } from "@/components/ui/input"
 import { cn } from "@/libs/utils/cn"
-import { ISOLATED_OCR_PATH, TOOLS, type ToolCategory, type ToolDefinition } from "../registry"
+import { isIsolatedOcrPath, TOOLS, type ToolCategory, type ToolDefinition } from "../registry"
 import { ToolPictogram } from "./tool-pictogram"
 
 const SECTIONS: ReadonlyArray<{
@@ -58,6 +58,8 @@ const CATEGORY_ITEMS: ReadonlyArray<{
 
 const JAPANESE_TITLES: Record<string, string> = {
   "qr-code": "QRコード作成・読取",
+  barcode: "バーコード作成・読取",
+  "image-to-text": "画像からテキストへ",
   "image-convert": "画像の変換",
   "image-compress": "画像の圧縮",
   "image-batch-compress": "画像の一括圧縮",
@@ -139,7 +141,7 @@ function ToolCard({
   return tool.to ? (
     <Link
       to={tool.to}
-      reloadDocument={tool.to === ISOLATED_OCR_PATH}
+      reloadDocument={isIsolatedOcrPath(tool.to)}
       aria-label={tool.title}
       className="tool-card-link rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
     >

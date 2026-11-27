@@ -16,7 +16,7 @@ import {
   type QrCodeFormValues,
 } from "@/libs/schemas/qr"
 import { generateQrCode, scanQrCodeImage } from "../process"
-import { useCopyText } from "../use-copy-text"
+import { useCopyText } from "@/libs/utils/use-copy-text"
 
 const QR_FORMAT_LABEL: Record<QrCodeFormat, string> = {
   png: "PNG image",
@@ -49,7 +49,7 @@ export function QrCodePage() {
         </p>
       </ToolPageHeader>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid items-start gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
