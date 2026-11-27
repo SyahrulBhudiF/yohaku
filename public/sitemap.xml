@@ -4,6 +4,7 @@
   <url><loc>https://yohaku.ryuko.my.id/qr-code</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/barcode</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/image/convert</loc></url>
+  <url><loc>https://yohaku.ryuko.my.id/image/svg-to-image</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/image/compress</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/image/batch-compress</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/image/resize</loc></url>
@@ -25,6 +26,7 @@
   <url><loc>https://yohaku.ryuko.my.id/pdf/sign</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/pdf/annotate</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/excel/to-pdf</loc></url>
+  <url><loc>https://yohaku.ryuko.my.id/csv-excel</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/word/to-pdf</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/markdown/to-word</loc></url>
   <url><loc>https://yohaku.ryuko.my.id/markdown/to-pdf</loc></url>

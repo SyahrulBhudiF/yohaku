@@ -30,6 +30,14 @@ const CONTENT: Record<
       "Choose a HEIC, HEIF or other supported image, select JPG or another output format, and download the converted file. Use JPG for photos, PNG when you need transparency, or WebP for web delivery. The SVG option traces shapes and works best with simple artwork.",
     related: ["/image/compress", "/image/resize"],
   },
+  "/image/svg-to-image": {
+    title: "SVG to PNG Converter — Convert SVG to PNG or WebP",
+    description:
+      "Convert SVG files to PNG or WebP at a chosen width. Transparent backgrounds are preserved and external references are blocked. Everything runs in your browser.",
+    guide:
+      "Choose a self-contained SVG, set the output width, and download a PNG or WebP. The height follows the SVG's aspect ratio. SVGs that reference external images, fonts, or stylesheets are rejected so the result stays predictable and private.",
+    related: ["/image/convert", "/image/compress"],
+  },
   "/image/compress": {
     title: "Compress Images Online — HEIC, JPG, PNG & WebP",
     description:
@@ -197,6 +205,14 @@ const CONTENT: Record<
     guide:
       "Select an XLSX workbook and choose the paper size and orientation. Landscape gives wide tables more room. This is a table export, not an exact replica of the spreadsheet: charts and merged-cell layout are not preserved.",
     related: ["/pdf/to-excel", "/pdf/merge"],
+  },
+  "/csv-excel": {
+    title: "CSV to Excel Converter — Convert CSV to XLSX or Excel to CSV",
+    description:
+      "Convert CSV files to Excel XLSX workbooks, or export a selected worksheet from an Excel workbook as CSV. Files stay in your browser.",
+    guide:
+      "Choose CSV to Excel to turn a comma-separated file into a workbook, or Excel to CSV to export one worksheet. The first CSV row becomes the header row. Excel-to-CSV output uses UTF-8 with a BOM so Excel opens it correctly.",
+    related: ["/excel/to-pdf", "/pdf/to-excel"],
   },
   "/word/to-pdf": {
     title: "Word to PDF Converter — Convert DOCX to PDF",

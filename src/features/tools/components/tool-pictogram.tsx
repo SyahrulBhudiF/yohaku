@@ -164,6 +164,58 @@ const pictograms: Record<string, ReactNode> = {
       />
     </>
   ),
+  "svg-to-image": (
+    <>
+      <g className={shiftLeft}>
+        <rect x="12" y="14" width="46" height="58" fill={sage} />
+        <path
+          d="M25 31c8-9 17 9 25 0M25 45c8-9 17 9 25 0M25 59c8-9 17 9 25 0"
+          fill="none"
+          stroke={ink}
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+      </g>
+      <g className="pictogram-part pic-convert-output">
+        <rect x="46" y="40" width="34" height="32" fill={sand} />
+        <g className="pic-reveal">
+          <circle cx="55" cy="49" r="3" fill={paper} />
+          <path d="m50 65 9-12 5 6 3-4 5 10Z" fill={ink} />
+        </g>
+      </g>
+      <path
+        d="M45 30h27m-6-6 6 6-6 6"
+        fill="none"
+        stroke={ink}
+        strokeWidth="3"
+        className={transfer}
+      />
+    </>
+  ),
+  "csv-excel": (
+    <>
+      <g className={shiftLeft}>
+        <rect x="11" y="13" width="46" height="62" fill={paper} stroke={ink} strokeWidth="2" />
+        <rect x="11" y="13" width="46" height="12" fill={sage} />
+        <path d="M19 35h30M19 43h30M19 51h30M19 59h30M11 31h46" stroke={ink} strokeWidth="1.5" />
+        <path d="M27 13v62M42 13v62" stroke={ink} strokeWidth="1.5" />
+      </g>
+      <g className="pictogram-part pic-convert-output">
+        <rect x="47" y="34" width="35" height="40" fill={sand} />
+        <path d="M54 44h21M54 52h21M54 60h14" stroke={ink} strokeWidth="2.5" />
+        <g className="pic-reveal">
+          <path d="M58 68h12" stroke={ink} strokeWidth="2.5" />
+        </g>
+      </g>
+      <path
+        d="M44 28h25m-6-6 6 6-6 6"
+        fill="none"
+        stroke={ink}
+        strokeWidth="3"
+        className={transfer}
+      />
+    </>
+  ),
   "image-watermark": (
     <>
       <rect x="12" y="14" width="72" height="68" fill={sage} />

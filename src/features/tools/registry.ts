@@ -21,6 +21,7 @@ export interface ToolDefinition {
     | "/image/remove-metadata"
     | "/image/to-pdf"
     | "/image/remove-background"
+    | "/image/svg-to-image"
     | "/pdf/merge"
     | "/pdf/compress"
     | "/pdf/extract"
@@ -39,6 +40,7 @@ export interface ToolDefinition {
     | "/word/to-markdown"
     | "/pdf/to-markdown"
     | "/powerpoint/to-pdf"
+    | "/csv-excel"
     | "/media/video-to-mp3"
     | "/media/video-to-gif"
     | "/media/social-downloader"
@@ -70,6 +72,13 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     description: "Convert HEIC, JPEG, PNG, WebP, AVIF, GIF and TIFF, or trace to SVG.",
     category: "image",
     to: "/image/convert",
+  },
+  {
+    id: "svg-to-image",
+    title: "SVG to PNG / WebP",
+    description: "Rasterize a self-contained SVG at a chosen width, with transparency.",
+    category: "image",
+    to: "/image/svg-to-image",
   },
   {
     id: "image-compress",
@@ -217,6 +226,13 @@ export const TOOLS: ReadonlyArray<ToolDefinition> = [
     description: "Turn every sheet into a clean, printable PDF table.",
     category: "document",
     to: "/excel/to-pdf",
+  },
+  {
+    id: "csv-excel",
+    title: "CSV ↔ Excel",
+    description: "Convert CSV to XLSX, or export one worksheet as CSV.",
+    category: "document",
+    to: "/csv-excel",
   },
   {
     id: "word-to-pdf",

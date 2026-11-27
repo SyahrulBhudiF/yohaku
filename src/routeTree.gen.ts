@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BarcodeRouteImport } from './routes/barcode'
+import { Route as CsvExcelRouteImport } from './routes/csv-excel'
 import { Route as QrCodeRouteImport } from './routes/qr-code'
 import { Route as ExcelToPdfRouteImport } from './routes/excel/to-pdf'
 import { Route as ImageBatchCompressRouteImport } from './routes/image/batch-compress'
@@ -20,6 +21,7 @@ import { Route as ImageFaviconRouteImport } from './routes/image/favicon'
 import { Route as ImageRemoveBackgroundRouteImport } from './routes/image/remove-background'
 import { Route as ImageRemoveMetadataRouteImport } from './routes/image/remove-metadata'
 import { Route as ImageResizeRouteImport } from './routes/image/resize'
+import { Route as ImageSvgToImageRouteImport } from './routes/image/svg-to-image'
 import { Route as ImageToPdfRouteImport } from './routes/image/to-pdf'
 import { Route as ImageToTextRouteImport } from './routes/image/to-text'
 import { Route as ImageWatermarkRouteImport } from './routes/image/watermark'
@@ -52,6 +54,11 @@ const IndexRoute = IndexRouteImport.update({
 const BarcodeRoute = BarcodeRouteImport.update({
   id: '/barcode',
   path: '/barcode',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CsvExcelRoute = CsvExcelRouteImport.update({
+  id: '/csv-excel',
+  path: '/csv-excel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const QrCodeRoute = QrCodeRouteImport.update({
@@ -97,6 +104,11 @@ const ImageRemoveMetadataRoute = ImageRemoveMetadataRouteImport.update({
 const ImageResizeRoute = ImageResizeRouteImport.update({
   id: '/image/resize',
   path: '/image/resize',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImageSvgToImageRoute = ImageSvgToImageRouteImport.update({
+  id: '/image/svg-to-image',
+  path: '/image/svg-to-image',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImageToPdfRoute = ImageToPdfRouteImport.update({
@@ -218,6 +230,7 @@ const WordToPdfRoute = WordToPdfRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/barcode': typeof BarcodeRoute
+  '/csv-excel': typeof CsvExcelRoute
   '/qr-code': typeof QrCodeRoute
   '/excel/to-pdf': typeof ExcelToPdfRoute
   '/image/batch-compress': typeof ImageBatchCompressRoute
@@ -227,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
   '/image/remove-metadata': typeof ImageRemoveMetadataRoute
   '/image/resize': typeof ImageResizeRoute
+  '/image/svg-to-image': typeof ImageSvgToImageRoute
   '/image/to-pdf': typeof ImageToPdfRoute
   '/image/to-text': typeof ImageToTextRoute
   '/image/watermark': typeof ImageWatermarkRoute
@@ -254,6 +268,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/barcode': typeof BarcodeRoute
+  '/csv-excel': typeof CsvExcelRoute
   '/qr-code': typeof QrCodeRoute
   '/excel/to-pdf': typeof ExcelToPdfRoute
   '/image/batch-compress': typeof ImageBatchCompressRoute
@@ -263,6 +278,7 @@ export interface FileRoutesByTo {
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
   '/image/remove-metadata': typeof ImageRemoveMetadataRoute
   '/image/resize': typeof ImageResizeRoute
+  '/image/svg-to-image': typeof ImageSvgToImageRoute
   '/image/to-pdf': typeof ImageToPdfRoute
   '/image/to-text': typeof ImageToTextRoute
   '/image/watermark': typeof ImageWatermarkRoute
@@ -291,6 +307,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/barcode': typeof BarcodeRoute
+  '/csv-excel': typeof CsvExcelRoute
   '/qr-code': typeof QrCodeRoute
   '/excel/to-pdf': typeof ExcelToPdfRoute
   '/image/batch-compress': typeof ImageBatchCompressRoute
@@ -300,6 +317,7 @@ export interface FileRoutesById {
   '/image/remove-background': typeof ImageRemoveBackgroundRoute
   '/image/remove-metadata': typeof ImageRemoveMetadataRoute
   '/image/resize': typeof ImageResizeRoute
+  '/image/svg-to-image': typeof ImageSvgToImageRoute
   '/image/to-pdf': typeof ImageToPdfRoute
   '/image/to-text': typeof ImageToTextRoute
   '/image/watermark': typeof ImageWatermarkRoute
@@ -329,6 +347,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/barcode'
+    | '/csv-excel'
     | '/qr-code'
     | '/excel/to-pdf'
     | '/image/batch-compress'
@@ -338,6 +357,7 @@ export interface FileRouteTypes {
     | '/image/remove-background'
     | '/image/remove-metadata'
     | '/image/resize'
+    | '/image/svg-to-image'
     | '/image/to-pdf'
     | '/image/to-text'
     | '/image/watermark'
@@ -365,6 +385,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/barcode'
+    | '/csv-excel'
     | '/qr-code'
     | '/excel/to-pdf'
     | '/image/batch-compress'
@@ -374,6 +395,7 @@ export interface FileRouteTypes {
     | '/image/remove-background'
     | '/image/remove-metadata'
     | '/image/resize'
+    | '/image/svg-to-image'
     | '/image/to-pdf'
     | '/image/to-text'
     | '/image/watermark'
@@ -401,6 +423,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/barcode'
+    | '/csv-excel'
     | '/qr-code'
     | '/excel/to-pdf'
     | '/image/batch-compress'
@@ -410,6 +433,7 @@ export interface FileRouteTypes {
     | '/image/remove-background'
     | '/image/remove-metadata'
     | '/image/resize'
+    | '/image/svg-to-image'
     | '/image/to-pdf'
     | '/image/to-text'
     | '/image/watermark'
@@ -438,6 +462,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BarcodeRoute: typeof BarcodeRoute
+  CsvExcelRoute: typeof CsvExcelRoute
   QrCodeRoute: typeof QrCodeRoute
   ExcelToPdfRoute: typeof ExcelToPdfRoute
   ImageBatchCompressRoute: typeof ImageBatchCompressRoute
@@ -447,6 +472,7 @@ export interface RootRouteChildren {
   ImageRemoveBackgroundRoute: typeof ImageRemoveBackgroundRoute
   ImageRemoveMetadataRoute: typeof ImageRemoveMetadataRoute
   ImageResizeRoute: typeof ImageResizeRoute
+  ImageSvgToImageRoute: typeof ImageSvgToImageRoute
   ImageToPdfRoute: typeof ImageToPdfRoute
   ImageToTextRoute: typeof ImageToTextRoute
   ImageWatermarkRoute: typeof ImageWatermarkRoute
@@ -486,6 +512,13 @@ declare module '@tanstack/react-router' {
       path: '/barcode'
       fullPath: '/barcode'
       preLoaderRoute: typeof BarcodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/csv-excel': {
+      id: '/csv-excel'
+      path: '/csv-excel'
+      fullPath: '/csv-excel'
+      preLoaderRoute: typeof CsvExcelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/qr-code': {
@@ -549,6 +582,13 @@ declare module '@tanstack/react-router' {
       path: '/image/resize'
       fullPath: '/image/resize'
       preLoaderRoute: typeof ImageResizeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/image/svg-to-image': {
+      id: '/image/svg-to-image'
+      path: '/image/svg-to-image'
+      fullPath: '/image/svg-to-image'
+      preLoaderRoute: typeof ImageSvgToImageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/image/to-pdf': {
@@ -718,6 +758,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BarcodeRoute: BarcodeRoute,
+  CsvExcelRoute: CsvExcelRoute,
   QrCodeRoute: QrCodeRoute,
   ExcelToPdfRoute: ExcelToPdfRoute,
   ImageBatchCompressRoute: ImageBatchCompressRoute,
@@ -727,6 +768,7 @@ const rootRouteChildren: RootRouteChildren = {
   ImageRemoveBackgroundRoute: ImageRemoveBackgroundRoute,
   ImageRemoveMetadataRoute: ImageRemoveMetadataRoute,
   ImageResizeRoute: ImageResizeRoute,
+  ImageSvgToImageRoute: ImageSvgToImageRoute,
   ImageToPdfRoute: ImageToPdfRoute,
   ImageToTextRoute: ImageToTextRoute,
   ImageWatermarkRoute: ImageWatermarkRoute,

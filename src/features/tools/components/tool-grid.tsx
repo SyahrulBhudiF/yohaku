@@ -20,7 +20,7 @@ const SECTIONS: ReadonlyArray<{
     label: "Image",
     japanese: "画像",
     description:
-      "Convert, compress, resize, watermark, clean metadata, create icons, and turn images into PDFs.",
+      "Convert, compress, resize, watermark, clean metadata, create icons, rasterize SVG, and turn images into PDFs.",
   },
   {
     id: "pdf",
@@ -61,6 +61,7 @@ const JAPANESE_TITLES: Record<string, string> = {
   barcode: "バーコード作成・読取",
   "image-to-text": "画像からテキストへ",
   "image-convert": "画像の変換",
+  "svg-to-image": "SVGから画像へ",
   "image-compress": "画像の圧縮",
   "image-batch-compress": "画像の一括圧縮",
   "image-resize": "画像のリサイズ",
@@ -81,6 +82,7 @@ const JAPANESE_TITLES: Record<string, string> = {
   "pdf-sign": "PDFに署名",
   "pdf-annotate": "ページ番号と透かし",
   "excel-to-pdf": "ExcelからPDFへ",
+  "csv-excel": "CSVとExcelの変換",
   "word-to-pdf": "WordからPDFへ",
   "powerpoint-to-pdf": "PowerPointからPDFへ",
   "markdown-to-word": "MarkdownからWordへ",
